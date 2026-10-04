@@ -22,3 +22,9 @@ design-review-*/
 fix-verification-*/
 product-review-*/
 design-qa.md
+
+# Local artwork drafts and unpublished preview archives
+/assets/
+/design/
+/website/artifacts/
+/ChatGPT 图像 *.png
