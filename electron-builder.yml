@@ -1,0 +1,62 @@
+appId: com.mdduck.desktop
+productName: MD Duck
+artifactName: MD-Duck-${version}-macOS-${arch}-local-test.${ext}
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+  - '!**/*.test.*'
+  - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
+  - '!node_modules/onnxruntime-node/bin/napi-v3/win32/**'
+  - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/**'
+asar: true
+asarUnpack:
+  - out/main/speech-worker*.js
+  - node_modules/onnxruntime-node/**
+  - node_modules/onnxruntime-common/**
+  - node_modules/sharp/**
+  - node_modules/@img/**
+  - node_modules/phonemizer/**
+extraResources:
+  - from: LICENSE
+    to: LICENSE
+  - from: NOTICE
+    to: NOTICE
+  - from: INSTALLING.md
+    to: INSTALLING.md
+  - from: examples
+    to: examples
+    filter:
+      - '**/*'
+      - '!**/.*'
+      - '!**/.review/**'
+  - from: build/third-party
+    to: third-party
+  - from: src/main/data/ipa-dict
+    to: third-party/ipa-dict
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  category: public.app-category.productivity
+  icon: src/main/icon.png
+  identity: '-'
+  hardenedRuntime: false
+  notarize: false
+  darkModeSupport: true
+dmg:
+  title: MD Duck - Local Test
+  contents:
+    - x: 150
+      y: 170
+      type: file
+    - x: 450
+      y: 170
+      type: link
+      path: /Applications
+publish: null

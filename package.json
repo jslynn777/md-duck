@@ -1,0 +1,52 @@
+{
+  "name": "md-duck",
+  "version": "0.1.0-beta.2",
+  "private": true,
+  "description": "本地 Markdown 查看和审阅",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "pack:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --dir --publish never",
+    "dist:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --publish never && node scripts/checksums.mjs",
+    "verify:mac": "node scripts/verify-mac-package.mjs",
+    "verify:speech": "ELECTRON_RUN_AS_NODE=1 \"release/mac-arm64/MD Duck.app/Contents/MacOS/MD Duck\" scripts/verify-speech-runtime.cjs \"release/mac-arm64/MD Duck.app/Contents/Resources/app.asar\""
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "kokoro-js": "^1.2.1",
+    "lucide-react": "^1.48.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^44.4.5",
+    "electron-builder": "26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "sharp": "0.35.5"
+  },
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jslynn777/md-duck.git"
+  },
+  "homepage": "https://mdduck.com",
+  "bugs": {
+    "url": "https://github.com/jslynn777/md-duck/issues"
+  }
+}

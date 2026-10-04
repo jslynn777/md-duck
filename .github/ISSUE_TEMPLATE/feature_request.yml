@@ -1,0 +1,21 @@
+name: Idea / 改进建议
+description: Share a reading or review workflow that could be easier / 分享阅读、审阅中可以改进的体验
+title: "[Idea]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What are you trying to do? / 你希望完成什么？
+      description: Describe a real reading or review situation. / 请描述实际阅读或审阅场景。
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What is difficult today? / 目前哪里不方便？
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement / 改进想法

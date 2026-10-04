@@ -1,0 +1,53 @@
+---
+import '../styles/global.css';
+import { alternatePath, localizePath, type Locale } from '../i18n';
+interface Props { title?: string; description?: string; noindex?: boolean; lang?: Locale }
+const { lang = 'zh', title: pageTitle, description: pageDescription, noindex = false } = Astro.props;
+const zh = lang === 'zh';
+const title = pageTitle ?? (zh ? 'MD Duck — 本地 Markdown 精读与审阅' : 'MD Duck — A local Markdown reader for close reading and review');
+const description = pageDescription ?? (zh ? '打开本地 Markdown，对照中英译文，理解英文，把意见留在原句旁。' : 'Open local Markdown, read English alongside Chinese, understand the text and leave review comments beside the passages.');
+const path = Astro.url.pathname;
+const home = localizePath('/', lang);
+const guide = localizePath('/guide/', lang);
+const download = localizePath('/download/', lang);
+const canonical = new URL(localizePath(path, lang), Astro.site);
+const other = alternatePath(path);
+---
+<!doctype html>
+<html lang={zh ? 'zh-CN' : 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#ffffff" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="zh-CN" href={new URL(localizePath(path, 'zh'), Astro.site)} />
+    <link rel="alternate" hreflang="en" href={new URL(localizePath(path, 'en'), Astro.site)} />
+    <link rel="alternate" hreflang="x-default" href={new URL(localizePath(path, 'zh'), Astro.site)} />
+    <link rel="icon" type="image/png" href="/images/duck.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={zh ? 'zh_CN' : 'en_US'} />
+    <meta property="og:locale:alternate" content={zh ? 'en_US' : 'zh_CN'} />
+    <meta property="og:site_name" content="MD Duck" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/images/reading.jpg', Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{zh ? '跳到正文' : 'Skip to content'}</a>
+    <header class="header-shell"><div class="site-header wrap">
+      <a class="brand" href={home} aria-label={zh ? 'MD Duck 首页' : 'MD Duck home'}><img src="/images/duck.png" width="32" height="32" alt="" /><span>MD Duck</span></a>
+      <div class="header-controls"><nav aria-label={zh ? '主导航' : 'Main navigation'}>
+        <a class="nav-features" href={`${home}#features`}>{zh ? '使用方式' : 'How it works'}</a>
+        <a href={guide} aria-current={path === guide ? 'page' : undefined}>{zh ? '使用指南' : 'Guide'}</a>
+        <a class="nav-download" href={download} aria-current={path === download ? 'page' : undefined}>{zh ? '下载' : 'Releases'}</a>
+      </nav><a class="language-switch" href={other} lang={zh ? 'en' : 'zh-CN'} hreflang={zh ? 'en' : 'zh-CN'} aria-label={zh ? 'Switch to English' : '切换到中文'}>{zh ? 'English' : '中文'}</a></div>
+    </div></header>
+    <main id="main"><slot /></main>
+    <footer class="site-footer wrap"><div class="footer-about"><a class="brand" href={home}><img src="/images/duck.png" width="28" height="28" alt="" /><span>MD Duck</span></a><p>{zh ? '读懂文章，把意见留在原句旁。' : 'Understand the article. Keep comments beside the text.'}</p></div><nav aria-label={zh ? '页脚导航' : 'Footer navigation'}><a href={guide}>{zh ? '使用指南' : 'User guide'}</a><a href={`${guide}#privacy`}>{zh ? '数据与隐私' : 'Data & privacy'}</a><a href={`${download}#source`}>{zh ? '开源与发布' : 'Source & releases'}</a></nav><span class="footer-domain">mdduck.com</span></footer>
+  </body>
+</html>

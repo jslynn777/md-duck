@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { release } from '../data/release';
+import { localizePath, type Locale } from '../i18n';
+interface Props { lang?: Locale }
+const { lang = 'zh' } = Astro.props;
+const en = lang === 'en';
+const available = release.status === 'published' && release.artifacts.length > 0;
+---
+<Layout lang={lang}
+  title={en ? 'Download · MD Duck' : '下载 · MD Duck'}
+  description={en ? 'Release status, installers, platform support and source code for MD Duck, a local Markdown reader for close reading and review.' : '查看本地 Markdown 精读与审阅工具 MD Duck 的版本、安装包、平台支持和源码发布状态。'}>
+  <header class="page-heading page-intro wrap">
+    <p class="eyebrow">{en ? 'Download' : '下载'}</p>
+    <h1>{available ? (en ? 'Download the free Mac beta.' : '免费下载 Mac 测试版。') : (en ? 'A free Mac beta is on its way.' : '免费测试版准备中。')}</h1>
+    <p>{available ? (en ? 'For Apple Silicon Macs. Read the installation notes below, then open a local Markdown file.' : '适用于 Apple Silicon Mac。先了解下方安装说明，再打开本地 Markdown 开始使用。') : (en ? 'The first beta is for Apple Silicon Macs. Public installers are still being prepared; verified files will appear here when ready.' : '首版面向 Apple Silicon Mac。公开安装包仍在准备，完成发布验证后，会在这里提供下载。')}</p>
+  </header>
+  <div class="release-layout download-layout wrap">
+    <section class="release-card status-panel" aria-labelledby="release-title">
+      <div class="release-topline"><span class="status-label">{en ? 'Free beta' : '免费测试版'}</span><span>v{release.version}</span></div>
+      <h2 id="release-title">MD Duck</h2>
+      <p>{en ? 'A local Markdown reader for close reading and review. Read English alongside Chinese, understand the text and leave comments beside the passages.' : '本地 Markdown 精读与审阅工具。对照中英译文，理解英文，把意见留在原句旁。'}</p>
+      {available ? <ul class="artifact-list">{release.artifacts.map(artifact => <li><a class="button button-dark" href={artifact.url}>{en ? 'Download' : '下载'} {artifact.label}</a><p>{artifact.platform} · {artifact.size}</p><details><summary>{en ? 'SHA-256 checksum' : '校验值 SHA-256'}</summary><code>{artifact.sha256}</code></details></li>)}</ul> : <div class="release-unavailable"><p>{en ? 'Public installers are being prepared' : '公开安装包准备中'}</p><span>{en ? 'No release file is available to download yet.' : '当前没有可下载的发布文件。'}</span></div>}
+      <div class="download-actions"><a class="button button-dark" href={localizePath('/guide/', lang)}>{en ? 'Read the guide' : '先看使用指南'}</a><a class="text-link" href="/examples/a-slower-morning.zip" download>{en ? 'Sample article' : '下载示例文章'} <span aria-hidden="true">↓</span></a></div>
+    </section>
+    <section class="release-progress" aria-labelledby="progress-title">
+      <p class="eyebrow">{en ? 'What is available today' : '当前进展'}</p>
+      <h2 id="progress-title">{en ? 'Where the project stands.' : '现在可以了解什么。'}</h2>
+      <ul>
+        <li><h3>{en ? 'Free to use' : '免费使用'}</h3><p>{en ? 'Reading, annotations, existing translations and local speech are free. AI explanations and translation are optional and use your own provider account and credit.' : '阅读、批注、已有译文对照和本地朗读免费使用。AI 解释与翻译按需连接，使用你自己的服务账户及额度。'}</p></li>
+        <li><h3>{en ? 'Apple Silicon Macs' : 'Apple Silicon Mac'}</h3><p>{en ? 'The first beta targets Macs with Apple chips (arm64). Checks have taken place on one Mac; Intel Macs, Windows and Linux have not been validated. Tested macOS versions will be listed with the release.' : '首版面向苹果芯片（arm64）Mac，目前在一台 Mac 上验证。Intel Mac、Windows 和 Linux 尚未验收；已测试的 macOS 版本会随发布文件说明。'}</p></li>
+        <li><h3>{en ? 'First launch on Mac' : 'Mac 首次打开'}</h3><p>{en ? 'This beta has no Apple Developer ID signature or notarization. macOS may block its first launch. If you trust the download source, follow the guide to allow this app in Privacy & Security.' : '测试版未使用 Apple Developer ID 签名，也未经过苹果公证。macOS 可能拦截首次启动。确认下载来源可信后，可按指南在「隐私与安全性」中允许打开此程序。'} <a class="text-link" href={`${localizePath('/guide/', lang)}#install`}>{en ? 'Installation guide' : '查看安装步骤'}</a></p></li>
+        <li><h3>{en ? 'Source and licenses' : '源码与许可'}</h3><p>{release.repositoryUrl ? (en ? 'The public repository is linked below. Refer to its license and third-party notices when using or contributing to the project.' : '公开仓库见下方链接，使用和参与项目时请查阅其中的许可证与第三方声明。') : (en ? 'The public repository, project license, and third-party notices are still being prepared.' : '公开仓库、项目许可证和第三方许可说明仍在整理。')}</p></li>
+      </ul>
+    </section>
+  </div>
+  <section class="source-section wrap" id="source" aria-labelledby="source-title">
+    <div><p class="eyebrow">{en ? 'Source code' : '开源'}</p><h2 id="source-title">{release.repositoryUrl ? (en ? 'Follow the project.' : '参与项目。') : (en ? 'The public repository is on its way.' : '源码公开也在准备。')}</h2></div>
+    <div><p>{release.repositoryUrl ? (en ? 'Read the code, explore the license, and share feedback through the public repository.' : '在公开仓库查看代码和许可证，或提交使用反馈。') : (en ? 'MD Duck is being prepared for an open-source release. This page will provide the repository, license, and a place for feedback once they are published.' : 'MD Duck 正在为开源发布做准备。仓库、许可证和反馈入口公开后，会在这里提供。')}</p>{release.repositoryUrl && <a class="text-link" href={release.repositoryUrl} target="_blank" rel="noopener noreferrer">{en ? 'View source code' : '查看源代码'} <span aria-hidden="true">↗</span></a>}</div>
+  </section>
+</Layout>

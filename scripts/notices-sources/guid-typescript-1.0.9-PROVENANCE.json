@@ -1,0 +1,48 @@
+{
+  "name": "guid-typescript",
+  "version": "1.0.9",
+  "registry": "https://registry.npmjs.org/guid-typescript/1.0.9",
+  "declaredLicense": "ISC",
+  "repository": {
+    "url": "git+https://github.com/NicolasDeveloper/guid-typescript.git",
+    "type": "git"
+  },
+  "publisherGitHead": "1870de806c3db7ba46c5b8a1387c60fc9dda9284",
+  "archive": {
+    "url": "https://registry.npmjs.org/guid-typescript/-/guid-typescript-1.0.9.tgz",
+    "sha256": "29775e81a4855bc391f853e9285508a465ee50da0ccb562559ae09412a3ababc",
+    "integrity": "sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ==",
+    "matchedPackageLock": true
+  },
+  "installedFiles": [
+    {
+      "file": "package.json",
+      "bytes": 950,
+      "sha256": "ed86856ee95fe87eadd8552b6803a85b7fb4f6cce08603bf9c8385972b5badb6"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1195,
+      "sha256": "6d9ba5789364c666984b657f56dc2343ad9ab8c93d0894b66be7a8ba4f51b8d8"
+    },
+    {
+      "file": "dist/guid.d.ts",
+      "bytes": 435,
+      "sha256": "9d917d09f6833256213a430fd0e4a0278e4116101616d3b6a1e83abadf3fb2e3"
+    },
+    {
+      "file": "dist/guid.js",
+      "bytes": 1969,
+      "sha256": "cc9ee817672ea380cdff2cfa4e8e734d6597eb153e7a9a9955a773495a5524a0"
+    }
+  ],
+  "fullLicenseText": "NOT_FOUND_IN_PUBLISHED_ARCHIVE_OR_CURRENT_UPSTREAM",
+  "upstreamReportedGitHeadCheck": {
+    "url": "https://api.github.com/repos/snico-dev/guid-typescript/git/trees/1870de806c3db7ba46c5b8a1387c60fc9dda9284",
+    "httpStatus": 422
+  },
+  "primaryOpenRequests": [
+    "https://github.com/snico-dev/guid-typescript/issues/7",
+    "https://github.com/snico-dev/guid-typescript/pull/30"
+  ]
+}

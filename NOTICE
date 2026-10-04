@@ -1,0 +1,31 @@
+MD Duck
+Copyright (C) 2026 MD Duck contributors
+
+MD Duck's original source code and documentation are free software: you can
+redistribute and/or modify them under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+MD Duck is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
+
+The full, unmodified GNU GPL version 3 text is in LICENSE. The project's
+version grant is GPL-3.0-or-later, rather than GPL-3.0-only.
+
+Third-party files, dependency packages, pronunciation data, upstream license
+texts, and source-provenance supplements retain their original copyright
+notices and individual licenses. This notice does not relicense them.
+In particular, src/main/data/ipa-dict/ and scripts/notices-sources/ contain
+upstream material with its own terms. See the notices next to those files.
+
+Installed dependency notices are regenerated locally with:
+  npm ci
+  node scripts/collect-notices.mjs
+
+This creates build/third-party/ and build/THIRD_PARTY_NOTICES.md; generated
+notice outputs and binary packages are not tracked in this source repository.
+Public binary redistribution requires checking the corresponding-source
+and other conditions recorded in docs/THIRD-PARTY-RELEASE-AUDIT.md.
+
+Project and issue tracker: https://github.com/jslynn777/md-duck

@@ -1,0 +1,42 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Content as ChineseGuide } from '../content/guide.md';
+import { Content as EnglishGuide } from '../content/guide.en.md';
+import { localizePath, type Locale } from '../i18n';
+import { release } from '../data/release';
+interface Props { lang?: Locale }
+const { lang = 'zh' } = Astro.props;
+const en = lang === 'en';
+const sections = [
+  ['install', en ? 'Install on Mac' : 'Mac 安装'],
+  ['open', en ? 'Open an article' : '打开文章'],
+  ['bilingual', en ? 'Read in two languages' : '双语对照'],
+  ['notes', en ? 'Add annotations' : '写批注'],
+  ['words', en ? 'Understand a word' : '理解单词'],
+  ['speech', en ? 'Listen as you read' : '英文朗读'],
+  ['ai-setup', en ? 'Connect an AI service' : '连接 AI 服务'],
+  ['privacy', en ? 'Data and network use' : '数据与联网'],
+  ['faq', en ? 'Common questions' : '常见问题'],
+];
+const Content = en ? EnglishGuide : ChineseGuide;
+---
+<Layout lang={lang}
+  title={en ? 'Guide · MD Duck' : '使用指南 · MD Duck'}
+  description={en ? 'Learn to use MD Duck, a local Markdown reader for close reading and review: open an article, read alongside a translation, annotate passages and check changes.' : '了解本地 Markdown 精读与审阅工具 MD Duck：从打开文章，到对照理解、原句批注和修改后复核。'}>
+  <header class="page-heading page-intro wrap">
+    <p class="eyebrow">{en ? 'Guide' : '使用指南'}</p>
+    <h1>{en ? 'Start with one article.' : '从一篇文章开始。'}</h1>
+    <p>{en ? 'Open a local Markdown file, read it alongside a translation and leave comments beside the text. After editing, open the comments to review the changes.' : '打开本地 Markdown，对照译文理解内容，把意见留在原句旁。修改后，打开批注检查改动。'}</p>
+  </header>
+  <div class="guide-layout wrap">
+    <aside class="guide-sidebar guide-toc">
+      <nav aria-label={en ? 'On this page' : '本页目录'}><p>{en ? 'On this page' : '本页内容'}</p>{sections.map(([id, label]) => <a href={`#${id}`}>{label}</a>)}</nav>
+      <a class="sample-link" href="/examples/a-slower-morning.zip" download>{en ? 'Download a bilingual sample' : '下载双语示例'} <span aria-hidden="true">↓</span></a>
+    </aside>
+    <article class="prose guide-content">
+      <p class="notice">{en ? `This guide covers the free ${release.version} beta. ` : `本指南对应免费测试版 ${release.version}。`}{release.status === 'preparing' && (en ? 'Public installers are still being prepared. ' : '公开安装包仍在准备。')}<a href={localizePath('/download/', lang)}>{en ? 'See release status' : '查看发布状态'}</a></p>
+      <Content />
+      <div class="guide-end"><p>{en ? 'Use the sample to try side-by-side reading and a comment on a passage.' : '用示例试试双语阅读，再给一句话留下批注。'}</p><a class="text-link" href="/examples/a-slower-morning.zip" download>{en ? 'Download the sample article' : '下载示例文章'} <span aria-hidden="true">↓</span></a></div>
+    </article>
+  </div>
+</Layout>

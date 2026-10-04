@@ -1,0 +1,43 @@
+name: Bug report / 问题反馈
+description: Report a reproducible problem in MD Duck / 提交可复现的问题
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MD Duck. Please remove API keys and private article content from screenshots or logs.
+        感谢帮助改进 MD Duck。截图或日志请先移除 API 密钥和私人文章内容。
+  - type: input
+    id: version
+    attributes:
+      label: MD Duck version / 软件版本
+      placeholder: 0.1.0-beta.2
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and chip / 系统与芯片
+      placeholder: macOS 15, Apple M3
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce / 重现步骤
+      description: A small sample Markdown file helps when the issue concerns reading or selection. / 阅读或选中问题可附最小示例 Markdown。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result / 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result / 实际结果
+      description: Screenshots and relevant error messages are welcome. / 可附截图与相关错误提示。
+    validations:
+      required: true

@@ -1,0 +1,707 @@
+[
+  {
+    "file": "espeak-ng-reference-1.52.0-COPYING",
+    "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING",
+    "appliesTo": [],
+    "kind": "license",
+    "referenceOnly": true,
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+  },
+  {
+    "file": "espeak-ng-reference-1.52.0-COPYING.APACHE",
+    "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING.APACHE",
+    "appliesTo": [],
+    "kind": "license",
+    "referenceOnly": true,
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+  },
+  {
+    "file": "espeak-ng-reference-1.52.0-COPYING.BSD2",
+    "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING.BSD2",
+    "appliesTo": [],
+    "kind": "license",
+    "referenceOnly": true,
+    "sha256": "a8b0c1c7d7af6c0415c068be8cf373799d1a42b0707b79dc4ccfcaf593cd902d",
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+  },
+  {
+    "file": "espeak-ng-reference-1.52.0-COPYING.UCD",
+    "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING.UCD",
+    "appliesTo": [],
+    "kind": "license",
+    "referenceOnly": true,
+    "sha256": "be029c50df83105a810e391778b6edcb522d6cb4b4e142332aca54437a499bf7",
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+  },
+  {
+    "file": "espeak-ng-reference-1.52.0-README.md",
+    "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/README.md",
+    "appliesTo": [],
+    "kind": "reference",
+    "referenceOnly": true,
+    "sha256": "765e894f83a47e2d003bd2256e86d1ae412e6e0078c3092d66ece293b051e278",
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+  },
+  {
+    "file": "LGPL-3.0.txt",
+    "source": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-15.1.0/COPYING3.LIB",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "kind": "license",
+    "referenceOnly": false,
+    "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+    "comment": "Verbatim GNU LGPL version 3 text preserved by the official GCC mirror; complements libvips source LGPL-2.1-or-later text and the prebuilt package declaration.",
+    "component": "vips",
+    "componentVersion": "8.18.7"
+  },
+  {
+    "file": "libvips-8.18.7-LICENSE",
+    "source": "https://raw.githubusercontent.com/libvips/libvips/v8.18.7/LICENSE",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "kind": "license",
+    "referenceOnly": false,
+    "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+    "comment": null,
+    "component": "vips",
+    "componentVersion": "8.18.7"
+  },
+  {
+    "file": "onnxruntime-1.21.0-LICENSE",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.21.0/LICENSE",
+    "appliesTo": [
+      "onnxruntime-node@1.21.0",
+      "onnxruntime-common@1.21.0"
+    ],
+    "kind": "license",
+    "referenceOnly": false,
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "comment": null
+  },
+  {
+    "file": "onnxruntime-1.21.0-ThirdPartyNotices.txt",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.21.0/ThirdPartyNotices.txt",
+    "appliesTo": [
+      "onnxruntime-node@1.21.0",
+      "onnxruntime-common@1.21.0"
+    ],
+    "kind": "notice",
+    "referenceOnly": false,
+    "sha256": "8c06e8cff286a4a117b3b246a4c7da68428a144af757823db50e3d6520941ec6",
+    "comment": null
+  },
+  {
+    "file": "onnxruntime-89f8206-LICENSE",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/89f8206ba4f1c22c39e0297fb55272e8ce8cd7d0/LICENSE",
+    "appliesTo": [
+      "onnxruntime-web@1.22.0-dev.20250409-89f8206ba4",
+      "onnxruntime-common@1.22.0-dev.20250409-89f8206ba4"
+    ],
+    "kind": "license",
+    "referenceOnly": false,
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "comment": null
+  },
+  {
+    "file": "onnxruntime-89f8206-ThirdPartyNotices.txt",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/89f8206ba4f1c22c39e0297fb55272e8ce8cd7d0/ThirdPartyNotices.txt",
+    "appliesTo": [
+      "onnxruntime-web@1.22.0-dev.20250409-89f8206ba4",
+      "onnxruntime-common@1.22.0-dev.20250409-89f8206ba4"
+    ],
+    "kind": "notice",
+    "referenceOnly": false,
+    "sha256": "e9e90971a8e75a9a8ac0c6412e29c1202d079998389915aa485f46c816c3b4cc",
+    "comment": null
+  },
+  {
+    "file": "sharp-libvips-ebb95f8-THIRD-PARTY-NOTICES.md",
+    "source": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/THIRD-PARTY-NOTICES.md",
+    "kind": "notice",
+    "sha256": "6f0d5086e3bcbee12bcdacf5878b31d1104002aeecaeb241d3fff466108082fe",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned to exact npm publisher gitHead. Build/source evidence, not a declaration that all corresponding source or licensing obligations are complete."
+  },
+  {
+    "file": "sharp-libvips-ebb95f8-versions.properties",
+    "source": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/versions.properties",
+    "kind": "reference",
+    "sha256": "c0ad634f7c2ac8994f831dd0bcb5c60043db7ba4ddd9cc2dbc3703b15f4ec7e5",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned to exact npm publisher gitHead. Build/source evidence, not a declaration that all corresponding source or licensing obligations are complete."
+  },
+  {
+    "file": "sharp-libvips-ebb95f8-posix.sh",
+    "source": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/posix.sh",
+    "kind": "reference",
+    "sha256": "333031b3b49bf1a16d0b9d6812d98f67c404218932ef8c0b389388524a524b36",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned to exact npm publisher gitHead. Build/source evidence, not a declaration that all corresponding source or licensing obligations are complete."
+  },
+  {
+    "file": "phonemizer-6835144-rollup.config.js",
+    "source": "https://raw.githubusercontent.com/xenova/phonemizer.js/6835144b7ee9043129222549c1ed2f6a27216278/rollup.config.js",
+    "kind": "reference",
+    "sha256": "3774ed7c1739f44b4bcc6caaf72d72122bc9850e50c6e990aa561b1812d28b24",
+    "appliesTo": [
+      "phonemizer@1.2.1"
+    ],
+    "comment": "Pinned to exact npm publisher gitHead. Build/source evidence, not a declaration that all corresponding source or licensing obligations are complete."
+  },
+  {
+    "file": "native-archive-v3.8.9-COPYING",
+    "source": "https://raw.githubusercontent.com/libarchive/libarchive/v3.8.9/COPYING",
+    "kind": "license",
+    "sha256": "30e556b3959e3985d66efefec5eaac51d4995053caa1d3cffe6eb916f146f229",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "archive",
+    "componentVersion": "3.8.9",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-cgif-v0.5.4-LICENSE",
+    "source": "https://raw.githubusercontent.com/dloebl/cgif/v0.5.4/LICENSE",
+    "kind": "license",
+    "sha256": "7264dede477abab4ac3fe8236beb8153845c04ccd33b18f281085087e219fc6d",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "cgif",
+    "componentVersion": "0.5.4",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-exif-v0.6.26-COPYING",
+    "source": "https://raw.githubusercontent.com/libexif/libexif/v0.6.26/COPYING",
+    "kind": "license",
+    "sha256": "36b6d3fa47916943fd5fec313c584784946047ec1337a78b440e5992cb595f89",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "exif",
+    "componentVersion": "0.6.26",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-expat-R_2_8_5-expat_COPYING",
+    "source": "https://raw.githubusercontent.com/libexpat/libexpat/R_2_8_5/expat/COPYING",
+    "kind": "license",
+    "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "expat",
+    "componentVersion": "2.8.5",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-ffi-v3.8.0-LICENSE",
+    "source": "https://raw.githubusercontent.com/libffi/libffi/v3.8.0/LICENSE",
+    "kind": "license",
+    "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "ffi",
+    "componentVersion": "3.8.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-freetype-VER-2-14-3-docs_FTL.TXT",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-14-3/docs/FTL.TXT",
+    "kind": "license",
+    "sha256": "5a5ee54c5001bbad1cdc1a57cc3dd4c42199b2da09d39c7ee41fab002d02967f",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "freetype",
+    "componentVersion": "2.14.3",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-fribidi-v1.0.17-COPYING",
+    "source": "https://raw.githubusercontent.com/fribidi/fribidi/v1.0.17/COPYING",
+    "kind": "license",
+    "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "fribidi",
+    "componentVersion": "1.0.17",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-glib-2.90.0-LICENSES_LGPL-2.1-or-later.txt",
+    "source": "https://raw.githubusercontent.com/GNOME/glib/2.90.0/LICENSES/LGPL-2.1-or-later.txt",
+    "kind": "license",
+    "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "glib",
+    "componentVersion": "2.90.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-harfbuzz-14.5.0-COPYING",
+    "source": "https://raw.githubusercontent.com/harfbuzz/harfbuzz/14.5.0/COPYING",
+    "kind": "license",
+    "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "harfbuzz",
+    "componentVersion": "14.5.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-heif-v1.23.5-COPYING",
+    "source": "https://raw.githubusercontent.com/strukturag/libheif/v1.23.5/COPYING",
+    "kind": "license",
+    "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "heif",
+    "componentVersion": "1.23.5",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-highway-1.4.0-LICENSE",
+    "source": "https://raw.githubusercontent.com/google/highway/1.4.0/LICENSE",
+    "kind": "license",
+    "sha256": "e340270d4f64384569a91d546acb5b094d69ce47f0c015db77abb74dc6f815af",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "highway",
+    "componentVersion": "1.4.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-imagequant-v2.4.1-COPYRIGHT",
+    "source": "https://raw.githubusercontent.com/lovell/libimagequant/v2.4.1/COPYRIGHT",
+    "kind": "license",
+    "sha256": "7391bfbcde4404cefb9849553362c3ab436f929f5cc1abb57071ec045590ee99",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "imagequant",
+    "componentVersion": "2.4.1",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-mozjpeg-0826579-LICENSE.md",
+    "source": "https://raw.githubusercontent.com/mozilla/mozjpeg/0826579/LICENSE.md",
+    "kind": "license",
+    "sha256": "96f5b328adbb78eeaaec6980d73fd558cb1e4d62560ed615646bc3cf5e532430",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "mozjpeg",
+    "componentVersion": "0826579",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-pango-1.58.2-COPYING",
+    "source": "https://raw.githubusercontent.com/GNOME/pango/1.58.2/COPYING",
+    "kind": "license",
+    "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "pango",
+    "componentVersion": "1.58.2",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-png-v1.6.58-LICENSE",
+    "source": "https://raw.githubusercontent.com/pnggroup/libpng/v1.6.58/LICENSE",
+    "kind": "license",
+    "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "png",
+    "componentVersion": "1.6.58",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-proxy-libintl-0.5-COPYING",
+    "source": "https://raw.githubusercontent.com/frida/proxy-libintl/0.5/COPYING",
+    "kind": "license",
+    "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "proxy-libintl",
+    "componentVersion": "0.5",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-rsvg-2.63.2-COPYING.LIB",
+    "source": "https://raw.githubusercontent.com/GNOME/librsvg/2.63.2/COPYING.LIB",
+    "kind": "license",
+    "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "rsvg",
+    "componentVersion": "2.63.2",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-uhdr-v2.0.2-LICENSE",
+    "source": "https://raw.githubusercontent.com/google/libultrahdr/v2.0.2/LICENSE",
+    "kind": "license",
+    "sha256": "c9247b5cb07866938643cc238292434e6f2af8642e1fce10771c0e4cc7909316",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "uhdr",
+    "componentVersion": "2.0.2",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-webp-v1.6.0-COPYING",
+    "source": "https://raw.githubusercontent.com/webmproject/libwebp/v1.6.0/COPYING",
+    "kind": "license",
+    "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "webp",
+    "componentVersion": "1.6.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-webp-v1.6.0-PATENTS",
+    "source": "https://raw.githubusercontent.com/webmproject/libwebp/v1.6.0/PATENTS",
+    "kind": "notice",
+    "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "webp",
+    "componentVersion": "1.6.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-webp-v1.6.0-AUTHORS",
+    "source": "https://raw.githubusercontent.com/webmproject/libwebp/v1.6.0/AUTHORS",
+    "kind": "notice",
+    "sha256": "f251be89fd442bd9d701360730aea163cc8e2076ff03528f59267dc2c4f8b60a",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "webp",
+    "componentVersion": "1.6.0",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-xml2-v2.15.4-Copyright",
+    "source": "https://raw.githubusercontent.com/GNOME/libxml2/v2.15.4/Copyright",
+    "kind": "license",
+    "sha256": "5d4873884a890122a4b9b20ad56ac6f7da1d796a5bfcf04a427970ac96217626",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "xml2",
+    "componentVersion": "2.15.4",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-zlib-ng-2.3.3-LICENSE.md",
+    "source": "https://raw.githubusercontent.com/zlib-ng/zlib-ng/2.3.3/LICENSE.md",
+    "kind": "license",
+    "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "zlib-ng",
+    "componentVersion": "2.3.3",
+    "comment": "Verbatim component notice from the exact version/ref used by the pinned sharp-libvips publisher build script; source delivery and complete embedded/transitive inventory are reviewed separately."
+  },
+  {
+    "file": "native-aom-3.15.1-LICENSE",
+    "source": "https://aomedia.googlesource.com/aom/+/v3.15.1/LICENSE?format=TEXT",
+    "kind": "license",
+    "sha256": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "aom",
+    "componentVersion": "3.15.1",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed.",
+    "contentTransform": "Base64-decoded Googlesource response; original notice text bytes preserved."
+  },
+  {
+    "file": "native-aom-patent-3.15.1-PATENTS",
+    "source": "https://aomedia.googlesource.com/aom/+/v3.15.1/PATENTS?format=TEXT",
+    "kind": "notice",
+    "sha256": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "aom",
+    "componentVersion": "3.15.1",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed.",
+    "contentTransform": "Base64-decoded Googlesource response; original notice text bytes preserved."
+  },
+  {
+    "file": "native-fontconfig-2.18.3-LICENSE",
+    "source": "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/raw/2.18.3/COPYING",
+    "kind": "license",
+    "sha256": "51a51aa9823704fd90bccc616cdd17ebabb5b2b3e9cbde886ca02c7002288067",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "fontconfig",
+    "componentVersion": "2.18.3",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-pixman-0.46.4-LICENSE",
+    "source": "https://gitlab.freedesktop.org/pixman/pixman/-/raw/pixman-0.46.4/COPYING",
+    "kind": "license",
+    "sha256": "fac9270f0987b96ff4533fca3548c633e02083cbba4a0172a3b149b2e4019793",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "pixman",
+    "componentVersion": "0.46.4",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-cairo-1.18.6-LICENSE",
+    "source": "https://gitlab.freedesktop.org/cairo/cairo/-/raw/1.18.6/COPYING",
+    "kind": "license",
+    "sha256": "67228a9f7c5f9b67c58f556f1be178f62da4d9e2e6285318d8c74d567255abdf",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "cairo",
+    "componentVersion": "1.18.6",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-tiff-4.7.2-LICENSE",
+    "source": "https://gitlab.com/libtiff/libtiff/-/raw/v4.7.2/LICENSE.md",
+    "kind": "license",
+    "sha256": "0e27c2382d7b8147972bbb746e04059a1152c8d0fda9d03ef1399d1a433c4ade",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "tiff",
+    "componentVersion": "4.7.2",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-lcms-2.19.1-LICENSE",
+    "source": "https://raw.githubusercontent.com/mm2/Little-CMS/lcms2.19.1/LICENSE",
+    "kind": "license",
+    "sha256": "6dbd60437f8ef91d8de1f08ad75882547fd4931bfcc3566a0735f28db1484d31",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "lcms",
+    "componentVersion": "2.19.1",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-freetype-2.14.3-LICENSE.TXT",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-14-3/LICENSE.TXT",
+    "kind": "notice",
+    "sha256": "bd36c8b474855fa294c2ec5c184544478ef3720aad37d65a6296a4f264fd2d3b",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "component": "freetype",
+    "componentVersion": "2.14.3",
+    "comment": "Verbatim notice at the exact installed component version. Source delivery and complete embedded/transitive inventory remain separately reviewed."
+  },
+  {
+    "file": "native-cairo-1.18.6-COPYING-MPL-1.1",
+    "source": "https://gitlab.freedesktop.org/cairo/cairo/-/raw/1.18.6/COPYING-MPL-1.1",
+    "component": "cairo",
+    "kind": "license",
+    "componentVersion": "1.18.6",
+    "sha256": "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f",
+    "bytes": 25755,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
+  },
+  {
+    "file": "native-cairo-1.18.6-COPYING-LGPL-2.1",
+    "source": "https://gitlab.freedesktop.org/cairo/cairo/-/raw/1.18.6/COPYING-LGPL-2.1",
+    "component": "cairo",
+    "kind": "license",
+    "componentVersion": "1.18.6",
+    "sha256": "9e9e8608c4cdda51a78cc3a385f4ec9a2e4c96d5ecad74ac8bca5fca3e563b7d",
+    "bytes": 26533,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
+  },
+  {
+    "file": "native-freetype-2.14.3-GPLv2.TXT",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-14-3/docs/GPLv2.TXT",
+    "component": "freetype",
+    "kind": "license",
+    "componentVersion": "2.14.3",
+    "sha256": "c4120c6752c910c299e3bd9cb3a46ff262c268303ca2069b61f92f10a5656c18",
+    "bytes": 17994,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
+  },
+  {
+    "file": "native-freetype-2.14.3-bdf-README",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-14-3/src/bdf/README",
+    "component": "freetype",
+    "kind": "notice",
+    "componentVersion": "2.14.3",
+    "sha256": "7984455e7e5a9faba3797c8bf095fbe10cc846316b7320aff8c58402e22b82fe",
+    "bytes": 5972,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
+  },
+  {
+    "file": "native-freetype-2.14.3-pcf-README",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-14-3/src/pcf/README",
+    "component": "freetype",
+    "kind": "notice",
+    "componentVersion": "2.14.3",
+    "sha256": "18d9782898d9eac04476e2f744678137b2a889689ed3e923e052fc396a86f86b",
+    "bytes": 3311,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
+  },
+  {
+    "file": "sharp-libvips-patch-glib-without-gregex.patch",
+    "source": "https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/bdad5489a61c217850631571caf57f5db6ea8b2c/glib-without-gregex.patch",
+    "component": "glib",
+    "kind": "reference",
+    "componentVersion": "2.90.0",
+    "sha256": "b1f2930a11292e529de137c7eb723850e0cc0969b1a2b0358196389312acd272",
+    "bytes": 7759,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned publisher build script patch; bytes preserved and hashed. The libultrahdr PR URL is mutable, so local bytes/hash are evidence, not proof these exact bytes were used in the published binary."
+  },
+  {
+    "file": "sharp-libvips-patch-mozjpeg-f90668e.patch",
+    "source": "https://github.com/mozilla/mozjpeg/commit/f90668e0e4fb79c81e1f24a0ccc0e2090af761bf.patch",
+    "component": "mozjpeg",
+    "kind": "reference",
+    "componentVersion": "0826579",
+    "sha256": "a65f87cadf3a6052e44d6314c906f6e2891352f82646b8a6f0b8fcf2c1891e7c",
+    "bytes": 8103,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned publisher build script patch; bytes preserved and hashed. The libultrahdr PR URL is mutable, so local bytes/hash are evidence, not proof these exact bytes were used in the published binary."
+  },
+  {
+    "file": "sharp-libvips-patch-rsvg-9106011.patch",
+    "source": "https://github.com/GNOME/librsvg/commit/9106011db93d701728ac2c9da50c9ab2c1bb5dc6.patch",
+    "component": "rsvg",
+    "kind": "reference",
+    "componentVersion": "2.63.2",
+    "sha256": "8b841d2ec8feb964fa76859075e0e0c41b69136ba143cf0d26469d9bebc19231",
+    "bytes": 5111,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned publisher build script patch; bytes preserved and hashed. The libultrahdr PR URL is mutable, so local bytes/hash are evidence, not proof these exact bytes were used in the published binary."
+  },
+  {
+    "file": "sharp-libvips-patch-uhdr-pr383.patch",
+    "source": "https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch",
+    "component": "uhdr",
+    "kind": "reference",
+    "componentVersion": "2.0.2",
+    "sha256": "57658db2a11ae964755e513b01db21bcfa408c350b11b3a6ef9bc8576fb749ba",
+    "bytes": 7567,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned publisher build script patch; bytes preserved and hashed. The libultrahdr PR URL is mutable, so local bytes/hash are evidence, not proof these exact bytes were used in the published binary."
+  },
+  {
+    "file": "sharp-libvips-patch-vips-soversion.patch",
+    "source": "https://gist.githubusercontent.com/lovell/313a6901e9db1bf285f2a1f1180499e4/raw/3988223c7dfa4d22745d9392034b0117abef1446/libvips-cpp-soversion.patch",
+    "component": "vips",
+    "kind": "reference",
+    "componentVersion": "8.18.7",
+    "sha256": "256b7d6f8c973bb53b20cff5171c7117d6b35d3aa4e72d22cb906f4fe1e2c890",
+    "bytes": 514,
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Pinned publisher build script patch; bytes preserved and hashed. The libultrahdr PR URL is mutable, so local bytes/hash are evidence, not proof these exact bytes were used in the published binary."
+  },
+  {
+    "file": "guid-typescript-1.0.9-PROVENANCE.json",
+    "source": "https://registry.npmjs.org/guid-typescript/1.0.9",
+    "sha256": "610e5351b86b2cc625d8c23dfde15f0f419298ad8bd77c8eec539884fed4139b",
+    "kind": "reference",
+    "appliesTo": [
+      "guid-typescript@1.0.9"
+    ],
+    "comment": "Audit record generated from public npm metadata, archive integrity matching package-lock, and per-file comparison with installed package. This is provenance evidence, not a substitute license.",
+    "verifyPublishedPackageFiles": true
+  },
+  {
+    "file": "phonemizer-1.2.1-PROVENANCE.json",
+    "source": "https://registry.npmjs.org/phonemizer/1.2.1",
+    "sha256": "cbccc155b56573a9fc1fe5d3731170b4d070e3f5bfff876471a0962c1579c71d",
+    "kind": "reference",
+    "appliesTo": [
+      "phonemizer@1.2.1"
+    ],
+    "comment": "Audit record generated from public npm metadata, archive integrity matching package-lock, and per-file comparison with installed package. This is provenance evidence, not a substitute license.",
+    "verifyPublishedPackageFiles": true
+  },
+  {
+    "file": "_img_sharp-libvips-darwin-arm64-1.3.4-PROVENANCE.json",
+    "source": "https://registry.npmjs.org/%40img%2Fsharp-libvips-darwin-arm64/1.3.4",
+    "sha256": "a8ee74250a7d4474dd298627a7c9bc251dc6e85b39bc3bbb8e72473fab887244",
+    "kind": "reference",
+    "appliesTo": [
+      "@img/sharp-libvips-darwin-arm64@1.3.4"
+    ],
+    "comment": "Audit record generated from public npm metadata, archive integrity matching package-lock, and per-file comparison with installed package. This is provenance evidence, not a substitute license.",
+    "verifyPublishedPackageFiles": true
+  },
+  {
+    "file": "release-audit.json",
+    "source": "https://github.com/lovell/sharp-libvips/tree/ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+    "kind": "reference",
+    "referenceOnly": true,
+    "sha256": "762b2538ade2775e86ed5c6bc47b14bff5d4ccfe478c7415fb5a995dc30c7655",
+    "appliesTo": [],
+    "comment": "MD Duck audit decisions and public upstream evidence; a generated review record, not upstream license text."
+  }
+]

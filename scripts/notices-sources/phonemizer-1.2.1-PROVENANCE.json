@@ -1,0 +1,83 @@
+{
+  "name": "phonemizer",
+  "version": "1.2.1",
+  "registry": "https://registry.npmjs.org/phonemizer/1.2.1",
+  "declaredLicense": "Apache-2.0",
+  "repository": {
+    "url": "git+https://github.com/xenova/phonemizer.js.git",
+    "type": "git"
+  },
+  "publisherGitHead": "6835144b7ee9043129222549c1ed2f6a27216278",
+  "archive": {
+    "url": "https://registry.npmjs.org/phonemizer/-/phonemizer-1.2.1.tgz",
+    "sha256": "12f9f3582f8b5d557a0577180d83ff0458a4a5c15b2efb625ee71c3ebbee22e9",
+    "integrity": "sha512-v0KJ4mi2T4Q7eJQ0W15Xd4G9k4kICSXE8bpDeJ8jisL4RyJhNWsweKTOi88QXFc4r4LZlz5jVL5lCHhkpdT71A==",
+    "matchedPackageLock": true
+  },
+  "installedFiles": [
+    {
+      "file": "LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "file": "dist/phonemizer.cjs",
+      "bytes": 1322383,
+      "sha256": "24d24f118e44dc60af797881617415be24d84de53c1fc1a8f7f9974ab52531cc"
+    },
+    {
+      "file": "dist/phonemizer.js",
+      "bytes": 1322380,
+      "sha256": "193481f474f7c1ea81df3195d18b45df8ef7254dbdccb3f193d60215c4897bec"
+    },
+    {
+      "file": "package.json",
+      "bytes": 1256,
+      "sha256": "997824e7b16a1d30b000256146f4d8251eb1348823640bfa251b56ef5678a060"
+    },
+    {
+      "file": "types/espeakng.worker.d.ts.map",
+      "bytes": 136,
+      "sha256": "3f90defbd8ef906b3e2068d6ef6648515326b161c1063edad9c7a7b2d92955b1"
+    },
+    {
+      "file": "types/phonemizer.d.ts.map",
+      "bytes": 354,
+      "sha256": "b5606a47bea2c88eb49fdf02945aa9a51ee1841841d5247238397cdd962041c0"
+    },
+    {
+      "file": "README.md",
+      "bytes": 2947,
+      "sha256": "8c9cac3eb539484ea7b2fcb2d3de9dc63ea176ddc5e640cb53f43c4e44c540f3"
+    },
+    {
+      "file": "types/espeakng.worker.d.ts",
+      "bytes": 93,
+      "sha256": "1220ba1dad752e16ba123c5134d5b77f3dfce98ae77c951ae6fdd3ea5631419d"
+    },
+    {
+      "file": "types/phonemizer.d.ts",
+      "bytes": 297,
+      "sha256": "a504583e1932c21818ef842cc885828c6495e3305d24482d72cba191fae07770"
+    }
+  ],
+  "embeddedESpeak": {
+    "engineRevision": "UNKNOWN",
+    "emscriptenVersion": "UNKNOWN",
+    "matchingCorrespondingSource": "NOT_IDENTIFIED"
+  },
+  "publisherSourceFiles": [
+    {
+      "file": "src/espeakng.worker.js",
+      "url": "https://raw.githubusercontent.com/xenova/phonemizer.js/6835144b7ee9043129222549c1ed2f6a27216278/src/espeakng.worker.js",
+      "bytes": 1449799,
+      "sha256": "6bab8f2f2cf25d65b596b87471cb17567a496012ee6ce649cfa88b284c1fb9f8"
+    },
+    {
+      "file": "data/espeakng.worker.data",
+      "url": "https://raw.githubusercontent.com/xenova/phonemizer.js/6835144b7ee9043129222549c1ed2f6a27216278/data/espeakng.worker.data",
+      "bytes": 890802,
+      "sha256": "6262621f3f8267fb61ef41fe7af75b8fe7e2315d6c9092afd29d7629bb21a60b"
+    }
+  ]
+}

@@ -1,0 +1,441 @@
+{
+  "formatVersion": 1,
+  "checkedAt": "2026-10-05",
+  "scope": "Installed macOS arm64 production packages; no project-wide license selected.",
+  "nativePackages": [
+    {
+      "name": "@img/sharp-libvips-darwin-arm64",
+      "version": "1.3.4",
+      "publisherGitHead": "ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+      "publisherBuildScript": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/posix.sh",
+      "sourceStatus": "VERSION_URLS_AND_BUILD_PATCHES_RECORDED_SOURCE_DELIVERY_NOT_COMPLETE",
+      "components": [
+        {
+          "name": "aom",
+          "version": "3.15.1",
+          "sourceArchive": "https://storage.googleapis.com/aom-releases/libaom-3.15.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-aom-3.15.1-LICENSE",
+            "native-aom-patent-3.15.1-PATENTS"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "archive",
+          "version": "3.8.9",
+          "sourceArchive": "https://github.com/libarchive/libarchive/releases/download/v3.8.9/libarchive-3.8.9.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-archive-v3.8.9-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "cairo",
+          "version": "1.18.6",
+          "sourceArchive": "https://cairographics.org/releases/cairo-1.18.6.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-cairo-1.18.6-LICENSE",
+            "native-cairo-1.18.6-COPYING-MPL-1.1",
+            "native-cairo-1.18.6-COPYING-LGPL-2.1"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "cgif",
+          "version": "0.5.4",
+          "sourceArchive": "https://github.com/dloebl/cgif/archive/v0.5.4.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-cgif-v0.5.4-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "exif",
+          "version": "0.6.26",
+          "sourceArchive": "https://github.com/libexif/libexif/releases/download/v0.6.26/libexif-0.6.26.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-exif-v0.6.26-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "expat",
+          "version": "2.8.5",
+          "sourceArchive": "https://github.com/libexpat/libexpat/releases/download/R_2_8_5/expat-2.8.5.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-expat-R_2_8_5-expat_COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "ffi",
+          "version": "3.8.0",
+          "sourceArchive": "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-ffi-v3.8.0-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "fontconfig",
+          "version": "2.18.3",
+          "sourceArchive": "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.18.3/fontconfig-2.18.3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-fontconfig-2.18.3-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "freetype",
+          "version": "2.14.3",
+          "sourceArchive": "https://github.com/freetype/freetype/archive/VER-2-14-3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-freetype-VER-2-14-3-docs_FTL.TXT",
+            "native-freetype-2.14.3-LICENSE.TXT",
+            "native-freetype-2.14.3-GPLv2.TXT",
+            "native-freetype-2.14.3-bdf-README",
+            "native-freetype-2.14.3-pcf-README"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "fribidi",
+          "version": "1.0.17",
+          "sourceArchive": "https://github.com/fribidi/fribidi/releases/download/v1.0.17/fribidi-1.0.17.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-fribidi-v1.0.17-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "glib",
+          "version": "2.90.0",
+          "sourceArchive": "https://download.gnome.org/sources/glib/2.90/glib-2.90.0.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-glib-2.90.0-LICENSES_LGPL-2.1-or-later.txt"
+          ],
+          "patchFiles": [
+            "sharp-libvips-patch-glib-without-gregex.patch"
+          ],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "harfbuzz",
+          "version": "14.5.0",
+          "sourceArchive": "https://github.com/harfbuzz/harfbuzz/archive/14.5.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-harfbuzz-14.5.0-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "heif",
+          "version": "1.23.5",
+          "sourceArchive": "https://github.com/strukturag/libheif/releases/download/v1.23.5/libheif-1.23.5.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-heif-v1.23.5-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "highway",
+          "version": "1.4.0",
+          "sourceArchive": "https://github.com/google/highway/archive/1.4.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-highway-1.4.0-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "imagequant",
+          "version": "2.4.1",
+          "sourceArchive": "https://github.com/lovell/libimagequant/archive/v2.4.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-imagequant-v2.4.1-COPYRIGHT"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "lcms",
+          "version": "2.19.1",
+          "sourceArchive": "https://github.com/mm2/Little-CMS/releases/download/lcms2.19.1/lcms2-2.19.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-lcms-2.19.1-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "mozjpeg",
+          "version": "0826579",
+          "sourceArchive": "https://github.com/mozilla/mozjpeg/archive/0826579.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-mozjpeg-0826579-LICENSE.md"
+          ],
+          "patchFiles": [
+            "sharp-libvips-patch-mozjpeg-f90668e.patch"
+          ],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "pango",
+          "version": "1.58.2",
+          "sourceArchive": "https://download.gnome.org/sources/pango/1.58/pango-1.58.2.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-pango-1.58.2-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "pixman",
+          "version": "0.46.4",
+          "sourceArchive": "https://cairographics.org/releases/pixman-0.46.4.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-pixman-0.46.4-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "png",
+          "version": "1.6.58",
+          "sourceArchive": "https://github.com/pnggroup/libpng/archive/v1.6.58.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-png-v1.6.58-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "proxy-libintl",
+          "version": "0.5",
+          "sourceArchive": "https://github.com/frida/proxy-libintl/archive/0.5.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-proxy-libintl-0.5-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "rsvg",
+          "version": "2.63.2",
+          "sourceArchive": "https://download.gnome.org/sources/librsvg/2.63/librsvg-2.63.2.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-rsvg-2.63.2-COPYING.LIB"
+          ],
+          "patchFiles": [
+            "sharp-libvips-patch-rsvg-9106011.patch"
+          ],
+          "remaining": [
+            "Rust dependency/Cargo feature notices and source vendoring must be audited."
+          ]
+        },
+        {
+          "name": "tiff",
+          "version": "4.7.2",
+          "sourceArchive": "https://gitlab.com/libtiff/libtiff/-/archive/v4.7.2/libtiff-v4.7.2.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-tiff-4.7.2-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "uhdr",
+          "version": "2.0.2",
+          "sourceArchive": "https://github.com/google/libultrahdr/archive/v2.0.2.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-uhdr-v2.0.2-LICENSE"
+          ],
+          "patchFiles": [
+            "sharp-libvips-patch-uhdr-pr383.patch"
+          ],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "vips",
+          "version": "8.18.7",
+          "sourceArchive": "https://github.com/libvips/libvips/releases/download/v8.18.7/vips-8.18.7.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "LGPL-3.0.txt",
+            "libvips-8.18.7-LICENSE"
+          ],
+          "patchFiles": [
+            "sharp-libvips-patch-vips-soversion.patch"
+          ],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "webp",
+          "version": "1.6.0",
+          "sourceArchive": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-webp-v1.6.0-COPYING",
+            "native-webp-v1.6.0-PATENTS",
+            "native-webp-v1.6.0-AUTHORS"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "xml2",
+          "version": "2.15.4",
+          "sourceArchive": "https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.4.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-xml2-v2.15.4-Copyright"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        },
+        {
+          "name": "zlib-ng",
+          "version": "2.3.3",
+          "sourceArchive": "https://github.com/zlib-ng/zlib-ng/archive/2.3.3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-zlib-ng-2.3.3-LICENSE.md"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed."
+          ]
+        }
+      ]
+    }
+  ],
+  "remainingItems": [
+    {
+      "id": "GUID-LICENSE",
+      "summary": "guid-typescript@1.0.9 declares ISC but its integrity-verified published archive contains no license/copyright text. The npm gitHead is not available in the current upstream repository.",
+      "resolution": [
+        "Obtain a rights-holder-issued full license/copyright notice for version 1.0.9",
+        "Or update/replace the ONNX Web dependency path and verify the final package no longer contains this code"
+      ],
+      "evidence": [
+        "https://registry.npmjs.org/guid-typescript/1.0.9",
+        "https://github.com/snico-dev/guid-typescript/issues/7",
+        "https://github.com/snico-dev/guid-typescript/pull/30"
+      ]
+    },
+    {
+      "id": "ESPEAK-SOURCE",
+      "summary": "phonemizer@1.2.1 wrapper commit and precompiled worker/data are identified, but matching eSpeak NG source revision, generated-data inputs, Emscripten/runtime version and corresponding build instructions are not identified.",
+      "resolution": [
+        "Obtain exact engine/runtime source and build records matching the published package",
+        "Or replace the embedded worker with a pinned reproducible build whose complete source and notices can be delivered"
+      ],
+      "evidence": [
+        "https://github.com/xenova/phonemizer.js/tree/6835144b7ee9043129222549c1ed2f6a27216278",
+        "https://github.com/xenova/phonemizer.js/issues/1",
+        "https://github.com/xenova/phonemizer.js/issues/6"
+      ]
+    },
+    {
+      "id": "LIBVIPS-SOURCE",
+      "summary": "All 28 top-level native component versions have collected license texts and versioned source URLs; complete per-file/transitive notices, a matching source bundle and user replacement/rebuild instructions are not yet delivered. The publisher uses a mutable libultrahdr PR patch URL.",
+      "resolution": [
+        "Vendor and hash exact source archives plus pinned patch bytes and build configuration",
+        "Audit librsvg Rust crates and other compiled transitive/per-file notices",
+        "Confirm actual libultrahdr patch revision and provide/reproduce the replaceable native library build"
+      ],
+      "evidence": [
+        "https://github.com/lovell/sharp-libvips/tree/ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+        "https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch"
+      ]
+    }
+  ]
+}
