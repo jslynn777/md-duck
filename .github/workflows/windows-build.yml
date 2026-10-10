@@ -68,6 +68,8 @@ jobs:
         run: npm run typecheck
       - name: Run tests on Windows
         run: npm test
+      - name: Verify redistribution notices and corresponding-source records
+        run: node scripts/collect-notices.mjs --release-strict
       - name: Build unsigned installer and portable test application
         run: npm run dist:win
       - name: Verify package and both executable payloads
@@ -82,6 +84,27 @@ jobs:
         run: |
           npm run verify:speech:win 2>&1 | Tee-Object release/validation/speech.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify offline neural speech with the pinned model
+        timeout-minutes: 8
+        run: |
+          $modelCache = Join-Path $env:RUNNER_TEMP 'MD Duck speech verification'
+          $modelDir = Join-Path $modelCache 'onnx-community/Kokoro-82M-v1.0-ONNX/onnx'
+          New-Item -ItemType Directory -Force $modelDir | Out-Null
+          $modelFile = Join-Path $modelDir 'model_quantized.onnx'
+          Invoke-WebRequest -Uri 'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231/onnx/model_quantized.onnx' -OutFile $modelFile
+          if ((Get-Item $modelFile).Length -ne 92361116) { throw 'Speech model size differs' }
+          if ((Get-FileHash $modelFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fbae9257e1e05ffc727e951ef9b9c98418e6d79f1c9b6b13bd59f5c9028a1478') { throw 'Speech model SHA-256 differs' }
+          "MD_DUCK_TEST_MODEL_CACHE=$modelCache" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:ELECTRON_RUN_AS_NODE = '1'
+          try {
+            & (Resolve-Path 'release/win-unpacked/MD Duck.exe').Path scripts/verify-speech-offline.cjs 'release/win-unpacked/resources/app.asar' $modelCache 2>&1 | Tee-Object release/validation/offline-speech.log
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+      - name: Verify neural speech through the native utility process
+        timeout-minutes: 5
+        run: |
+          node scripts/verify-speech-worker.cjs 'release/win-unpacked/resources/app.asar' --exe (Resolve-Path 'release/win-unpacked/MD Duck.exe').Path --model-cache "$env:MD_DUCK_TEST_MODEL_CACHE" 2>&1 | Tee-Object release/validation/worker-speech.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify packaged startup and reading-state restoration
         run: |
           npm run verify:startup:win 2>&1 | Tee-Object release/validation/startup.log
@@ -89,7 +112,7 @@ jobs:
       - name: Install into a path with Chinese characters and spaces
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          $installer = (Resolve-Path "release/MD-Duck-$version-Windows-x64-Setup-local-test.exe").Path
+          $installer = (Resolve-Path "release/MD-Duck-$version-Windows-x64-Setup.exe").Path
           $installDir = Join-Path $env:RUNNER_TEMP 'MD Duck 安装测试'
           $process = Start-Process -FilePath $installer -ArgumentList "/S /currentuser /D=$installDir" -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Installer exited with $($process.ExitCode)" }
@@ -102,6 +125,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/run-packaged-check.mjs --platform win32 --check speech --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" 2>&1 | Tee-Object release/validation/installed-speech.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:ELECTRON_RUN_AS_NODE = '1'
+          try {
+            & (Join-Path $env:MD_DUCK_TEST_INSTALL_DIR 'MD Duck.exe') scripts/verify-speech-offline.cjs (Join-Path $env:MD_DUCK_TEST_INSTALL_DIR 'resources/app.asar') $env:MD_DUCK_TEST_MODEL_CACHE 2>&1 | Tee-Object release/validation/installed-offline-speech.log
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
       - name: Uninstall the test copy
         if: always() && env.MD_DUCK_TEST_INSTALL_DIR != ''
         run: |
@@ -117,9 +145,10 @@ jobs:
           MD Duck Windows x64 — unsigned local/CI test build
           This is a validation artifact, not a GitHub Release or a public download launch.
           Tests cover Windows execution, isolated profile persistence, NSIS silent install,
-          archive payloads and packaged native dependencies without speech-model downloads.
+          archive payloads, packaged native dependencies and offline synthesis with all five voices.
+          Verification explicitly downloads the pinned model; ordinary startup does not download it.
           Portable payload integrity is checked; its interactive launcher has not been tested.
-          See bundled third-party notices for unresolved corresponding-source release items.
+          Redistribution notices and corresponding-source records are verified separately.
           '@ | Out-File release/TEST-BUILD.txt -Encoding utf8
       - name: Keep validation logs
         if: always()
@@ -135,8 +164,8 @@ jobs:
         with:
           name: windows-x64-test-${{ github.run_id }}
           path: |
-            release/MD-Duck-*-Windows-x64-Setup-local-test.exe
-            release/MD-Duck-*-Windows-x64-Portable-local-test.exe
+            release/MD-Duck-*-Windows-x64-Setup.exe
+            release/MD-Duck-*-Windows-x64-Portable.exe
             release/SHA256SUMS
             release/TEST-BUILD.txt
           compression-level: 0

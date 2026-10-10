@@ -42,6 +42,15 @@ async function fixture() {
   return root
 }
 const run = (root, ...args) => spawnSync(process.execPath, [join(root, 'scripts/collect-notices.mjs'), ...args], { encoding: 'utf8' })
+async function neuralFixture() {
+  const root = await fixture()
+  await write(join(root, 'package.json'), { name: 'md-duck', version: '0.1.0-beta.5' })
+  await write(join(root, 'package-lock.json'), { lockfileVersion: 3, packages: { '': { name: 'md-duck', version: '0.1.0-beta.5' } } })
+  await write(join(root, 'scripts/notices-sources/manifest.json'), [])
+  await write(join(root, 'scripts/notices-sources/release-audit.json'), { formatVersion: 1, checkedAt: '2026-10-10', nativePackages: [], remainingItems: [] })
+  for (const directory of ['src/main/kokoro-runtime-phonemizer', 'src/main/data/kokoro-voices']) await fs.cp(join(project, directory), join(root, directory), { recursive: true })
+  return root
+}
 let checks = 0
 try {
   const normal = await fixture()
@@ -113,6 +122,20 @@ try {
   assert.notEqual(changedBytes.status, 0)
   assert.match(changedBytes.stderr, /Installed file differs from published-package evidence/)
   checks++
+  const neural = await neuralFixture()
+  assert.equal(run(neural, '--release-strict').status, 0, 'Complete neural input/notice identity must pass')
+  const neuralManifest = JSON.parse(await fs.readFile(join(neural, 'build/third-party/manifest.json'), 'utf8'))
+  assert.equal(neuralManifest.bundledNeuralSpeech.styles.files.length, 5)
+  assert.equal(neuralManifest.bundledNeuralSpeech.engine.sourceCommit, '4f6d246c1d3acf67a4d814e20da02fa3967bc92d')
+  checks++
+  for (const file of ['src/main/kokoro-runtime-phonemizer/ephone.js', 'src/main/data/kokoro-voices/af_heart.bin']) {
+    const modified = await neuralFixture()
+    await fs.appendFile(join(modified, file), 'changed')
+    const identity = run(modified, '--release-strict')
+    assert.notEqual(identity.status, 0)
+    assert.match(identity.stderr, /Bundled neural resource identity differs/)
+    checks++
+  }
   console.log(`Notice collector: ${checks} verification groups passed (verbatim copies, strict boundaries, stale versions, tampering, path escape, redirected output, installed file drift).`)
 } finally {
   await Promise.all(fixtures.map((root) => fs.rm(root, { recursive: true, force: true })))

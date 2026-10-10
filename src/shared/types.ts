@@ -1,5 +1,5 @@
 import type { WordExplanation } from './word-help'
-import type { TranslationAlignment } from './translation'
+import type { TranslationAlignment, TranslationAlignmentInspection } from './translation'
 import type { QuoteAnchor } from './quote-anchor'
 
 export type NoteStatus = 'open' | 'outdated' | 'orphaned' | 'resolved'
@@ -116,6 +116,7 @@ export type OpenedDocument = {
   assetVersion: number
   missing: boolean
   translationAlignment?: TranslationAlignment | null
+  translationAlignmentState?: TranslationAlignmentInspection['state']
 }
 
 export type DocUpdate = {
@@ -125,6 +126,7 @@ export type DocUpdate = {
   missing: boolean
   assetVersion: number
   translationAlignment?: TranslationAlignment | null
+  translationAlignmentState?: TranslationAlignmentInspection['state']
   zhPath?: string | null
   zhDir?: string | null
 }

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { createRequire } from 'node:module'
+import { verifyNeuralPackage } from './verify-neural-package.mjs'
 
 const require = createRequire(import.meta.url)
 const { listPackage, extractFile } = require('@electron/asar')
@@ -22,10 +23,16 @@ for (const name of ['LICENSE', 'NOTICE', 'INSTALLING.md']) {
 }
 const notices = JSON.parse(readFileSync(join(resources, 'third-party/manifest.json'), 'utf8'))
 assert.equal(notices.application.version, expected.version)
+assert.deepEqual(notices.missingFullLicenseText, [], 'All runtime package notices must be complete')
+assert.deepEqual(notices.releaseAudit.remainingItems, [], 'Corresponding-source issues must be closed')
+assert.deepEqual(notices.nativeComponents, [], 'Retired image libraries must not remain')
+const neural = verifyNeuralPackage(resources, notices)
+assert(!files.some((file) => /\/(?:sharp|@img|phonemizer|guid-typescript|onnxruntime-web|kokoro-js|@huggingface)\//.test(file)), 'Retired speech/image dependency code must not be packaged')
 assert(files.includes('/out/main/index.js'))
 assert(files.includes('/out/preload/index.js'))
 assert(files.some((file) => /^\/out\/main\/speech-worker-[^/]+\.js$/.test(file)))
 assert(files.includes('/out/renderer/index.html'))
+for (const file of files.filter((file) => /^\/out\/main\/(?:speech-worker[^/]*\.js|kokoro-runtime[^/]*\.js|chunks\/[^/]+\.js)$/.test(file))) assert(existsSync(join(unpacked, file.slice(1))), `Speech utility process requires an unpacked module: ${file}`)
 const privateFiles = files.filter((file) => /^\/(?:website|release-audit-|\.env|\.git|settings\.json|ai-settings\.json)/.test(file) || /\/(?:\.review|note-backups|review-backups|speech-cache|kokoro-cache)\//.test(file))
 assert.deepEqual(privateFiles, [], 'User data or development artifacts must not be packaged')
 assert(existsSync(join(resources, 'examples/christmas-ribbon/article.md')))
@@ -41,4 +48,4 @@ const info = execFileSync('plutil', ['-convert', 'json', '-o', '-', join(app, 'C
 const bundle = JSON.parse(info)
 assert.equal(bundle.CFBundleIdentifier, 'com.mdduck.desktop')
 assert.equal(bundle.CFBundleShortVersionString, metadata.version)
-console.log(JSON.stringify({ version: metadata.version, packagedFiles: files.length, architecture: 'arm64', minimumMacOS: bundle.LSMinimumSystemVersion, resources: 'present', privateFiles: 0, projectLicense: metadata.license, codeSignature: 'verified (local ad-hoc)', missingThirdPartyLicenseTexts: notices.missingFullLicenseText.map(({ name, version }) => `${name}@${version}`), remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), notarized: false }, null, 2))
+console.log(JSON.stringify({ version: metadata.version, packagedFiles: files.length, architecture: 'arm64', minimumMacOS: bundle.LSMinimumSystemVersion, resources: 'present', neural, privateFiles: 0, projectLicense: metadata.license, codeSignature: 'verified (local ad-hoc)', missingThirdPartyLicenseTexts: notices.missingFullLicenseText.map(({ name, version }) => `${name}@${version}`), remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), notarized: false }, null, 2))

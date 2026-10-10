@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm'
 import { parseDocument } from '../shared/markdown'
 import { translationContentHash } from '../shared/translation-alignment'
 import type { AIMessage } from '../shared/ai'
-import type { TranslationAlignment, TranslationInfo, TranslationState } from '../shared/translation'
+import type { TranslationAlignment, TranslationAlignmentInspection, TranslationInfo, TranslationState } from '../shared/translation'
 
 type MdNode = {
   type: string
@@ -148,17 +148,31 @@ export function createDocumentTranslator(options: Options) {
     return { sourcePath, targetPath, hasTranslation, canTranslate: !reason, reason, task }
   }
 
-  async function loadAlignment(sourcePath: string): Promise<TranslationAlignment | null> {
+  async function inspectAlignment(sourcePath: string): Promise<TranslationAlignmentInspection> {
     await requireAllowed(sourcePath)
     const targetPath = await getTargetPath(sourcePath)
     await requireAllowed(targetPath)
-    const record = await readJSON(metadataPath(sourcePath, 'alignment'))
-    if (!record || metadataTarget(sourcePath, record) !== targetPath ||
+    let record: unknown
+    try {
+      record = JSON.parse(await fs.readFile(metadataPath(sourcePath, 'alignment'), 'utf8'))
+    } catch (error) {
+      return { alignment: null, state: isRecord(error) && error.code === 'ENOENT' ? 'absent' : 'invalid' }
+    }
+    if (!isRecord(record) || metadataTarget(sourcePath, record) !== targetPath ||
         typeof record.sourceHash !== 'string' || typeof record.targetHash !== 'string' || !Array.isArray(record.pairs) ||
-        record.pairs.some((pair: unknown) => !isRecord(pair) || typeof pair.sourceKey !== 'string' || typeof pair.targetKey !== 'string')) return null
+        record.pairs.some((pair: unknown) => !isRecord(pair) || typeof pair.sourceKey !== 'string' || typeof pair.targetKey !== 'string')) {
+      return { alignment: null, state: 'invalid' }
+    }
     const [source, target] = await Promise.all([fs.readFile(sourcePath, 'utf8'), fs.readFile(targetPath, 'utf8')]).catch(() => [null, null])
-    if (source === null || target === null || record.sourceHash !== translationContentHash(source) || record.targetHash !== translationContentHash(target)) return null
-    return { sourceHash: record.sourceHash, targetHash: record.targetHash, pairs: record.pairs }
+    if (source === null || target === null) return { alignment: null, state: 'invalid' }
+    if (record.sourceHash !== translationContentHash(source) || record.targetHash !== translationContentHash(target)) {
+      return { alignment: null, state: 'stale' }
+    }
+    return { alignment: { sourceHash: record.sourceHash, targetHash: record.targetHash, pairs: record.pairs }, state: 'valid' }
+  }
+
+  async function loadAlignment(sourcePath: string): Promise<TranslationAlignment | null> {
+    return (await inspectAlignment(sourcePath)).alignment
   }
 
   async function associate(sourcePath: string, targetPath: string): Promise<TranslationInfo> {
@@ -276,7 +290,7 @@ export function createDocumentTranslator(options: Options) {
 
   function dispose() { for (const task of running.values()) task.controller.abort() }
 
-  return { inspect, start, stop, loadAlignment, getTargetPath, associate, dispose }
+  return { inspect, start, stop, inspectAlignment, loadAlignment, getTargetPath, associate, dispose }
 }
 
 function state(draft: Draft): TranslationState {

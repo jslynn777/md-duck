@@ -24,3 +24,10 @@ export type TranslationAlignment = {
   targetHash: string
   pairs: Array<{ sourceKey: string; targetKey: string }>
 }
+
+/** Describes the existing local record without creating or repairing pairs. */
+export type TranslationAlignmentState = 'absent' | 'valid' | 'stale' | 'invalid'
+export type TranslationAlignmentInspection = {
+  alignment: TranslationAlignment | null
+  state: TranslationAlignmentState
+}

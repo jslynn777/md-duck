@@ -1,28 +1,28 @@
-import { createHash } from 'node:crypto'
-import { promises as fs } from 'node:fs'
-import { join } from 'node:path'
-import { env } from '@huggingface/transformers'
-import { KokoroTTS, type GenerateOptions } from 'kokoro-js'
+import { KokoroRuntime } from './kokoro-runtime'
+import { readSpeechCache, writeSpeechCache } from './speech-cache'
+import type { VoiceId } from '../shared/types'
 
 type Incoming =
-  | { type: 'init'; cacheDir: string; modelDir: string }
+  | { type: 'init'; cacheDir: string; modelDir: string; voiceDirectory: string }
   | { type: 'cancel' }
   | { type: 'speak'; id: string; text: string; voice: string; speed: number }
 
-const MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX'
 const SAMPLE_RATE = 24000
 
 const port = process.parentPort
 let cacheDir = ''
+let modelDir = ''
+let voiceDirectory = ''
 let current = ''
-let loading: Promise<KokoroTTS> | null = null
+let loading: Promise<KokoroRuntime> | null = null
 let queue: Promise<void> = Promise.resolve()
 
 port.on('message', (event) => {
   const message = event.data as Incoming
   if (message.type === 'init') {
     cacheDir = message.cacheDir
-    env.cacheDir = message.modelDir
+    modelDir = message.modelDir
+    voiceDirectory = message.voiceDirectory
   } else if (message.type === 'cancel') {
     current = ''
     port.postMessage({ type: 'status', message: '' })
@@ -35,15 +35,26 @@ port.on('message', (event) => {
 async function run(request: Extract<Incoming, { type: 'speak' }>) {
   const { id, voice, speed } = request
   try {
-    for (const sentence of splitSentences(request.text)) {
+    const pending = splitSentences(request.text)
+    while (pending.length > 0) {
+      const sentence = pending.shift()!
       if (current !== id) return
-      let samples: Float32Array | null = await readCache(voice, speed, sentence)
+      let samples: Float32Array | null = await readSpeechCache(cacheDir, voice, speed, sentence)
       if (!samples) {
         const tts = await model()
         if (current !== id) return
-        const audio = await tts.generate(sentence, { voice: voice as GenerateOptions['voice'], speed })
+        let audio: Awaited<ReturnType<KokoroRuntime['generate']>>
+        try {
+          audio = await tts.generate(sentence, { voice: voice as VoiceId, speed })
+        } catch (error) {
+          if (error instanceof Error && error.message === 'speech-text-too-long' && Array.from(sentence).length > 1) {
+            pending.unshift(...boundSpeechChunks(sentence, Math.ceil(Array.from(sentence).length / 2)))
+            continue
+          }
+          throw error
+        }
         const generated: Float32Array = audio.audio
-        await writeCache(voice, speed, sentence, generated)
+        await writeSpeechCache(cacheDir, voice, speed, sentence, generated)
         samples = generated
       }
       if (current !== id) return
@@ -58,9 +69,9 @@ async function run(request: Extract<Incoming, { type: 'speak' }>) {
 function model() {
   if (!loading) {
     port.postMessage({ type: 'status', message: 'prepare' })
-    loading = KokoroTTS.from_pretrained(MODEL, {
-      dtype: 'q8',
-      device: 'cpu',
+    loading = KokoroRuntime.create({
+      cacheDir: modelDir,
+      voiceDirectory,
       progress_callback: (info) => {
         if (current && info.status === 'progress' && info.progress < 100) {
           port.postMessage({ type: 'status', message: `download:${Math.round(info.progress)}` })
@@ -90,26 +101,27 @@ export function splitSentences(text: string) {
     if (last && last.length < 24) merged[merged.length - 1] = `${last} ${sentence}`
     else merged.push(sentence)
   }
-  return merged.flatMap((sentence) => (sentence.length > 360 ? sentence.split(/(?<=[,;:])\s+/) : [sentence]))
+  return merged.flatMap((sentence) => boundSpeechChunks(sentence))
 }
 
-function cacheFile(voice: string, speed: number, sentence: string) {
-  const hash = createHash('sha256').update(`${voice}\n${speed}\n${sentence}`).digest('hex')
-  return join(cacheDir, `${hash}.f32`)
-}
-
-async function readCache(voice: string, speed: number, sentence: string) {
-  if (!cacheDir) return null
-  const data = await fs.readFile(cacheFile(voice, speed, sentence)).catch(() => null)
-  if (!data) return null
-  return new Float32Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
-}
-
-async function writeCache(voice: string, speed: number, sentence: string, samples: Float32Array) {
-  if (!cacheDir) return
-  await fs.mkdir(cacheDir, { recursive: true })
-  const file = cacheFile(voice, speed, sentence)
-  const temp = `${file}.${process.pid}.tmp`
-  await fs.writeFile(temp, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength))
-  await fs.rename(temp, file)
+/** Bound every unit, including prose with no punctuation and unusually long words.
+ * Normalized whitespace may become a pause; every content codepoint is retained. */
+export function boundSpeechChunks(text: string, limit = 240): string[] {
+  if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('speech-chunk-size-invalid')
+  const characters = Array.from(text.trim())
+  const chunks: string[] = []
+  let offset = 0
+  while (offset < characters.length) {
+    let end = Math.min(offset + limit, characters.length)
+    if (end < characters.length) {
+      for (let index = end; index > offset; index -= 1) {
+        if (/\s/.test(characters[index])) { end = index; break }
+      }
+    }
+    const chunk = characters.slice(offset, end).join('').trim()
+    if (chunk) chunks.push(chunk)
+    offset = end
+    while (offset < characters.length && /\s/.test(characters[offset])) offset += 1
+  }
+  return chunks
 }

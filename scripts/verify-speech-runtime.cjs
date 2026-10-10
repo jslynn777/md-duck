@@ -1,103 +1,41 @@
 #!/usr/bin/env node
 'use strict';
-
 const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const { createRequire } = require('node:module');
-const { dirname, join, resolve, sep } = require('node:path');
+const { selectedApplication } = require('./speech-check-common.cjs');
 
-// This check loads the selected application's real dependencies. It does not
-// open a window, start the reader, access its profile, or download a TTS model.
+// Exercise the selected application's compiled engine and native library;
+// no reader window, profile, speech/model cache, or model download is used.
 let blockedRequests = 0;
 globalThis.fetch = async () => {
   blockedRequests += 1;
   throw new Error('NETWORK_DISABLED_FOR_PACKAGING_SMOKE');
 };
-
 async function main() {
-  if (!process.argv[2]) {
-    throw new Error('Usage: verify-speech-runtime.cjs <app.asar or workspace root>');
+  assert(process.argv[2], 'Usage: verify-speech-runtime.cjs <app.asar or workspace root>');
+  const selected = await selectedApplication(process.argv[2]);
+  const ort = selected.fromApp('onnxruntime-node');
+  const phonemes = [];
+  for (const language of ['a', 'b']) {
+    const output = await selected.runtime.phonemizeKokoroText('Hello, world.', language);
+    assert(typeof output === 'string' && output.length > 5 && output.endsWith('.'), 'Phoneme engine or English data failed');
+    phonemes.push({ language: language === 'a' ? 'en-US' : 'en-GB', text: output });
   }
-  const appRoot = resolve(process.argv[2]);
-  const manifest = join(appRoot, 'package.json');
-  await fs.access(manifest);
-  const fromApp = createRequire(manifest);
-  assert(
-    (process.platform === 'darwin' && process.arch === 'arm64') ||
-    (process.platform === 'win32' && process.arch === 'x64'),
-    'This release check expects a supported macOS arm64 or Windows x64 runtime'
-  );
-
-  const dependencies = {};
-  for (const name of [
-    'onnxruntime-node', 'sharp', '@huggingface/transformers',
-    'phonemizer', 'kokoro-js'
-  ]) {
-    const resolved = fromApp.resolve(name);
-    assert(
-      resolved.startsWith(appRoot + sep) || resolved.startsWith(appRoot + '.unpacked' + sep),
-      `Dependency resolved outside the selected application: ${name}`
-    );
-    dependencies[name] = resolved;
-  }
-
-  const ort = fromApp('onnxruntime-node');
-  const sharp = fromApp('sharp');
-  const { env } = fromApp('@huggingface/transformers');
-  env.allowRemoteModels = false;
-  const { phonemize } = fromApp('phonemizer');
-  const { KokoroTTS } = fromApp('kokoro-js');
-  assert.equal(typeof KokoroTTS, 'function');
-
-  const png = await sharp({
-    create: { width: 1, height: 1, channels: 3, background: '#fff' }
-  }).png().toBuffer();
-  assert(png.length > 0, 'sharp returned an empty PNG');
-  const phonemes = await phonemize('Hello, world.', 'en-us');
-  assert(Array.isArray(phonemes) && phonemes.some((part) => typeof part === 'string' && part.length > 0), 'Phonemizer returned no phonemes');
-  const voice = await fs.readFile(join(
-    dirname(fromApp.resolve('kokoro-js')), '..', 'voices', 'af_heart.bin'
-  ));
-  assert(voice.length > 0 && voice.length % Float32Array.BYTES_PER_ELEMENT === 0, 'Kokoro voice data is missing or invalid');
-
-  // A self-contained 92-byte ONNX float Identity graph exercises the native
-  // runtime, including its dynamic libraries, without fetching a speech model.
-  const model = Buffer.from(
-    'CAgSF01EIER1Y2sgcGFja2FnaW5nIHNtb2tlOjsKEAoBeBIBeSIISWRlbnRpdHkSBXNtb2tlWg8KAXgSCgoICAESBAoCCAFiDwoBeRIKCggIARIECgIIAUICEA0=',
-    'base64'
-  );
+  const model = Buffer.from('CAgSF01EIER1Y2sgcGFja2FnaW5nIHNtb2tlOjsKEAoBeBIBeSIISWRlbnRpdHkSBXNtb2tlWg8KAXgSCgoICAESBAoCCAFiDwoBeRIKCggIARIECgIIAUICEA0=', 'base64');
   const session = await ort.InferenceSession.create(model, { executionProviders: ['cpu'] });
   let identityOutput;
   try {
-    const result = await session.run({
-      x: new ort.Tensor('float32', Float32Array.of(3), [1])
-    });
+    const result = await session.run({ x: new ort.Tensor('float32', Float32Array.of(3), [1]) });
     identityOutput = result.y.data[0];
-    assert.equal(identityOutput, 3, 'ONNX CPU inference returned the wrong result');
-  } finally {
-    await session.release();
-  }
+    assert.equal(identityOutput, 3, 'Native ONNX CPU inference failed');
+  } finally { await session.release(); }
   assert.equal(blockedRequests, 0, 'A dependency attempted a network request');
-
-  process.stdout.write(JSON.stringify({
-    status: 'passed',
-    appRoot,
+  console.log(JSON.stringify({
+    status: 'passed', appRoot: selected.appRoot,
     runtime: { electron: process.versions.electron ?? null, node: process.versions.node, platform: process.platform, arch: process.arch },
-    dependencies,
-    onnx: ort.env.versions,
-    identityOutput,
-    sharp: sharp.versions.sharp,
-    vips: sharp.versions.vips,
-    pngBytes: png.length,
-    phonemes,
-    voiceBytes: voice.length,
-    remoteModelsAllowed: env.allowRemoteModels,
+    dependencies: { onnxruntime: selected.nativePath, kokoroRuntime: selected.runtimePath },
+    onnx: ort.env.versions, identityOutput, phonemes, voices: selected.voices,
     networkRequests: blockedRequests,
-    scope: 'Native dependencies and packaged resources; not full speech synthesis or worker IPC.'
-  }, null, 2) + '\n');
+    scope: 'Actual compiled phoneme engine/US+UK data, five exact voice style arrays, native CPU inference; full neural synthesis and worker IPC are separate checks.'
+  }, null, 2));
 }
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack : String(error));
-  process.exitCode = 1;
-});
+main().catch((error) => { console.error(error.stack ?? String(error)); process.exitCode = 1; });

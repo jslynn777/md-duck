@@ -9,8 +9,10 @@ const { lang = 'zh' } = Astro.props;
 const en = lang === 'en';
 const sections = [
   ['install', en ? 'Install on Mac' : 'Mac 安装'],
+  ['install-windows', en ? 'Install on Windows' : 'Windows 安装'],
   ['open', en ? 'Open an article' : '打开文章'],
   ['bilingual', en ? 'Read in two languages' : '双语对照'],
+  ['pairing-check', en ? 'Check paragraph pairing' : '检查段落配对'],
   ['notes', en ? 'Add annotations' : '写批注'],
   ['words', en ? 'Understand a word' : '理解单词'],
   ['speech', en ? 'Listen as you read' : '英文朗读'],

@@ -608,7 +608,8 @@ function startSpeech() {
   speech.postMessage({
     type: 'init',
     cacheDir: join(app.getPath('userData'), 'speech-cache'),
-    modelDir: join(app.getPath('userData'), 'kokoro-cache')
+    modelDir: join(app.getPath('userData'), 'kokoro-cache'),
+    voiceDirectory: app.isPackaged ? join(process.resourcesPath, 'kokoro-voices') : resolve('src/main/data/kokoro-voices')
   })
   speech.on('message', (event: SpeechEvent) => {
     window?.webContents.send('speech:event', event)
@@ -670,8 +671,7 @@ async function watchRoot(dir: string) {
   await watcher?.close()
   const watchedDir = await fs.realpath(dir).catch(() => dir)
   watcher = chokidar.watch(watchedDir, {
-    // macOS FSEvents can miss removal of a file published by hard link.
-    useFsEvents: false,
+    // Chokidar 4 uses native fs.watch without the former FSEvents backend.
     ignoreInitial: true,
     depth: 6,
     ignored: (target) => {
@@ -700,11 +700,11 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
   const sourcePath = await resolveSourcePath(filePath)
   if (!(await isAllowed(sourcePath))) throw new Error('ERR_NOT_IN_FOLDER')
   const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
-  const [sourceText, zhText, review, translationAlignment] = await Promise.all([
+  const [sourceText, zhText, review, alignmentInspection] = await Promise.all([
     fs.readFile(sourcePath, 'utf8'),
     zhPath && zhPath !== sourcePath ? fs.readFile(zhPath, 'utf8').catch(() => null) : Promise.resolve(null),
     reviews.load(sourcePath),
-    translator.loadAlignment(sourcePath).catch(() => null)
+    translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
   ])
   // A missing draft document must not detach the visible article from its watcher.
   if (request === documentOpenRequest) {
@@ -725,7 +725,8 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
     legacyUnassigned: review.legacyUnassigned,
     words: review.words,
     assetVersion,
-    translationAlignment,
+    translationAlignment: alignmentInspection.alignment,
+    translationAlignmentState: alignmentInspection.state,
     missing: false
   }
 }
@@ -741,7 +742,7 @@ async function onFile(file: string) {
   if (file === openPath || file === zhPath) {
     window?.webContents.send('doc:status', { sourcePath: openPath, status: 'updating' })
     const text = await fs.readFile(file, 'utf8').catch(() => null)
-    const translationAlignment = await translator.loadAlignment(sourcePath).catch(() => null)
+    const alignmentInspection = await translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
     if (openPath !== sourcePath) return
     assetVersion += 1
     window?.webContents.send('doc:update', {
@@ -752,7 +753,8 @@ async function onFile(file: string) {
       zhPath,
       zhDir: zhPath ? dirname(zhPath) : null,
       assetVersion,
-      translationAlignment
+      translationAlignment: alignmentInspection.alignment,
+      translationAlignmentState: alignmentInspection.state
     })
     return
   }

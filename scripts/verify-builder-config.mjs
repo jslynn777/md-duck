@@ -20,8 +20,9 @@ export function verifyBuilderConfig(config) {
   for (const pattern of ['!node_modules/onnxruntime-node/bin/napi-v3/linux/**', '!node_modules/onnxruntime-node/bin/napi-v3/win32/**', '!node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/**']) assert(config.mac.files.includes(pattern), `Missing macOS native filter: ${pattern}`)
   for (const pattern of ['!node_modules/onnxruntime-node/bin/napi-v3/darwin/**', '!node_modules/onnxruntime-node/bin/napi-v3/linux/**', '!node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**']) assert(config.win.files.includes(pattern), `Missing Windows native filter: ${pattern}`)
   const resources = config.extraResources.map(({ from }) => from)
-  assert.deepEqual(resources, ['LICENSE', 'NOTICE', 'INSTALLING.md', 'examples', 'build/third-party', 'src/main/data/ipa-dict'], 'Only allowlisted shared resources may be copied')
+  assert.deepEqual(resources, ['LICENSE', 'NOTICE', 'INSTALLING.md', 'examples', 'build/third-party', 'src/main/data/ipa-dict', 'src/main/data/kokoro-voices'], 'Only allowlisted shared resources may be copied')
   assert(config.extraResources.find(({ from }) => from === 'examples').filter.includes('!**/.review/**'))
+  for (const pattern of ['out/main/speech-worker*.js', 'out/main/kokoro-runtime*.js', 'out/main/chunks/**']) assert(config.asarUnpack.includes(pattern), `Speech utility process requires ${pattern} outside ASAR`)
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {

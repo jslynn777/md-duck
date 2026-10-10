@@ -6,7 +6,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.APACHE",
@@ -15,7 +16,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.BSD2",
@@ -24,7 +26,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "a8b0c1c7d7af6c0415c068be8cf373799d1a42b0707b79dc4ccfcaf593cd902d",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.UCD",
@@ -33,7 +36,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "be029c50df83105a810e391778b6edcb522d6cb4b4e142332aca54437a499bf7",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-README.md",
@@ -42,7 +46,8 @@
     "kind": "reference",
     "referenceOnly": true,
     "sha256": "765e894f83a47e2d003bd2256e86d1ae412e6e0078c3092d66ece293b051e278",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "LGPL-3.0.txt",
@@ -735,10 +740,10 @@
   },
   {
     "file": "release-audit.json",
-    "source": "https://github.com/lovell/sharp-libvips/tree/ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+    "source": "https://github.com/jslynn777/md-duck",
     "kind": "reference",
     "referenceOnly": true,
-    "sha256": "a28798d141e7013390201d77663fd1d53890cae864508d598aadc75bac145ded",
+    "sha256": "6cc1881565520a85ff3311dba91c8297938d66867d20ee9da1b9af5a8973f03b",
     "appliesTo": [],
     "comment": "MD Duck audit decisions and public upstream evidence; a generated review record, not upstream license text."
   },

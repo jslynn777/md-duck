@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { promises as fs } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, sep } from 'node:path'
 import { createDocumentTranslator, resolveSourcePath, translationPath } from './document-translation'
-import { alignTranslatedBlocks } from '../shared/translation-alignment'
+import { alignTranslatedBlocks, translationContentHash } from '../shared/translation-alignment'
 import { parseDocument } from '../shared/markdown'
 import type { AIMessage } from '../shared/ai'
 import type { TranslationState } from '../shared/translation'
@@ -39,6 +40,136 @@ function deferred<T>() {
   return { promise, resolve }
 }
 async function metadataFiles() { return fs.readdir(join(root, '.review', 'translations')) }
+
+async function alignmentFixture() {
+  const source = join(root, 'inspect.md')
+  const target = join(root, 'inspect.zh.md')
+  const sourceText = '# Original\n\nOrdinary text.'
+  const targetText = '# 标题\n\n中文段落。'
+  await fs.writeFile(source, sourceText)
+  await fs.writeFile(target, targetText)
+  const sourceBlocks = parseDocument(sourceText, '').blocks
+  const targetBlocks = parseDocument(targetText, '').blocks
+  const alignment = { sourceHash: translationContentHash(sourceText), targetHash: translationContentHash(targetText),
+    pairs: sourceBlocks.map((block, index) => ({ sourceKey: block.key, targetKey: targetBlocks[index].key })) }
+  const record = { version: 2, sourceFile: 'inspect.md', targetRelative: 'inspect.zh.md', ...alignment }
+  const key = createHash('sha256').update('inspect.md').digest('hex').slice(0, 24)
+  const metadata = join(root, '.review', 'translations', `${key}.alignment.json`)
+  await fs.mkdir(dirname(metadata), { recursive: true })
+  await fs.writeFile(metadata, JSON.stringify(record, null, 2))
+  return { source, target, sourceText, targetText, alignment, record, metadata }
+}
+
+describe('read-only alignment record inspection', () => {
+  it('reports absent metadata without creating review folders or positional pairs', async () => {
+    const source = join(root, 'unmarked.md')
+    const target = join(root, 'unmarked.zh.md')
+    await fs.writeFile(source, 'First.\n\nSecond.')
+    await fs.writeFile(target, '第一。\n\n第二。')
+    const { translator, progress } = service()
+    expect(await translator.inspectAlignment(source)).toEqual({ alignment: null, state: 'absent' })
+    expect(await translator.loadAlignment(source)).toBeNull()
+    expect(await fs.readdir(root)).toEqual(expect.arrayContaining(['unmarked.md', 'unmarked.zh.md']))
+    expect(await fs.stat(join(root, '.review')).catch(() => null)).toBeNull()
+    expect(await fs.readFile(source, 'utf8')).toBe('First.\n\nSecond.')
+    expect(await fs.readFile(target, 'utf8')).toBe('第一。\n\n第二。')
+    expect(progress).toEqual([])
+  })
+
+  it('returns the existing valid map and leaves every file and record unchanged', async () => {
+    const fixture = await alignmentFixture()
+    const before = await fs.readFile(fixture.metadata)
+    const beforeStat = await fs.stat(fixture.metadata)
+    const { translator, progress } = service()
+    const mutationSpies = [vi.spyOn(fs, 'writeFile'), vi.spyOn(fs, 'mkdir'), vi.spyOn(fs, 'rename'), vi.spyOn(fs, 'unlink')]
+    try {
+      expect(await translator.inspectAlignment(fixture.source)).toEqual({ alignment: fixture.alignment, state: 'valid' })
+      expect(await translator.loadAlignment(fixture.source)).toEqual(fixture.alignment)
+      mutationSpies.forEach((spy) => expect(spy).not.toHaveBeenCalled())
+    } finally { mutationSpies.forEach((spy) => spy.mockRestore()) }
+    expect(await fs.readFile(fixture.metadata)).toEqual(before)
+    expect((await fs.stat(fixture.metadata)).mtimeMs).toBe(beforeStat.mtimeMs)
+    expect(await fs.readFile(fixture.source, 'utf8')).toBe(fixture.sourceText)
+    expect(await fs.readFile(fixture.target, 'utf8')).toBe(fixture.targetText)
+    expect(await metadataFiles()).toHaveLength(1)
+    expect(progress).toEqual([])
+  })
+
+  it.each(['source', 'target'] as const)('reports stale content after a %s edit without repairing the record', async (side) => {
+    const fixture = await alignmentFixture()
+    const before = await fs.readFile(fixture.metadata)
+    await fs.appendFile(fixture[side], '\n\nChanged content.')
+    const { translator } = service()
+    expect(await translator.inspectAlignment(fixture.source)).toEqual({ alignment: null, state: 'stale' })
+    expect(await translator.loadAlignment(fixture.source)).toBeNull()
+    expect(await fs.readFile(fixture.metadata)).toEqual(before)
+    expect(await fs.readFile(fixture[side], 'utf8')).toContain('Changed content.')
+    expect(await metadataFiles()).toHaveLength(1)
+  })
+
+  it.each(['malformed', 'array', 'missing-fields', 'bad-pair', 'wrong-target'] as const)(
+    'reports an unusable %s record and preserves its bytes', async (kind) => {
+      const fixture = await alignmentFixture()
+      const records = { malformed: '{', array: '[]', 'missing-fields': JSON.stringify({ version: 2 }),
+        'bad-pair': JSON.stringify({ ...fixture.record, pairs: [{ sourceKey: 42, targetKey: 'x' }] }),
+        'wrong-target': JSON.stringify({ ...fixture.record, targetRelative: 'different.md' }) }
+      await fs.writeFile(fixture.metadata, records[kind])
+      const { translator } = service()
+      expect(await translator.inspectAlignment(fixture.source)).toEqual({ alignment: null, state: 'invalid' })
+      expect(await translator.loadAlignment(fixture.source)).toBeNull()
+      expect(await fs.readFile(fixture.metadata, 'utf8')).toBe(records[kind])
+      expect(await fs.readFile(fixture.source, 'utf8')).toBe(fixture.sourceText)
+      expect(await fs.readFile(fixture.target, 'utf8')).toBe(fixture.targetText)
+    })
+
+  it('reports inaccessible record contents as invalid rather than absent', async () => {
+    const fixture = await alignmentFixture()
+    const readFile = fs.readFile.bind(fs)
+    const read = vi.spyOn(fs, 'readFile').mockImplementation((file, options) => {
+      if (String(file) === fixture.metadata) return Promise.reject(Object.assign(new Error('denied'), { code: 'EACCES' }))
+      return readFile(file, options)
+    })
+    try {
+      expect(await service().translator.inspectAlignment(fixture.source)).toEqual({ alignment: null, state: 'invalid' })
+    } finally { read.mockRestore() }
+    expect(await fs.readFile(fixture.metadata, 'utf8')).toBe(JSON.stringify(fixture.record, null, 2))
+  })
+
+  it('reports a missing referenced document as unusable while preserving the sidecar', async () => {
+    const fixture = await alignmentFixture()
+    const before = await fs.readFile(fixture.metadata)
+    await fs.unlink(fixture.target)
+    expect(await service().translator.inspectAlignment(fixture.source)).toEqual({ alignment: null, state: 'invalid' })
+    expect(await fs.readFile(fixture.metadata)).toEqual(before)
+    expect(await fs.stat(fixture.target).catch(() => null)).toBeNull()
+  })
+
+  it('passes hash-valid maps to the existing structural reader for independent key validation', async () => {
+    const fixture = await alignmentFixture()
+    const pair = { sourceKey: 'unknown-source', targetKey: 'unknown-target' }
+    await fs.writeFile(fixture.metadata, JSON.stringify({ ...fixture.record, pairs: [pair] }))
+    const inspected = await service().translator.inspectAlignment(fixture.source)
+    expect(inspected).toEqual({ alignment: { ...fixture.alignment, pairs: [pair] }, state: 'valid' })
+    expect(alignTranslatedBlocks(parseDocument(fixture.sourceText, '').blocks, parseDocument(fixture.targetText, '').blocks,
+      fixture.sourceText, fixture.targetText, inspected.alignment).independent).toBe(true)
+  })
+
+  it('keeps allowed-root and metadata symlink authorization ahead of any content read', async () => {
+    const outside = await fs.realpath(await fs.mkdtemp(join(tmpdir(), 'md-duck-inspection-outside-')))
+    try {
+      const source = join(root, 'safe.md')
+      await fs.writeFile(source, '# Safe')
+      await fs.symlink(outside, join(root, '.review'), 'dir')
+      const { translator } = service()
+      const read = vi.spyOn(fs, 'readFile')
+      try {
+        await expect(translator.inspectAlignment(source)).rejects.toThrow('ERR_NOT_IN_FOLDER')
+        await expect(translator.inspectAlignment(join(outside, 'outside.md'))).rejects.toThrow('ERR_NOT_IN_FOLDER')
+        expect(read).not.toHaveBeenCalled()
+      } finally { read.mockRestore() }
+    } finally { await fs.rm(outside, { recursive: true, force: true }) }
+  })
+})
 
 describe('document translation pairing', () => {
   it('pairs arbitrary Markdown names, preserving extensions and standalone Chinese files', async () => {

@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
-const speechExternals = ['kokoro-js', '@huggingface/transformers', 'onnxruntime-node', 'onnxruntime-common', 'phonemizer', 'sharp']
+const speechExternals = ['onnxruntime-node', 'onnxruntime-common']
 
 export default defineConfig({
   main: {
@@ -13,6 +13,7 @@ export default defineConfig({
         external: speechExternals,
         input: {
           index: resolve('src/main/index.ts'),
+          'kokoro-runtime': resolve('src/main/kokoro-runtime.ts'),
           'speech-worker': resolve('src/main/speech-worker.ts')
         }
       }

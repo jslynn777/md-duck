@@ -57,6 +57,8 @@ import type { AISettings } from '@shared/ai'
 import { alignTranslatedBlocks } from '@shared/translation-alignment'
 import { sentenceForRange } from './sentence-context'
 import { selectionPosition, type SelectionRect } from './selection-position'
+import { inspectPairing } from '@shared/pairing-diagnostics'
+import { PairingStatus, PairingCheckDialog } from './PairingCheck'
 
 type Selection = { block: Block; quote: string; lang: 'source' | 'zh'; x: number; y: number; anchor?: SelectionRect; sentence?: string; quoteAnchor?: QuoteAnchor; keyboard?: boolean }
 type Popover = Selection & {
@@ -84,6 +86,7 @@ export function App() {
   const [lightbox, setLightbox] = useState('')
   const [toast, setToast] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pairingOpen, setPairingOpen] = useState(false)
   const [aiSettings, setAISettings] = useState<AISettings | null>(null)
   const [translationRequested, setTranslationRequested] = useState<string | null>(null)
   const [dismissedTranslations, setDismissedTranslations] = useState<Set<string>>(() => new Set())
@@ -105,10 +108,10 @@ export function App() {
   activeContextRef.current = { sourcePath: doc?.sourcePath, pop, noteEditor }
 
   useEffect(() => {
-    if (settingsOpen || noteEditor || lightbox) {
+    if (settingsOpen || pairingOpen || noteEditor || lightbox) {
       setPop((current) => current?.mode === 'learn' ? null : current)
     }
-  }, [settingsOpen, noteEditor, lightbox])
+  }, [settingsOpen, pairingOpen, noteEditor, lightbox])
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 1499px)')
@@ -135,6 +138,7 @@ export function App() {
       stopSpeech()
       setPop(null)
       setNoteEditor(null)
+      setPairingOpen(false)
       setPendingJump(null)
       setActiveNote(null)
       try {
@@ -230,6 +234,12 @@ export function App() {
     () => (doc?.zh && mode === 'bilingual' ? alignTranslatedBlocks(doc.source.blocks, doc.zh.blocks, doc.sourceText, doc.zhText ?? '', doc.translationAlignment) : null),
     [doc, mode]
   )
+  const pairing = useMemo(() => doc ? inspectPairing({
+    sourceText: doc.sourceText, zhText: doc.zhText,
+    source: doc.source, zh: doc.zh,
+    alignment: doc.translationAlignment,
+    alignmentState: doc.translationAlignmentState
+  }) : null, [doc?.sourceText, doc?.zhText, doc?.source, doc?.zh, doc?.translationAlignment, doc?.translationAlignmentState])
 
   useLayoutEffect(() => {
     const saved = restoreRef.current
@@ -291,6 +301,8 @@ export function App() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
+      // The native dialog handles Escape and keeps reader shortcuts inactive.
+      if (pairingOpen) return
       if (event.key === 'Escape') {
         if (settingsOpen) return
         else if (noteEditor) setNoteEditor(null)
@@ -319,7 +331,7 @@ export function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, doc, state?.hasKey, ui])
+  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, doc, state?.hasKey, ui])
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => {
@@ -476,6 +488,8 @@ export function App() {
               mode={mode}
               showZh={showZh}
               aligned={aligned}
+              pairing={pairing}
+              onCheckPairing={() => { setPop(null); setPairingOpen(true) }}
               flash={flash}
               notes={notes}
               speaking={speech.playing}
@@ -560,6 +574,17 @@ export function App() {
           onStatus={(id, s) => { if (doc) void window.api.setNoteStatus(doc.sourcePath, id, s).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
           onDelete={(id) => { if (doc) void window.api.deleteNote(doc.sourcePath, id).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
           onClose={() => setNotesOpen(false)}
+        />
+      )}
+
+      {pairingOpen && pairing && doc && (
+        <PairingCheckDialog
+          report={pairing} ui={ui} sourcePath={doc.sourcePath} zhPath={doc.zhPath}
+          onClose={() => setPairingOpen(false)}
+          onLocate={(location) => {
+            setPairingOpen(false)
+            if (location.blockKey) revealBlock(doc.sourcePath, location.blockKey, location.side)
+          }}
         />
       )}
 
@@ -697,7 +722,8 @@ export function App() {
       if (!current || current.sourcePath !== update.sourcePath) return current
       captureAnchor()
       const next: Doc = { ...current, assetVersion: update.assetVersion,
-        translationAlignment: update.translationAlignment === undefined ? current.translationAlignment : update.translationAlignment }
+        translationAlignment: update.translationAlignment === undefined ? current.translationAlignment : update.translationAlignment,
+        translationAlignmentState: update.translationAlignmentState === undefined ? current.translationAlignmentState : update.translationAlignmentState }
       if (update.side === 'source') {
         next.missing = update.missing
         if (update.text != null) next.sourceText = update.text
@@ -1448,6 +1474,8 @@ function Reader({
   mode,
   showZh,
   aligned,
+  pairing,
+  onCheckPairing,
   flash,
   notes,
   speaking,
@@ -1469,6 +1497,8 @@ function Reader({
   mode: ReadMode
   showZh: boolean
   aligned: ReturnType<typeof alignBlocks> | null
+  pairing: ReturnType<typeof inspectPairing> | null
+  onCheckPairing: () => void
   flash: Set<string>
   notes: Note[]
   speaking: { key: string; paused: boolean; preparing: boolean } | null
@@ -1548,10 +1578,11 @@ function Reader({
         <button className="btn small ghost" onClick={onCloseDocument}>{ui === 'zh' ? '关闭文章' : 'Close article'}</button>
       </div>}
       <DocHeader doc={doc} mode={mode} />
+      {mode === 'bilingual' && pairing && <PairingStatus report={pairing} ui={ui} onCheck={onCheckPairing} />}
       <ReviewAssociation sourcePath={doc.sourcePath}
         eligible={!doc.missing && !doc.notesMissing && !doc.reviewIssue && notes.length === 0 && doc.words.length === 0}
         onAssociated={onAssociated} />
-      {warnings.length > 0 && (
+      {mode !== 'bilingual' && warnings.length > 0 && (
         <div className={`banner ${wide ? 'wide' : ''}`}>
           <Sparkles size={14} /> {warningText(ui, warnings[0])}
         </div>
@@ -1581,11 +1612,6 @@ function Reader({
         </div>
       ) : mode === 'bilingual' && doc.zh ? (
         <>
-          {aligned?.warning && (
-            <div className="banner wide">
-              <Sparkles size={14} /> {warningText(ui, aligned.warning)}
-            </div>
-          )}
           <div className="cols">
             <div className="col prose">
               <span className="lang-badge">{tr('columnEnglish')}</span>

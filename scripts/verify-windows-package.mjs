@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { verifyNeuralPackage } from './verify-neural-package.mjs'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -72,10 +73,7 @@ assert.deepEqual(privateFiles, [], 'User data or development artifacts must not 
 assert(!files.some((file) => /\/onnxruntime-node\/bin\/napi-v3\/(?:darwin|linux)\//.test(file) || /\/onnxruntime-node\/bin\/napi-v3\/win32\/arm64\//.test(file)), 'Other-platform ONNX binaries must not be included')
 for (const file of [
   'node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime_binding.node',
-  'node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime.dll',
-  'node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.5.node',
-  'node_modules/@img/sharp-win32-x64/lib/libvips-42.dll',
-  'node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.7.dll'
+  'node_modules/onnxruntime-node/bin/napi-v3/win32/x64/onnxruntime.dll'
 ]) assert.equal(peMachine(join(unpacked, file)), 0x8664, `Native dependency must be x64 and unpacked: ${file}`)
 for (const file of ['examples/christmas-ribbon/article.md', 'examples/christmas-ribbon/assets/bow.png', 'third-party/ipa-dict/LICENSE-UK-GPL-3.0', 'third-party/ipa-dict/en_UK.txt']) assert(existsSync(join(resources, file)), `Missing resource: ${file}`)
 // electron-builder preserves the runtime license under this Windows filename
@@ -85,7 +83,12 @@ const notices = JSON.parse(readFileSync(join(resources, 'third-party/manifest.js
 assert.equal(notices.application.version, expected.version)
 assert.equal(notices.platform, 'win32', 'Notices must be generated on the Windows build host')
 assert.equal(notices.architecture, 'x64')
-assert(notices.nativeComponents.some(({ name }) => name === '@img/sharp-win32-x64'), 'The bundled Windows libvips inventory must be collected')
+assert.deepEqual(notices.nativeComponents, [], 'No retired image/phonemizer native dependency may remain')
+assert.deepEqual(notices.missingFullLicenseText, [], 'All runtime package notices must be complete')
+assert.deepEqual(notices.releaseAudit.remainingItems, [], 'Corresponding-source issues must be closed')
+const neural = verifyNeuralPackage(resources, notices)
+for (const file of files.filter((file) => /^\/out\/main\/(?:speech-worker[^/]*\.js|kokoro-runtime[^/]*\.js|chunks\/[^/]+\.js)$/.test(file))) assert(existsSync(join(unpacked, file.slice(1))), `Speech utility process requires an unpacked module: ${file}`)
+assert(!files.some((file) => /\/(?:sharp|@img|phonemizer|guid-typescript|onnxruntime-web|kokoro-js|@huggingface)\//.test(file)), 'Retired speech/image dependency code must not be packaged')
 
 // ONNX imports these Visual C++ runtime libraries. A CI runner may provide them
 // system-wide, so report app-local files without treating their absence as a
@@ -114,7 +117,7 @@ const artifacts = []
 if (!process.argv.includes('--dir-only')) {
   const archiveDirectory = resolve('release')
   for (const target of ['Setup', 'Portable']) {
-    const name = `MD-Duck-${metadata.version}-Windows-x64-${target}-local-test.exe`
+    const name = `MD-Duck-${metadata.version}-Windows-x64-${target}.exe`
     const archive = join(archiveDirectory, name)
     assert(existsSync(archive), `Missing ${target} artifact: ${name}`)
     assert([0x14c, 0x8664].includes(peMachine(archive)), 'The NSIS launcher must be a Windows executable')
@@ -133,7 +136,7 @@ if (!process.argv.includes('--dir-only')) {
       const executable = await locate(extracted, 'MD Duck.exe')
       assert(executable, `${target} has no application executable`)
       assert.equal(await sha256(executable), await sha256(join(app, 'MD Duck.exe')), `${target} executable differs from win-unpacked`)
-      for (const basename of ['onnxruntime_binding.node', 'onnxruntime.dll', 'libvips-42.dll', 'libvips-cpp-8.18.7.dll']) {
+      for (const basename of ['onnxruntime_binding.node', 'onnxruntime.dll']) {
         const original = await locate(unpacked, basename)
         const bundled = await locate(extracted, basename)
         assert(original && bundled, `${target} is missing ${basename}`)
@@ -146,4 +149,4 @@ if (!process.argv.includes('--dir-only')) {
     } finally { await rm(directory, { recursive: true, force: true }) }
   }
 }
-console.log(JSON.stringify({ status: 'passed', version: metadata.version, platform: 'win32', architecture: 'x64', packagedFiles: files.length, privateFiles: 0, notices: 'Windows native inventory present', codeSigned: false, visualCppRuntime, artifacts, remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), scope: 'Package and archive integrity; runtime startup and speech checks run separately.' }, null, 2))
+console.log(JSON.stringify({ status: 'passed', version: metadata.version, platform: 'win32', architecture: 'x64', packagedFiles: files.length, privateFiles: 0, notices: 'Pinned neural runtime and full dependency notices present', codeSigned: false, visualCppRuntime, artifacts, remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), scope: 'Package and archive integrity; runtime startup and speech checks run separately.' }, null, 2))

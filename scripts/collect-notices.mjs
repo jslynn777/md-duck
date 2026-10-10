@@ -118,7 +118,7 @@ for (const [location, locked] of Object.entries(lock.packages).sort(([a], [b]) =
 }
 
 const references = []
-for (const entry of supplements.filter((entry) => entry.referenceOnly)) {
+for (const entry of supplements.filter((entry) => entry.referenceOnly && !entry.retired)) {
   const source = join(sourceDirectory, entry.file)
   const bytes = await fs.readFile(source)
   if (digest(bytes) !== entry.sha256) throw new Error(`Supplement hash mismatch: ${entry.file}`)
@@ -135,6 +135,32 @@ for (const name of ['en_US.txt', 'en_UK.txt']) {
   await assertLocalFile(ipaSource, join(ipaSource, name))
   const data = await fs.readFile(join(ipaSource, name))
   ipaData.push({ name, bytes: data.length, sha256: digest(data), packagedSeparately: true })
+}
+let neural = null
+if (app.name === 'md-duck') {
+  const engineRoot = join(root, 'src/main/kokoro-runtime-phonemizer')
+  const voiceRoot = join(root, 'src/main/data/kokoro-voices')
+  for (const directory of [engineRoot, voiceRoot]) if (!(await fs.lstat(directory)).isDirectory()) throw new Error('Neural source must be an allowlisted real directory')
+  const engine = await readJSON(join(engineRoot, 'SOURCE.json'))
+  const styles = await readJSON(join(voiceRoot, 'SOURCE.json'))
+  if (engine.sourceCommit !== '4f6d246c1d3acf67a4d814e20da02fa3967bc92d' || !engine.emscripten.container.includes('@sha256:') || styles.files.length !== 5) throw new Error('Neural source identity is incomplete')
+  for (const [directory, entries] of [[engineRoot, engine.outputs], [voiceRoot, [...styles.files, ...styles.notices]]]) {
+    for (const file of entries) {
+      const path = join(directory, file.file)
+      await assertLocalFile(directory, path)
+      const bytes = await fs.readFile(path)
+      if (bytes.length !== file.bytes || digest(bytes) !== file.sha256) throw new Error(`Bundled neural resource identity differs: ${file.file}`)
+    }
+  }
+  const notices = []
+  for (const name of ['SOURCE.json', 'SOURCE.md', ...engine.outputs.filter(({ file }) => file.startsWith('COPYING')).map(({ file }) => file)]) {
+    notices.push(await copyNotice(join(engineRoot, name), join(output, 'data/phonemizer', name), engineRoot, { origin: 'source-pinned-phoneme-engine' }))
+  }
+  for (const name of ['SOURCE.json', 'SOURCE.md', 'LICENSE']) notices.push(await copyNotice(join(voiceRoot, name), join(output, 'data/kokoro', name), voiceRoot, { origin: 'kokoro-model-voice-normalization-tokenizer-notices' }))
+  neural = { engine, styles, notices,
+    sourceDelivery: { file: `MD-Duck-${app.version}-Corresponding-Source.tar.gz`, requirement: 'Publish the complete MD Duck source and exact third-party source inputs alongside every public binary; do not substitute upstream homepage links for delivered corresponding source.' } }
+  const retired = ['sharp', '@img/sharp', 'phonemizer', 'kokoro-js', '@huggingface/transformers', 'onnxruntime-web', 'guid-typescript']
+  if (packages.some(({ name }) => retired.some((item) => name === item || item === '@img/sharp' && name.startsWith(item)))) throw new Error('Retired speech/image dependency is still installed for production')
 }
 const native = []
 const releaseAuditPath = join(sourceDirectory, 'release-audit.json')
@@ -171,14 +197,14 @@ for (const name of ['phonemizer', 'kokoro-js']) {
 }
 const missing = packages.filter((pkg) => pkg.licenseTextStatus !== 'collected').map(({ name, version, location, license, repository }) => ({ name, version, location, license, repository }))
 const manifest = {
-  formatVersion: 2, application: { name: app.name, version: app.version }, scope: 'Installed production package-lock entries on this build host; Electron runtime and IPA text tables are packaged separately.',
+  formatVersion: 2, application: { name: app.name, version: app.version }, scope: 'Installed production package-lock entries and vendored neural engine/model/voice provenance on this build host; Electron runtime and pronunciation tables are packaged separately.',
   platform: process.platform, architecture: process.arch, packageLockSha256: digest(await fs.readFile(join(root, 'package-lock.json'))),
   packageCount: packages.length, uniquePackageVersions: new Set(packages.map((pkg) => `${pkg.name}@${pkg.version}`)).size,
   optionalNotInstalledCount: skipped.length, missingFullLicenseText: missing, packages, optionalNotInstalled: skipped,
-  bundledPronunciationData: { notices: ipa, files: ipaData }, nativeComponents: native, references,
-  releaseAudit: { checkedAt: releaseAudit.checkedAt, remainingItems: releaseAudit.remainingItems },
+  bundledPronunciationData: { notices: ipa, files: ipaData }, bundledNeuralSpeech: neural, nativeComponents: native, references,
+  releaseAudit: { checkedAt: releaseAudit.checkedAt, remainingItems: releaseAudit.remainingItems, closedItems: releaseAudit.closedItems ?? [], correspondingSource: releaseAudit.correspondingSource ?? null },
   excluded: ['User settings and credentials', 'User articles, annotations, and drafts', 'User model/audio caches', 'Development-only dependencies', 'Electron runtime notices, retained by the application packager'],
-  reviewStatus: 'Local beta notice collection only. This inventory does not select the MD Duck project license or certify complete open-source redistribution compliance.'
+  reviewStatus: 'Verified notice inventory and fixed-source build inputs; public release separately requires passing packaged checks and publishing the matching corresponding-source archive beside the binaries.'
 }
 await fs.writeFile(join(output, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 const missingLines = missing.length ? missing.map((pkg) => `- ${pkg.name}@${pkg.version}: package metadata declares ${pkg.license}; full license/copyright text was not found in the installed package or verified supplements. Source: ${pkg.repository ?? 'not supplied'}.`) : ['- No installed npm package is missing a collected license text.']
@@ -186,7 +212,7 @@ const lines = [
   '# MD Duck — Third-party notices / 第三方声明', '',
   `Application build: ${app.version}. Target: ${process.platform}/${process.arch}.`, '',
   'This collection preserves the complete text of the license and notice files found in the installed production dependency tree, with separately sourced upstream supplements recorded by URL and SHA-256 in manifest.json. Original texts have not been translated or rewritten.', '',
-  '本目录用于本机内测包。它不替 MD Duck 选择项目许可证，也不表示已经完成全部开源许可、源代码提供或再分发条件审查。', '',
+  '本目录保留第三方原始版权与许可文本。MD Duck 自有代码采用根目录声明的 GPL-3.0-or-later；公开二进制必须同时提供匹配的完整源码包，并通过最终安装包验证。', '',
   `Installed production lock entries: **${packages.length}** (${manifest.uniquePackageVersions} unique name/version pairs). Optional packages absent on this build host: **${skipped.length}**.`, '',
   '## Scope and provenance', '',
   '- Only package-lock production entries installed for this build host are collected. Development tools are excluded; packages used by both development and production are retained.',
@@ -198,14 +224,16 @@ const lines = [
   '- The unmodified en_US.txt and en_UK.txt files are copied separately by the app packager. manifest.json records their SHA-256 values; no runtime cache is used.',
   '- Source and derivation details: see data/ipa-dict/SOURCE.md, pinned upstream commit 43c3570eb3553bdd19fccd2bd0091534889af023.', '',
   '## Speech and native components / 语音及原生组件', '',
-  '- kokoro-js and Transformers.js package license texts are retained. The app references onnx-community/Kokoro-82M-v1.0-ONNX at runtime; downloaded model weights, voices, and audio caches are not collected or embedded by this generator. Model source: https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX . Runtime download provenance and terms require their own review.',
-  '- phonemizer 1.2.1 is tied to npm publisher commit 6835144b7ee9043129222549c1ed2f6a27216278; package archive integrity and every installed package file were compared. This identifies the wrapper and precompiled worker, not the embedded eSpeak NG C/C++ source revision or Emscripten version. The eSpeak 1.52.0 license set in references/ remains a labelled reference, not a matching-source assertion.',
-  '- ONNX Runtime Node/Web/Common license and upstream ThirdPartyNotices supplements are tied to their exact npm release tag or recorded source commit. Broad upstream notice lists may include components not active on this platform; no notices are silently discarded.',
-  '- The installed native image package is inventoried in native/COMPONENTS.json. Windows sharp 0.35.5 includes its own libvips DLLs; the Windows package archive and every file are verified against recorded published-package hashes. Windows and macOS have separate build evidence, and the Mac POSIX patches are not attributed to Windows. Collected component license texts and versioned source URLs do not complete per-file/transitive copyright notices or corresponding-source delivery.', '',
+  '- Neural speech uses the native ONNX Runtime CPU implementation, the same fixed Kokoro q8 model, and five unmodified voice style arrays. Model revision, URL, exact byte size/SHA-256, tokenizer and normalization provenance, voice hashes, and complete Apache-2.0 text are under data/kokoro/. The model is downloaded only on a requested speech operation; user audio/model caches are excluded from this collection.',
+  '- The phoneme engine is freshly built from ephone/eSpeak NG commit 4f6d246c1d3acf67a4d814e20da02fa3967bc92d with the fixed Emscripten 3.1.64 image and verified complete source archives. data/phonemizer/ contains the source manifest, build/replacement instructions, engine GPL text, Unicode text, and exact Emscripten/musl/LLVM library notices. Complete source archives retain all original per-file headers. Two isolated builds reproduced the recorded engine and English-data bytes.',
+  '- The corresponding-source download contains the complete MD Duck source, exact ephone and Emscripten source inputs, original Kokoro package material, and the deterministic rebuild recipe. Follow data/phonemizer/SOURCE.md from the extracted source root to rebuild or replace the GPL engine and repackage the application. Maintainer build tools are not user installation requirements.',
+  '- ONNX Runtime Node/Common license and broad upstream ThirdPartyNotices supplements are retained at the exact installed release. Electron LICENSE and LICENSES.chromium.html are retained by the packager. Broad upstream notices can include inactive components; their original texts remain intact.',
+  '- The unused Transformers image/Web inference paths, sharp/libvips, GUID package, old precompiled phonemizer worker, and kokoro-js runtime dependency are absent from this production tree. Historical audit records remain in references/release-audit.json, without claiming that removed packages acquired missing grants or matching sources.', '',
   '## Remaining review items / 尚待核对', '',
   ...missingLines,
   ...releaseAudit.remainingItems.map((item) => `- **${item.id}**: ${item.summary} Resolution: ${item.resolution.join('; ')}.`),
-  '- No project-wide LICENSE has been created or inferred by this generator.', '',
+  ...(releaseAudit.remainingItems.length ? [] : ['- No recorded embedded/source-input review item remains open for this configured build. This does not replace final packaged verification or delivery of the corresponding-source archive.']),
+  '- This generator retains the explicit project LICENSE; it never invents or changes a third-party grant.', '',
   '## Installed production packages', '',
   '| Package | Version | Declared license | Texts |', '| --- | --- | --- | --- |',
   ...packages.map((pkg) => `| ${pkg.name} | ${pkg.version} | ${String(pkg.license).replaceAll('|', '\\|')} | ${pkg.licenseTextStatus === 'collected' ? pkg.files.map((file) => `[${file.kind ?? file.origin}](${encodeURI(file.file)})`).join(', ') : '**missing full text**'} |`), '',

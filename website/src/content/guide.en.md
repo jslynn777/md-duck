@@ -1,8 +1,8 @@
 <h2 id="install">Install on Mac</h2>
 
-MD Duck is free to use. The first beta, `0.1.0-beta.2`, is for Apple Silicon Macs. The package requires macOS 13 or later; testing has taken place on one Mac running macOS 27. Public installers are still being prepared; see [Downloads](/en/download/) for files and checksums. Intel Macs, Windows and Linux have not been validated.
+MD Duck is free to use. The Mac package targets Apple Silicon (M-series chips) and requires macOS 13 or later. It has been checked on one Mac running macOS 27. See [Downloads](/en/download/) for files, versions and checksums. An Intel Mac installer is not provided.
 
-Once an installer is published, open the DMG, drag MD Duck into **Applications**, then launch it from **Applications**. For a ZIP, extract it first and move MD Duck into **Applications**.
+Open the DMG and drag MD Duck into **Applications**. Eject the disk image after copying, then launch the installed app. Before updating a beta, keep a copy of your articles and their `.review/` folders.
 
 ### Does macOS block the first launch?
 
@@ -13,6 +13,16 @@ This beta has no Apple Developer ID signature or notarization. If you are certai
 3. Click **Open** when asked again, and authenticate if prompted.
 
 If **Open Anyway** is unavailable, or the alert says the app is damaged or will damage your computer, stop the installation. Download it again, compare its checksum with the release, and report the exact alert. A Mac managed by an organization may require its administrator's help.
+
+<h2 id="install-windows">Install on Windows</h2>
+
+Choose the **Windows x64 installer** for Windows 10 or later on a 64-bit Intel / AMD computer. Run the downloaded EXE, choose an installation folder and open MD Duck from the Start menu. The installer runs per user and normally does not require administrator privileges. There is no Windows ARM installer yet.
+
+The beta has no Windows publisher signature, so Windows may show a source warning. Confirm the file came from [this project's Downloads page](/en/download/) and compare its SHA-256. You do not need to disable system protection. In PowerShell, use `Get-FileHash -Algorithm SHA256 "full file path"`; on Mac, use `shasum -a 256 "full file path"`.
+
+Local speech also requires the **Microsoft Visual C++ v14 x64 runtime**. If it is missing or speech cannot start, install the x64 runtime using [Microsoft's official instructions](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). You do not need to buy Visual Studio. The runtime installer may need administrator privileges; reading and annotations do not require it.
+
+Windows builds have automated checks for tests, installation, startup restoration and speech dependencies. Hands-on desktop reading and complete playback still need user feedback. Keep a copy of your articles and `.review/` folders before updating. Install the new version into the same location; articles stay in the folders you choose.
 
 <h2 id="open">Open your first article</h2>
 
@@ -57,7 +67,15 @@ On Saturday, I leave my phone at home.
 星期六，我把手机留在家里。
 ```
 
-Give each pair a different marker name. Use **Copy convention** in Settings to share these instructions with the person or AI preparing your article. Files without matching markers can still be read in two columns, but their paragraphs will not align precisely.
+Give each pair a different marker name. Use **Copy convention** in Settings to share these instructions with the person or AI preparing your article. Without matching markers or a valid translation record, files can still be read in two columns, but their paragraphs will not align precisely.
+
+<h2 id="pairing-check">Check paragraph pairing across the article</h2>
+
+The pairing notice in the side-by-side view explains which existing relationships are in use and whether content remains unpaired. Choose **Check whole document** to see paired and unpaired counts and a list of issues for the entire article, including problems beyond its first few paragraphs.
+
+The check reports duplicate markers, markers without content or a matching marker on the other side, unmarked content, differences in marker order and paragraph structure, and stale or invalid translation records. Click an original or Chinese line number in an issue to return to that side and highlight the nearby text. Markers are hidden in the reading view; use the line number to make changes in your editor.
+
+The check only reads files and preserves your current reading view. It does not assign pairs, add markers or rewrite the original or translation. Save changes in your editor, then check again. **Matching structure does not establish translation accuracy**; compare meanings with the original yourself.
 
 <h2 id="notes">Leave a note where a change is needed</h2>
 
@@ -91,7 +109,7 @@ Contextual AI explanations currently use Chinese.
 
 Move the pointer beside a paragraph and click its read-aloud button, or listen to a word or sentence from the word card. Choose a voice and speed in Settings. Press `Esc` to stop.
 
-Speech uses the Kokoro model on your computer. It needs an internet connection for its first download; preparation starts only when you first request playback, rather than when you open the app. Once ready, speech is synthesized locally. British and American phonetic transcriptions are provided for reference; playback uses the voice selected in Settings.
+Speech uses the Kokoro model on your computer, with five British and American voices. The first playback request needs an internet connection to download about 92 MB; an existing valid model cache is reused. Opening the app alone does not trigger a download. Once ready, speech is synthesized locally. British and American phonetic transcriptions are provided for reference; playback uses the voice selected in Settings.
 
 <h2 id="ai-setup">Connect your own AI service</h2>
 
@@ -134,7 +152,7 @@ This website has no sign-in, forms, or analytics scripts. Server access logs dep
 
 ### Why is there no Chinese translation in the reading view?
 
-Check the filenames first, such as `notes.md` and `notes.zh.md`. You can also use **Choose a translation** to link a file manually. For precise paragraph alignment, check that matching content has matching block markers.
+Check the filenames first, such as `notes.md` and `notes.zh.md`. You can also use **Choose a translation** to link a file manually. If both files open but paragraphs do not match, use the [whole-article pairing check](#pairing-check) and inspect the markers and structure at the reported lines. You can keep reading in two columns.
 
 ### Why can I see phonetics but no explanation?
 
@@ -158,4 +176,4 @@ Check the folder’s write permissions and the original file’s location. Keep 
 
 ### Can I download it now? Which systems are supported?
 
-The first beta, `0.1.0-beta.2`, is for Apple Silicon Macs. Public installers are still being prepared. Intel Macs, Windows and Linux have not been validated. See [Downloads and releases](/en/download/) for files, tested macOS versions and release status, or read the [Mac installation steps](#install) before your first install.
+Free betas are provided for Apple Silicon Macs and Windows x64. See [Downloads and releases](/en/download/) for public files and their release status. Intel Mac, Windows ARM and Linux installers are not provided yet. Read the [Mac installation steps](#install) or [Windows installation steps](#install-windows) before your first install.

@@ -1,0 +1,101 @@
+{
+  "formatVersion": 1,
+  "engine": "ephone / eSpeak NG phoneme-only fork",
+  "sourceCommit": "4f6d246c1d3acf67a4d814e20da02fa3967bc92d",
+  "sourceRepository": "https://github.com/sjmik/ephone-js",
+  "sourceArchive": {
+    "file": "ephone-js-4f6d246.tar.gz",
+    "url": "https://codeload.github.com/sjmik/ephone-js/tar.gz/4f6d246c1d3acf67a4d814e20da02fa3967bc92d",
+    "bytes": 14554770,
+    "sha256": "a2d68b463730754d7f3cdd598a77072631dcf9b343c38ffeee538a8ce082955e"
+  },
+  "emscripten": {
+    "version": "3.1.64",
+    "container": "emscripten/emsdk@sha256:8847dad4171ebc8a53d9ae5cda86a2546ef5b2e68834c14dc1ba2b2962e125cc",
+    "platform": "linux/amd64",
+    "sourceArchive": {
+      "file": "emscripten-3.1.64.tar.gz",
+      "url": "https://codeload.github.com/emscripten-core/emscripten/tar.gz/refs/tags/3.1.64",
+      "bytes": 29562286,
+      "sha256": "7ee24e77ed0a026d00c3df2e46bfe53106ef61db57059949a38bc5bfe5399686"
+    }
+  },
+  "license": "GPL-3.0-or-later (engine); Unicode database terms; Emscripten MIT/NCSA, musl and LLVM component texts retained verbatim",
+  "buildRecipe": "node scripts/build-phonemizer.mjs --archive <source-archives/ephone-js-4f6d246.tar.gz> --verify",
+  "buildChanges": [
+    "Use container cc/c++ for native dictionary compiler instead of a missing clang command",
+    "Omit --export-es6 on the data packager: MD Duck consumes only its generated file table, not its export wrapper",
+    "Omit upstream README regeneration referring to absent readme-header.md; input/output README copies are unchanged"
+  ],
+  "languageOptions": {
+    "dictionaryRegex": "^en$",
+    "languageRegex": "gmw/en(-US)?$",
+    "name": "en_all",
+    "description": "English - US and UK"
+  },
+  "outputs": [
+    {
+      "file": "ephone.js",
+      "bytes": 454240,
+      "sha256": "b048bafb3aead884931100c3f75d59506e32a696f3115bf7048d24d995724412"
+    },
+    {
+      "file": "lang/en_all.js",
+      "bytes": 322179,
+      "sha256": "4c402209aa51ef13f8b54e0b30fc9c2fe3cc2a2e4323eee4d431e40b9e98f787"
+    },
+    {
+      "file": "COPYING",
+      "bytes": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "file": "COPYING.UCD-TOOLS",
+      "bytes": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "file": "COPYING.UNICODE",
+      "bytes": 2788,
+      "sha256": "be029c50df83105a810e391778b6edcb522d6cb4b4e142332aca54437a499bf7"
+    },
+    {
+      "file": "COPYING.EMSCRIPTEN",
+      "bytes": 5093,
+      "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86"
+    },
+    {
+      "file": "COPYING.MUSL",
+      "bytes": 6204,
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af"
+    },
+    {
+      "file": "COPYING.COMPILER-RT",
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d"
+    },
+    {
+      "file": "COPYING.LIBCXX",
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
+    },
+    {
+      "file": "COPYING.LIBCXXABI",
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c"
+    },
+    {
+      "file": "COPYING.LIBUNWIND",
+      "bytes": 16706,
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d"
+    }
+  ],
+  "runtimeNoticeInputs": {
+    "COPYING.EMSCRIPTEN": "LICENSE",
+    "COPYING.MUSL": "system/lib/libc/musl/COPYRIGHT",
+    "COPYING.COMPILER-RT": "system/lib/compiler-rt/LICENSE.TXT",
+    "COPYING.LIBCXX": "system/lib/libcxx/LICENSE.TXT",
+    "COPYING.LIBCXXABI": "system/lib/libcxxabi/LICENSE.TXT",
+    "COPYING.LIBUNWIND": "system/lib/libunwind/LICENSE.TXT"
+  }
+}

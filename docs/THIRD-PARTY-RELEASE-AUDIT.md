@@ -1,47 +1,46 @@
-# 免费 macOS 测试版：第三方声明与源码记录
+# MD Duck beta.5：第三方声明与对应源码
 
-核对日期：2026-10-05。范围：当前 Apple Silicon Mac 构建的生产依赖。本文记录已经完成的整理和可执行的剩余工作。项目所有者已确认自有代码与文档采用 GPL-3.0-or-later，完整声明见 [LICENSE](../LICENSE) 和 [NOTICE](../NOTICE)；第三方二进制的核对仍未闭合。
+核对日期：2026-10-10。范围：macOS arm64、Windows x64 的生产依赖和内置神经朗读资源。项目自有代码与文档采用 GPL-3.0-or-later，第三方材料保留原始声明。本文记录源码输入与构建证据；最终公开交付还必须通过两平台安装包验证，并在二进制旁提供匹配的完整对应源码下载。
 
-## 已完成
+## 神经朗读保留了什么
 
-- 收集 147 个已安装生产锁文件条目的声明，覆盖 146 个不同的包名与版本。23 个本机未安装的可选平台包另列清单。
-- 对 `guid-typescript@1.0.9`、`phonemizer@1.2.1`、`@img/sharp-libvips-darwin-arm64@1.3.4` 下载公开 npm 原始归档，分别核对归档 SHA-512 与锁文件 integrity；归档中的 4、9、6 个文件与本机安装文件的 SHA-256 全部一致。原始归档没有写进安装包；公开来源和逐文件哈希保存在各包的 `PROVENANCE.json` 中。离线生成器每次重新核对这些文件，发生漂移会拒绝生成。
-- 将 `phonemizer` 包身份固定到 npm 声明的发布提交 `6835144b7ee9043129222549c1ed2f6a27216278`，记录预编译 worker 和 data 的来源、大小与哈希。wrapper 身份已确定，嵌入引擎的原始 C/C++ 源码身份仍未确定。
-- 将 sharp-libvips 发布构建固定到 `ebb95f8add54eee8bed840e3fb587e4cbec857d7`。该提交的 `versions.properties` 与本机 `versions.json` 的 28 个版本一致。28 个顶层组件都有按具体版本取得的许可文本；另外保留 Cairo 的 MPL/LGPL 全文、FreeType 的双重许可与 BDF/PCF 声明、aom/WebP 专利文本、上游构建脚本及 5 个补丁。
-- IPA 数据保留 US 与 UK 的不同授权和原始来源；UK GPL 数据没有被标为 MIT。Electron 自带的 `LICENSE`、`LICENSES.chromium.html` 继续由打包器保留。
+仍使用同一 Kokoro q8 模型、五个未修改声音风格数据、文本规范化和原生 CPU ONNX 推理。模型固定到 `1939ad2a8e416c0acfeecc08a694d14ef25f2231`，92,361,116 字节，SHA-256 `fbae9257e1e05ffc727e951ef9b9c98418e6d79f1c9b6b13bd59f5c9028a1478`；只有请求朗读时才会下载，并在激活缓存前校验大小和哈希。五声音真实推理测试在代表性美英文本、数字/时间和语速变化下，与此前 Kokoro 输出逐采样相同；这项证据的范围是已测文本与固定模型，不是所有输入的数学证明。
 
-生成物：[`build/THIRD_PARTY_NOTICES.md`](../build/THIRD_PARTY_NOTICES.md)、[`build/third-party/manifest.json`](../build/third-party/manifest.json)。精确的原生组件源码 URL、声明文件和补丁对应关系见 [`COMPONENTS.json`](../build/third-party/native/@img_sharp-libvips-darwin-arm64/COMPONENTS.json)。所有上游补充文本的来源与字节哈希见 [`scripts/notices-sources/manifest.json`](../scripts/notices-sources/manifest.json)。
+Kokoro 的模型/声音/词表/规范化来源、归档 integrity、逐声音哈希与完整 Apache-2.0 文本在 [kokoro-voices](../src/main/data/kokoro-voices/SOURCE.json)。音标表仍保留 US MIT 与 UK GPL 的不同条件，不把 UK 数据改称 MIT。
 
-## 三项尚待补齐
+## 四项旧问题如何处理
 
-| 编号 | 当前证据 | 具体完成条件 |
-| --- | --- | --- |
-| `GUID-LICENSE` | guid-typescript 包 metadata 声明 ISC，但完整 npm 归档和当前上游仓库都没有版权及授权全文；npm gitHead `1870de806c3db7ba46c5b8a1387c60fc9dda9284` 在当前仓库不能解析。上游 [issue #7](https://github.com/snico-dev/guid-typescript/issues/7) 仍开放，[PR #30](https://github.com/snico-dev/guid-typescript/pull/30) 尚未合并。 | 取得权利人对该版本发布的完整声明；或更新/替换 `kokoro-js → Transformers.js → ONNX Web → guid-typescript` 依赖链，验证最终安装包不再含此代码。未合并的第三方 PR 或标准 ISC 模板不能冒充该版本的完整授权。 |
-| `ESPEAK-SOURCE` | 已知 `phonemizer` wrapper 提交和预编译文件，但该树没有固定 eSpeak 引擎提交、数据生成输入、Emscripten/runtime 版本或完整构建记录。[上游源码树](https://github.com/xenova/phonemizer.js/tree/6835144b7ee9043129222549c1ed2f6a27216278)、[生成方式讨论](https://github.com/xenova/phonemizer.js/issues/1)、[许可讨论](https://github.com/xenova/phonemizer.js/issues/6) 可供跟进；讨论中的版本猜测没有作为事实写入清单。 | 取得与发布 worker 相符的引擎/runtime 对应源码、声明及构建输入；或替换为固定版本、完整记录、可重复构建的 worker，并提供对应源码。当前保留的 eSpeak 1.52.0 声明是明确标注的参考资料，不声称匹配现有二进制。 |
-| `LIBVIPS-SOURCE` | 28 个顶层组件版本、许可全文和版本化源码 URL 已有清单；仍未交付完整源码归档及传递组件/逐文件版权清单。librsvg 的 Rust 依赖需要按实际构建锁文件、features 整理。libultrahdr 构建还使用了可变的 [PR #383 补丁 URL](https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch)。 | 固定并校验实际源码、补丁、构建配置，整理编译进 dylib 的传递/逐文件声明，提供相符的源码下载与重建/替换原生库方法；确认 libultrahdr 发布构建实际使用的补丁 revision。已经下载并哈希的当前 PR 补丁不能证明历史构建使用了同一字节版本。 |
+[release-audit.json](../scripts/notices-sources/release-audit.json) 保留旧记录与具体关闭证据。
 
-网站介绍页、源码整理可以继续推进。上述事项未闭合时，不把现有二进制声明为完成第三方再分发审查；它们与是否支付苹果会员费无关。没有向上游发送消息或创建 issue，全部外部操作均为读取公开资料。
+| 旧事项 | beta.5 实际处理 |
+| --- | --- |
+| GUID 缺失授权全文 | 用直接原生 ONNX 推理替换未使用的 Transformers/ONNX Web 路径，GUID 包不再在生产树或安装包中。没有替该旧版本伪造授权。 |
+| 旧预编译 phonemizer 引擎源码身份不明 | 替换成完整固定源码 ephone/eSpeak NG commit `4f6d246c1d3acf67a4d814e20da02fa3967bc92d` 的新构建。引擎 C/C++ 未改，英语/Unicode 输入完整，Emscripten 3.1.64 镜像按 digest 固定。两次隔离构建的引擎和英语数据字节哈希完全一致。 |
+| Mac libvips 源码/传递声明未闭合 | 移除没有被朗读使用的 Transformers 图像路径及 sharp/libvips，最终包检查拒绝这些旧组件。原记录保留，不声称旧 dylib 已补齐来源。 |
+| Windows libvips/MXE 对应源码未闭合 | 同样移除该图像依赖路径，最终包检查拒绝旧 DLL。Mac 的补丁没有冒充 Windows 构建证据。 |
 
-## 项目许可证
+新引擎的 [SOURCE.json](../src/main/kokoro-runtime-phonemizer/SOURCE.json) 记录源码归档大小/SHA-256、编译镜像、三处仅构建脚本兼容性调整、语言选择与生成文件哈希。[SOURCE.md](../src/main/kokoro-runtime-phonemizer/SOURCE.md) 给出重建/替换步骤。完整引擎源码含原始逐文件版权和 GPL 文本；Emscripten、musl、compiler-rt、libc++、libc++abi、libunwind 与 Unicode 的原始声明分别保留。完整源码归档保留更多上游逐文件声明，不以单一 SPDX 标签代替它们。
 
-项目所有者已选择 **MD Duck 自有代码与文档使用 GPL-3.0-or-later**，根目录已添加完整许可文本和授权声明。第三方代码和数据保持各自原始授权，UK 数据适用的 GPL 3.0 不因项目自有代码的 `or-later` 选项而被重新授权。
+## 对应源码的交付和替换
 
-这不代表整个安装包已经完成兼容性审查。Apache 基金会说明 [Apache-2.0 代码可以纳入 GPLv3 项目](https://www.apache.org/licenses/GPL-compatibility.html)，但这不能补足 guid 缺失的版权声明或预编译引擎的对应源码。若希望自有代码使用 MIT，应先确定语音引擎的许可/组合边界或替换依赖，再做最终方案；不能只增加一份 MIT 文本就覆盖现有第三方材料。
+公开二进制必须同时提供 `MD-Duck-0.1.0-beta.5-Corresponding-Source.tar.gz`。它由最终二进制 Git revision 的完整 MD Duck 源码和以下明确选择的公开原始输入合并：完整 ephone 源码归档、完整 Emscripten 3.1.64 源码归档、经 npm integrity 校验的 Kokoro 原始归档。`third-party/SOURCE-INPUTS.json` 给出输入来源和哈希；没有复制用户文章、设置、API 密钥、模型/音频缓存或开发审计目录。
 
-## 本地复核与发布检查
+维护者先用 `scripts/stage-neural-sources.mjs --archives <已验证归档目录> --output <源码包根目录>` 选择输入，再合并最终 `git archive`。它只接受明确记录的三个归档，不能用整个工作目录或归档目录代替选择。仅在本机整理好材料，不代表已经完成公开下载交付。
+
+从合并源码根目录执行：
 
 ```sh
-node scripts/test-collect-notices.mjs
-node scripts/collect-notices.mjs
-node scripts/collect-notices.mjs --strict
-node scripts/collect-notices.mjs --release-strict
+node scripts/build-phonemizer.mjs --archive third-party/source-archives/ephone-js-4f6d246.tar.gz --verify
 ```
 
-- 普通生成成功：声明整理完成，但不表示公开发布审查完成。
-- `--strict`：仅当全部已安装生产 npm 包具备收集到的许可文本才成功；当前应因 guid 缺全文退出 1。
-- `--release-strict`：另外要求 [`release-audit.json`](../scripts/notices-sources/release-audit.json) 中三项嵌入组件/源码事项关闭；当前应退出 1。
-- 生成器也会拒绝补充声明字节不符、已核对的安装文件漂移、原生组件版本变化、声明源路径越界或输出目录被符号链接重定向。
+省略 `--verify` 会在核对完全相同的输出哈希后重写引擎文件；需要替换为自己的构建时调整其输入/输出记录，然后用正常平台构建与打包命令生成修改版。固定容器提供重建工具链，完整 Emscripten 源码包含实际链接到 WebAssembly 的运行库源码。Windows 维护者可使用 WSL2/Docker；普通阅读用户不需要它们。
 
-隔离验证覆盖以上边界，避免声明收集成功被误当成发布通过。2026-10-05 已重新构建 `0.1.0-beta.2` 的 `.app`、DMG 和 ZIP，包含本轮补充的第三方声明以及项目 `LICENSE`、`NOTICE` 和 `INSTALLING.md`。最终包的资源、签名完整性和原生依赖检查通过，独立资料目录中的安装、界面操作与批注重启恢复验证通过。这些是本地验证结果；上述三项第三方声明与对应源码缺口仍待闭合，公开安装包尚未发布。
+## 可执行检查
 
-关闭事项时应同时更新具体证据、`release-audit.json` 和其 manifest SHA-256，再离线重生成并核对最终安装包。缺失的对应源码不能通过删除剩余事项文字来关闭。
+- `node scripts/verify-neural-sources.mjs` 校验内置引擎、全部运行库声明、五声音字节及被移除依赖在生产锁文件中的缺席；加 `--archives <目录>` 校验源码输入。
+- `node scripts/collect-notices.mjs --release-strict` 收集安装的生产包完整声明以及新引擎/模型/声音/词表声明；缺少声明、资源漂移或未解决事项都会失败。它不读取用户状态。
+- `scripts/verify-speech-runtime.cjs` 从选定实际应用加载编译引擎、美英数据、五声音及 native ONNX 测试；不下载语音模型。
+- `scripts/verify-speech-offline.cjs` 用独立已校验的公开模型缓存、禁止网络、真实合成五声音，确认非静音、有限值和缓存不变。UtilityProcess IPC 另行验收。
+- 两平台包检查验证项目和第三方文本、native 架构、声音/声明哈希、worker 及其动态模块 unpack、未包含用户资料与旧图像/Web/phonemizer 代码。Electron `LICENSE` 与 `LICENSES.chromium.html` 保留在分发物中。
+
+严格检查成功表明具体记录和相应安装包检查通过；公开发布仍需将匹配源码包与最终构建一起交付，不作无限范围的合规或安全保证。
