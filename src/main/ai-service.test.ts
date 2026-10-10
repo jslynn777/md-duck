@@ -95,7 +95,9 @@ describe('AI profile storage and connection state', () => {
     expect(disk).not.toContain('router-test-secret')
     expect(disk).not.toContain('deepseek-test-secret')
     expect(JSON.stringify(service.state())).not.toMatch(/test-secret|encryptedKey/)
-    expect((await stat(options.storePath)).mode & 0o777).toBe(0o600)
+    // Windows uses ACLs and does not report POSIX owner/group permission bits.
+    // The key encryption and UI/disk non-disclosure assertions run everywhere.
+    if (process.platform !== 'win32') expect((await stat(options.storePath)).mode & 0o777).toBe(0o600)
     const reloaded = createAIService(options)
     disposers.push(reloaded.dispose)
     await reloaded.init()

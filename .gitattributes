@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# These source/notice bytes have recorded hashes. Preserve upstream line endings
+# exactly on every checkout, including Windows, instead of converting them.
+scripts/notices-sources/** -text
+src/main/data/ipa-dict/** -text
+src/main/data/kokoro-voices/** -text
+src/main/kokoro-runtime-phonemizer/** -text

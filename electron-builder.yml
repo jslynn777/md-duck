@@ -1,6 +1,6 @@
 appId: com.mdduck.desktop
 productName: MD Duck
-artifactName: MD-Duck-${version}-macOS-${arch}-local-test.${ext}
+artifactName: MD-Duck-${version}-${os}-${arch}.${ext}
 directories:
   output: release
   buildResources: build
@@ -9,17 +9,13 @@ files:
   - package.json
   - '!**/*.map'
   - '!**/*.test.*'
-  - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
-  - '!node_modules/onnxruntime-node/bin/napi-v3/win32/**'
-  - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/**'
 asar: true
 asarUnpack:
   - out/main/speech-worker*.js
+  - out/main/kokoro-runtime*.js
+  - out/main/chunks/**
   - node_modules/onnxruntime-node/**
   - node_modules/onnxruntime-common/**
-  - node_modules/sharp/**
-  - node_modules/@img/**
-  - node_modules/phonemizer/**
 extraResources:
   - from: LICENSE
     to: LICENSE
@@ -37,7 +33,18 @@ extraResources:
     to: third-party
   - from: src/main/data/ipa-dict
     to: third-party/ipa-dict
+  - from: src/main/data/kokoro-voices
+    to: kokoro-voices
 mac:
+  artifactName: MD-Duck-${version}-macOS-${arch}.${ext}
+  files:
+    - out/**/*
+    - package.json
+    - '!**/*.map'
+    - '!**/*.test.*'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/win32/**'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/**'
   target:
     - target: dmg
       arch: [arm64]
@@ -49,8 +56,38 @@ mac:
   hardenedRuntime: false
   notarize: false
   darkModeSupport: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: src/main/icon.png
+  artifactName: MD-Duck-${version}-Windows-${arch}.${ext}
+  files:
+    - out/**/*
+    - package.json
+    - '!**/*.map'
+    - '!**/*.test.*'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/**'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
+    - '!node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**'
+  signExecutable: false
+nsis:
+  artifactName: MD-Duck-${version}-Windows-${arch}-Setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  runAfterFinish: false
+  deleteAppDataOnUninstall: false
+  installerLanguages: [en_US, zh_CN]
+portable:
+  artifactName: MD-Duck-${version}-Windows-${arch}-Portable.${ext}
+  requestExecutionLevel: user
 dmg:
-  title: MD Duck - Local Test
+  title: MD Duck
   contents:
     - x: 150
       y: 170

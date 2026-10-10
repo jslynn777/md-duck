@@ -1,10 +1,10 @@
 # MD Duck 安装 / Installation
 
-当前准备版本 / Version being prepared: **0.1.0-beta.2**。
+本版本 / This version: **0.1.0-beta.5**。
 
 ## 中文
 
-MD Duck 免费使用。当前测试包面向 **Apple Silicon Mac（M 系列芯片）**，包内最低系统声明为 macOS 13；实际验证来自一台 macOS 27 的 Mac，其他系统版本尚未验收。公开下载地址以 [mdduck.com 下载页](https://mdduck.com/download/) 为准，页面显示准备中时，请等待正式提供的文件。
+MD Duck 免费使用。Mac 测试包面向 **Apple Silicon Mac（M 系列芯片）**，包内最低系统声明为 macOS 13；实际验证来自一台 macOS 27 的 Mac，其他系统版本尚未验收。公开下载地址以 [mdduck.com 下载页](https://mdduck.com/download/) 为准，页面显示准备中时，请等待正式提供的文件。
 
 本版有本机 ad-hoc 签名，**没有 Developer ID 签名和 Apple 公证**。首次打开可能被 macOS 拦截，不能将其理解为已通过苹果安全检查的正式版。
 
@@ -22,15 +22,17 @@ MD Duck 免费使用。当前测试包面向 **Apple Silicon Mac（M 系列芯�
 
 打开程序后先点「打开示例」，试试对照阅读、点击英文单词查看音标，以及选中一句话写批注。自己的文章可以用「打开文件夹」「打开文件」或拖进窗口打开。
 
-阅读和批注不需要 AI 账户。本地朗读在第一次请求播放时下载约 92 MB 模型，需要网络，之后在本机合成。网络受限时仍可阅读和写批注；首次模型下载链路还在验收，不保证各网络都能完成。
+阅读和批注不需要 AI 账户。本地朗读继续使用 Kokoro q8 模型和原有五种声音，第一次请求播放时下载约 92 MB 模型（92,361,116 字节），之后在本机合成。已有模型缓存通过完整性检查后会直接复用。普通启动不会下载模型；首次下载受网络影响，网络受限时仍可阅读和写批注。
 
-AI 释义和翻译是可选功能，使用你自己选择的服务商和 API 额度。MD Duck 本身免费，服务商可能对请求收费。真实 AI 服务验收仍在进行；成功保存密钥不代表连接或回答质量已经验证。密钥只在程序的设置中填写。
+对照阅读中的「检查整篇」会列出全文配对和标记问题。点击问题里的原文或中文行号，可回到对应正文，再用自己的编辑器修改。检查不会自动配对或写入两份稿子，也不判断译文的意思是否准确。
+
+AI 释义和翻译是可选功能，使用你自己选择的服务商和 API 额度。MD Duck 本身免费，服务商可能对请求收费。在程序设置中填写密钥并测试连接后使用；AI 解释和译文仍需结合原文核对。
 
 批注、单词和译文进度保存在文章旁的 `.review/`。搬移材料时一起保留这个目录；系统中的应用设置和草稿属于本机资料。升级测试版前请保留文章及 `.review/` 的副本。详细操作见 [中文指南](https://mdduck.com/guide/)。
 
 ## English
 
-MD Duck is free to use. This beta targets **Apple Silicon Macs (M-series chips)**. The package declares macOS 13 as its minimum; testing has taken place on one Mac running macOS 27, and other system versions have not been validated. Use the [MD Duck download page](https://mdduck.com/en/download/) for public files. If it says that installers are being prepared, wait for the published files.
+MD Duck is free to use. The Mac beta targets **Apple Silicon Macs (M-series chips)**. The package declares macOS 13 as its minimum; testing has taken place on one Mac running macOS 27, and other system versions have not been validated. Use the [MD Duck download page](https://mdduck.com/en/download/) for public files. If it says that installers are being prepared, wait for the published files.
 
 The beta has a local ad-hoc signature, **without Developer ID signing or Apple notarization**. macOS may block the first launch. This is not a release that has passed Apple's distribution security checks.
 
@@ -48,8 +50,24 @@ The release page supplies SHA-256 hashes. To compare a file, type `shasum -a 256
 
 Choose **Open example** to try side-by-side reading, click an English word for phonetics, and select a sentence to leave a note. Use **Open folder**, **Open a file**, or drag a file into the window for your own articles.
 
-Reading and annotations need no AI account. Local speech downloads about 92 MB of model files when you first request playback, then synthesizes speech on your computer. Reading and annotations remain available if the download cannot finish. First-download network acceptance is still in progress.
+Reading and annotations need no AI account. Local speech keeps the same Kokoro q8 model and five voices. The first playback request downloads about 92 MB (92,361,116 bytes); later synthesis runs on your computer. An existing model cache is reused after an integrity check. Opening the app alone does not trigger a download. The first download depends on your network; reading and annotations remain available if it cannot finish.
 
-AI explanations and translations are optional and use your own provider and API credit. MD Duck is free; the provider may charge for requests. Real-provider acceptance is still in progress. Saving a key alone does not verify a connection or answer quality. Enter API keys only in the app's settings.
+In the side-by-side view, **Check whole document** lists pairing and marker issues throughout the document. Click an original or Chinese line number to return to that passage, then make changes in your preferred editor. The check does not assign pairs or write to either draft, and it does not judge translation accuracy.
+
+AI explanations and translations are optional and use your own provider and API credit. MD Duck is free; the provider may charge for requests. Enter API keys in the app's settings and test the connection before using AI. Check explanations and translations against the original text.
 
 Notes, words and translation progress live in the article's nearby `.review/` folder. Keep it with your articles when moving them. App settings and drafts are local to the computer. Keep a copy of your articles and `.review/` before upgrading a beta. See the [English guide](https://mdduck.com/en/guide/).
+
+## Windows 测试构建 / Windows test build
+
+Windows 构建面向 **Windows 10 及以上 x64**，公开文件以官网下载页为准。安装程序采用每用户安装，通常不要求管理员权限；可选择安装位置，并创建开始菜单入口。已有测试版本可安装到相同位置更新，文章及旁边的 `.review/` 保持原位。Windows ARM 暂未提供安装包。
+
+本地朗读还需要 **Microsoft Visual C++ v14 x64 运行库**。如果未安装或朗读无法启动，可按 [微软官方说明](https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist?view=msvc-170) 安装 x64 运行库；不需要购买 Visual Studio。运行库安装可能要求管理员权限，MD Duck 不会自动安装它。普通阅读、批注和每用户安装不需要这一步。
+
+运行文件名含 `Windows-x64-Setup` 的 EXE 并按向导安装。文件名含 `Portable` 的 EXE 不需要安装，但目前只完成包内容检查，其实际启动和退出清理仍需验收。应用未进行 Windows 发布者签名，系统可能显示来源提示；请核对发布来源与 SHA-256，不要关闭系统防护。校验命令为 `Get-FileHash -Algorithm SHA256 "文件完整路径"`。
+
+The Windows build targets **Windows 10 and later, x64**. Use the website's Downloads page for public files. The installer runs per user, normally without administrator privileges, allows a destination folder and creates a Start menu entry. Install updates into the same location; keep your articles and their `.review/` folders together. There is no Windows ARM installer yet.
+
+Local speech also requires the **Microsoft Visual C++ v14 x64 runtime**. If it is missing or speech cannot start, install the x64 runtime using [Microsoft's official instructions](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). You do not need to buy Visual Studio. Installing the runtime may require administrator privileges; MD Duck does not install it automatically. Reading, annotations and per-user installation do not require this step.
+
+Run the EXE whose name includes `Windows-x64-Setup` and follow the installer. The `Portable` EXE needs no installation, but its launch and cleanup behavior has not yet been accepted; only its packaged payload has been checked. The app has no Windows publisher signature. Verify the download source and SHA-256 if Windows shows a source prompt; do not disable system protection. In PowerShell, use `Get-FileHash -Algorithm SHA256 "full file path"`.

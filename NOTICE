@@ -16,12 +16,13 @@ version grant is GPL-3.0-or-later, rather than GPL-3.0-only.
 Third-party files, dependency packages, pronunciation data, upstream license
 texts, and source-provenance supplements retain their original copyright
 notices and individual licenses. This notice does not relicense them.
-In particular, src/main/data/ipa-dict/ and scripts/notices-sources/ contain
+In particular, src/main/data/ipa-dict/, src/main/data/kokoro-voices/,
+src/main/kokoro-runtime-phonemizer/ and scripts/notices-sources/ contain
 upstream material with its own terms. See the notices next to those files.
 
 Installed dependency notices are regenerated locally with:
   npm ci
-  node scripts/collect-notices.mjs
+  node scripts/collect-notices.mjs --release-strict
 
 This creates build/third-party/ and build/THIRD_PARTY_NOTICES.md; generated
 notice outputs and binary packages are not tracked in this source repository.

@@ -55,6 +55,9 @@ for (const route of routes) {
     const value = match[1].replaceAll('&amp;', '&');
     if (/^(mailto:|data:)/.test(value)) continue;
     const url = new URL(value, origin + route.path);
+    // Release binaries may be served from a separately verified downloads directory.
+    // Their metadata is checked below; publication verifies actual HTTP bytes separately.
+    if (anchors.some(anchor => anchor.href === value && (Object.hasOwn(anchor, 'data-release-download') || Object.hasOwn(anchor, 'data-release-source')))) continue;
     if (url.origin !== origin) continue;
     let path = resolve(root, '.' + decodeURIComponent(url.pathname));
     const relativePath = relative(root, path);
@@ -70,14 +73,56 @@ for (const route of routes) {
     checked++;
   }
 }
+const downloadManifests = [];
 for (const [file, preparation, checksum] of [
   ['download/index.html', '公开安装包准备中', '校验值 SHA-256'],
   ['en/download/index.html', 'Public installers are being prepared', 'SHA-256 checksum'],
 ]) {
   const html = await readFile(resolve(root, file), 'utf8');
   assert.ok(html.includes(preparation) || html.includes(checksum), `${file}: clear release state`);
+  const metadata = attributes(html.match(/<section\b[^>]*data-release-version[^>]*>/)?.[0] ?? '');
+  assert.match(metadata['data-release-version'] ?? '', /^\d+\.\d+\.\d+-beta\.\d+$/, `${file}: explicit beta version`);
+  assert.ok(['preparing', 'published'].includes(metadata['data-release-status']), `${file}: explicit release state`);
+  const artifacts = [...html.matchAll(/<li\b([^>]*)data-release-kind([^>]*)>([\s\S]*?)<\/li>/g)].map(([tag, , , content]) => {
+    const item = attributes(tag.slice(0, tag.indexOf('>') + 1));
+    const link = attributes(content.match(/<a\b[^>]*data-release-download[^>]*>/)?.[0] ?? '');
+    const kind = item['data-release-kind'];
+    assert.ok(['mac-dmg', 'windows-setup'].includes(kind), `${file}: recognized platform`);
+    assert.match(item['data-release-sha256'] ?? '', /^[a-f0-9]{64}$/, `${file}: complete SHA-256`);
+    assert.match(item['data-release-size'] ?? '', /^\d+(?:\.\d+)?\s+(?:MB|MiB|GB|GiB)$/, `${file}: file size`);
+    const url = new URL(link.href);
+    assert.equal(url.protocol, 'https:', `${file}: secure download URL`);
+    assert.ok(['mdduck.com', 'github.com'].includes(url.hostname), `${file}: project release host`);
+    assert.ok(!url.username && !url.password && !url.search && !url.hash, `${file}: stable public download URL`);
+    if (url.hostname === 'github.com') assert.ok(url.pathname.startsWith('/jslynn777/md-duck/releases/download/'), `${file}: project GitHub release`);
+    const name = decodeURIComponent(url.pathname.split('/').at(-1));
+    assert.ok(name.includes(metadata['data-release-version']), `${file}: file matches displayed version`);
+    assert.match(name, kind === 'mac-dmg' ? /macOS-arm64[^/]*\.dmg$/ : /Windows-x64-Setup[^/]*\.exe$/, `${file}: installer matches platform`);
+    assert.doesNotMatch(name, /(?:local-test|Portable)/i, `${file}: public installer name`);
+    return { kind, url: url.href, size: item['data-release-size'], sha256: item['data-release-sha256'] };
+  });
+  const sourceLinks = [...html.matchAll(/<a\b[^>]*data-release-source="true"[^>]*>/g)].map(match => attributes(match[0]));
+  const sourceUrl = metadata['data-release-source-url'] ?? '';
+  if (metadata['data-release-status'] === 'published') {
+    assert.deepEqual(artifacts.map(artifact => artifact.kind).sort(), ['mac-dmg', 'windows-setup'], `${file}: one public installer for each platform`);
+    assert.ok(!html.includes(preparation), `${file}: published files replace the preparation message`);
+    assert.equal(sourceLinks.length, 1, `${file}: one corresponding source download`);
+    assert.equal(sourceLinks[0].href, sourceUrl, `${file}: source download matches release metadata`);
+    const url = new URL(sourceUrl);
+    assert.equal(url.protocol, 'https:', `${file}: secure source download URL`);
+    assert.ok(['mdduck.com', 'github.com'].includes(url.hostname), `${file}: project source release host`);
+    assert.ok(!url.username && !url.password && !url.search && !url.hash, `${file}: stable public source URL`);
+    if (url.hostname === 'github.com') assert.ok(url.pathname.startsWith('/jslynn777/md-duck/releases/download/'), `${file}: project GitHub source release`);
+    assert.equal(decodeURIComponent(url.pathname.split('/').at(-1)), `MD-Duck-${metadata['data-release-version']}-Corresponding-Source.tar.gz`, `${file}: corresponding source matches release version`);
+  } else {
+    assert.equal(artifacts.length, 0, `${file}: preparing state has no download buttons`);
+    assert.equal(sourceLinks.length, 0, `${file}: preparing state has no source archive link`);
+    assert.equal(sourceUrl, '', `${file}: preparing source URL remains empty`);
+  }
+  downloadManifests.push({ version: metadata['data-release-version'], status: metadata['data-release-status'], sourceUrl, artifacts });
 }
-const guideIds = ['install', 'open', 'bilingual', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
+assert.deepEqual(downloadManifests[0], downloadManifests[1], 'Both languages expose the same release files, sizes, hashes and corresponding source');
+const guideIds = ['install', 'install-windows', 'open', 'bilingual', 'pairing-check', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
 for (const file of ['guide/index.html', 'en/guide/index.html']) {
   const html = await readFile(resolve(root, file), 'utf8');
   for (const id of guideIds) assert.ok(html.includes(`id="${id}"`), `${file}: shared guide anchor ${id}`);
@@ -87,4 +132,4 @@ assert.equal((sitemap.match(/<url>/g) || []).length, 6, 'Sitemap has both langua
 for (const route of routes.filter(route => !route.noindex)) assert.ok(sitemap.includes(`${origin}${route.path}</loc>`), `${route.path}: sitemap entry`);
 for (const language of ['zh-CN', 'en', 'x-default']) assert.equal((sitemap.match(new RegExp(`hreflang="${language}"`, 'g')) || []).length, 6, `Sitemap ${language} alternate on every page`);
 assert.ok((await stat(resolve(root, 'examples/a-slower-morning.zip'))).size > 0, 'Sample is downloadable');
-console.log(`Verified ${pages.length} bilingual HTML pages, ${checked} local references, language switches, canonical and hreflang links, sitemap and sample archive.`);
+console.log(`Verified ${pages.length} bilingual HTML pages, ${checked} local references, matching release metadata, guide anchors, language switches, canonical and hreflang links, sitemap and sample archive.`);

@@ -9,6 +9,7 @@ import {
   LoaderCircle as Loader2,
   MessageSquarePlus,
   MessageSquareText,
+  MoreHorizontal,
   PanelLeft,
   PanelRight,
   Pause,
@@ -56,6 +57,8 @@ import type { AISettings } from '@shared/ai'
 import { alignTranslatedBlocks } from '@shared/translation-alignment'
 import { sentenceForRange } from './sentence-context'
 import { selectionPosition, type SelectionRect } from './selection-position'
+import { inspectPairing } from '@shared/pairing-diagnostics'
+import { PairingStatus, PairingCheckDialog } from './PairingCheck'
 
 type Selection = { block: Block; quote: string; lang: 'source' | 'zh'; x: number; y: number; anchor?: SelectionRect; sentence?: string; quoteAnchor?: QuoteAnchor; keyboard?: boolean }
 type Popover = Selection & {
@@ -67,6 +70,7 @@ type Doc = OpenedDocument & { source: ParsedDoc; zh: ParsedDoc | null; notes: No
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
+  const [startupError, setStartupError] = useState(false)
   const [doc, setDoc] = useState<Doc | null>(null)
   const [status, setStatus] = useState('')
   const [speechNote, setSpeechNote] = useState('')
@@ -82,6 +86,7 @@ export function App() {
   const [lightbox, setLightbox] = useState('')
   const [toast, setToast] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pairingOpen, setPairingOpen] = useState(false)
   const [aiSettings, setAISettings] = useState<AISettings | null>(null)
   const [translationRequested, setTranslationRequested] = useState<string | null>(null)
   const [dismissedTranslations, setDismissedTranslations] = useState<Set<string>>(() => new Set())
@@ -103,10 +108,10 @@ export function App() {
   activeContextRef.current = { sourcePath: doc?.sourcePath, pop, noteEditor }
 
   useEffect(() => {
-    if (settingsOpen || noteEditor || lightbox) {
+    if (settingsOpen || pairingOpen || noteEditor || lightbox) {
       setPop((current) => current?.mode === 'learn' ? null : current)
     }
-  }, [settingsOpen, noteEditor, lightbox])
+  }, [settingsOpen, pairingOpen, noteEditor, lightbox])
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 1499px)')
@@ -133,6 +138,7 @@ export function App() {
       stopSpeech()
       setPop(null)
       setNoteEditor(null)
+      setPairingOpen(false)
       setPendingJump(null)
       setActiveNote(null)
       try {
@@ -173,7 +179,7 @@ export function App() {
       setState(next)
       const target = next.openPath ?? (next.root ? next.library[0]?.path ?? null : null)
       if (target) void openDoc(target)
-    })
+    }).catch(() => setStartupError(true))
   }, [openDoc])
 
   const updateRef = useRef<(update: DocUpdate) => void>(() => undefined)
@@ -228,6 +234,12 @@ export function App() {
     () => (doc?.zh && mode === 'bilingual' ? alignTranslatedBlocks(doc.source.blocks, doc.zh.blocks, doc.sourceText, doc.zhText ?? '', doc.translationAlignment) : null),
     [doc, mode]
   )
+  const pairing = useMemo(() => doc ? inspectPairing({
+    sourceText: doc.sourceText, zhText: doc.zhText,
+    source: doc.source, zh: doc.zh,
+    alignment: doc.translationAlignment,
+    alignmentState: doc.translationAlignmentState
+  }) : null, [doc?.sourceText, doc?.zhText, doc?.source, doc?.zh, doc?.translationAlignment, doc?.translationAlignmentState])
 
   useLayoutEffect(() => {
     const saved = restoreRef.current
@@ -289,6 +301,8 @@ export function App() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
+      // The native dialog handles Escape and keeps reader shortcuts inactive.
+      if (pairingOpen) return
       if (event.key === 'Escape') {
         if (settingsOpen) return
         else if (noteEditor) setNoteEditor(null)
@@ -317,7 +331,7 @@ export function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, doc, state?.hasKey, ui])
+  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, doc, state?.hasKey, ui])
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => {
@@ -331,10 +345,15 @@ export function App() {
   }, [])
 
   if (!state) {
+    const zh = /^zh\b/i.test(navigator.language)
     return (
       <div className="welcome">
-        <div className="card">
-          <Loader2 className="spin" size={22} />
+        <div className="card" role={startupError ? 'alert' : 'status'}>
+          <h1>MD Duck</h1>
+          {startupError ? <>
+            <p>{zh ? '暂时无法打开阅读界面，请重新启动。文章和已保存的批注不受影响。' : 'The reader could not start. Restart the app; your articles and saved notes are preserved.'}</p>
+            <button className="btn primary" onClick={() => void window.api.restartStartup()}>{zh ? '重新启动' : 'Restart'}</button>
+          </> : <p className="startup-loading"><Loader2 className="spin" size={18} />{zh ? '正在打开阅读内容…' : 'Opening your reading…'}</p>}
         </div>
       </div>
     )
@@ -402,6 +421,7 @@ export function App() {
         onPrefs={savePrefs}
         onJump={jumpToHeading}
         onPickRoot={() => void window.api.pickRoot()}
+        onFileMenu={(path, position) => void showFileMenu(path, position)}
       />
 
       <div className="main">
@@ -468,6 +488,8 @@ export function App() {
               mode={mode}
               showZh={showZh}
               aligned={aligned}
+              pairing={pairing}
+              onCheckPairing={() => { setPop(null); setPairingOpen(true) }}
               flash={flash}
               notes={notes}
               speaking={speech.playing}
@@ -552,6 +574,17 @@ export function App() {
           onStatus={(id, s) => { if (doc) void window.api.setNoteStatus(doc.sourcePath, id, s).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
           onDelete={(id) => { if (doc) void window.api.deleteNote(doc.sourcePath, id).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
           onClose={() => setNotesOpen(false)}
+        />
+      )}
+
+      {pairingOpen && pairing && doc && (
+        <PairingCheckDialog
+          report={pairing} ui={ui} sourcePath={doc.sourcePath} zhPath={doc.zhPath}
+          onClose={() => setPairingOpen(false)}
+          onLocate={(location) => {
+            setPairingOpen(false)
+            if (location.blockKey) revealBlock(doc.sourcePath, location.blockKey, location.side)
+          }}
         />
       )}
 
@@ -689,7 +722,8 @@ export function App() {
       if (!current || current.sourcePath !== update.sourcePath) return current
       captureAnchor()
       const next: Doc = { ...current, assetVersion: update.assetVersion,
-        translationAlignment: update.translationAlignment === undefined ? current.translationAlignment : update.translationAlignment }
+        translationAlignment: update.translationAlignment === undefined ? current.translationAlignment : update.translationAlignment,
+        translationAlignmentState: update.translationAlignmentState === undefined ? current.translationAlignmentState : update.translationAlignmentState }
       if (update.side === 'source') {
         next.missing = update.missing
         if (update.text != null) next.sourceText = update.text
@@ -779,6 +813,19 @@ export function App() {
   function reportReviewError(error: unknown) {
     flashToast(reviewError(error))
     if (doc && error instanceof Error && error.message.includes('REVIEW_')) void refreshReviewState(doc.sourcePath)
+  }
+
+  async function showFileMenu(path: string, position: { x: number; y: number }) {
+    try {
+      const result = await window.api.showFileMenu(path, position)
+      if (result?.action === 'copy-path') {
+        flashToast(t(ui, result.target === 'translation' ? 'translationPathCopied' : 'filePathCopied'))
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      flashToast(/ERR_(?:NOT_FOUND|ONLY_MD|NOT_IN_FOLDER|OPEN_FILE)\b/.test(message)
+        ? errorText(ui, message, 'fileActionFailed') : t(ui, 'fileActionFailed'))
+    }
   }
 
   async function refreshReviewState(path: string) {
@@ -1204,7 +1251,8 @@ function Sidebar({
   onOpen,
   onPrefs,
   onJump,
-  onPickRoot
+  onPickRoot,
+  onFileMenu
 }: {
   state: AppState
   visible: boolean
@@ -1213,15 +1261,11 @@ function Sidebar({
   onPrefs: (patch: Partial<Preferences>) => void
   onJump: (key: string) => void
   onPickRoot: () => void
+  onFileMenu: (path: string, position: { x: number; y: number }) => void
 }) {
   const tr = useT()
   if (!visible) return null
   const tab = state.prefs.sidebarTab
-  const titleCounts = new Map<string, number>()
-  for (const entry of state.library) {
-    const title = entry.title.trim().toLocaleLowerCase()
-    titleCounts.set(title, (titleCounts.get(title) ?? 0) + 1)
-  }
   const folderName = state.root?.split(/[/\\]/).filter(Boolean).pop() ?? tr('folderFallback')
   return (
     <aside className="sidebar">
@@ -1243,19 +1287,48 @@ function Sidebar({
               {state.library.map((entry) => {
                 const isCurrent = entry.path === doc?.sourcePath
                 const filename = entry.path.split(/[/\\]/).pop() ?? ''
-                const relativePath = entry.folder === '.' ? filename : `${entry.folder}/${filename}`
-                const duplicateTitle = (titleCounts.get(entry.title.trim().toLocaleLowerCase()) ?? 0) > 1
                 return (
-                  <button
+                  <div
                     key={entry.path}
                     className={`entry ${isCurrent ? 'on' : ''}`}
-                    aria-current={isCurrent ? 'page' : undefined}
-                    title={`${entry.title}\n${entry.path}${entry.zhPath ? `\n${tr('bilingualTag')}` : ''}`}
-                    onClick={() => onOpen(entry.path)}
+                    onContextMenu={(event) => {
+                      event.preventDefault()
+                      onFileMenu(entry.path, { x: event.clientX, y: event.clientY })
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10') {
+                        event.preventDefault()
+                        const target = event.target as HTMLElement
+                        const rect = target.getBoundingClientRect()
+                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
+                      }
+                    }}
                   >
-                    <span className="t">{entry.title}</span>
-                    {duplicateTitle && <span className="entry-path">{relativePath}</span>}
-                  </button>
+                    <button
+                      className="entry-open"
+                      aria-current={isCurrent ? 'page' : undefined}
+                      title={`${entry.title}\n${entry.path}${entry.zhPath ? `\n${tr('bilingualTag')}` : ''}`}
+                      onClick={() => onOpen(entry.path)}
+                    >
+                      <span className="t">{entry.title}</span>
+                      <span className="entry-path" title={entry.path}>
+                        {entry.folder !== '.' && <><span className="entry-folder">{entry.folder}</span><span>/</span></>}
+                        <span className="entry-filename">{filename}</span>
+                      </span>
+                    </button>
+                    <button
+                      className="entry-actions"
+                      aria-label={`${tr('fileActions')}: ${entry.title}`}
+                      aria-haspopup="menu"
+                      title={tr('fileActionsHint')}
+                      onClick={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
+                      }}
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                  </div>
                 )
               })}
             </div>
@@ -1401,6 +1474,8 @@ function Reader({
   mode,
   showZh,
   aligned,
+  pairing,
+  onCheckPairing,
   flash,
   notes,
   speaking,
@@ -1422,6 +1497,8 @@ function Reader({
   mode: ReadMode
   showZh: boolean
   aligned: ReturnType<typeof alignBlocks> | null
+  pairing: ReturnType<typeof inspectPairing> | null
+  onCheckPairing: () => void
   flash: Set<string>
   notes: Note[]
   speaking: { key: string; paused: boolean; preparing: boolean } | null
@@ -1501,10 +1578,11 @@ function Reader({
         <button className="btn small ghost" onClick={onCloseDocument}>{ui === 'zh' ? '关闭文章' : 'Close article'}</button>
       </div>}
       <DocHeader doc={doc} mode={mode} />
+      {mode === 'bilingual' && pairing && <PairingStatus report={pairing} ui={ui} onCheck={onCheckPairing} />}
       <ReviewAssociation sourcePath={doc.sourcePath}
         eligible={!doc.missing && !doc.notesMissing && !doc.reviewIssue && notes.length === 0 && doc.words.length === 0}
         onAssociated={onAssociated} />
-      {warnings.length > 0 && (
+      {mode !== 'bilingual' && warnings.length > 0 && (
         <div className={`banner ${wide ? 'wide' : ''}`}>
           <Sparkles size={14} /> {warningText(ui, warnings[0])}
         </div>
@@ -1534,11 +1612,6 @@ function Reader({
         </div>
       ) : mode === 'bilingual' && doc.zh ? (
         <>
-          {aligned?.warning && (
-            <div className="banner wide">
-              <Sparkles size={14} /> {warningText(ui, aligned.warning)}
-            </div>
-          )}
           <div className="cols">
             <div className="col prose">
               <span className="lang-badge">{tr('columnEnglish')}</span>

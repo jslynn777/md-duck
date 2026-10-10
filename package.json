@@ -1,8 +1,8 @@
 {
   "name": "md-duck",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.5",
   "private": true,
-  "description": "本地 Markdown 查看和审阅",
+  "description": "\u672c\u5730 Markdown \u67e5\u770b\u548c\u5ba1\u9605",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -10,20 +10,28 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "pack:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --dir --publish never",
-    "dist:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --publish never && node scripts/checksums.mjs",
+    "pack:mac": "node scripts/verify-builder-config.mjs && npm run build && node scripts/verify-neural-sources.mjs && node scripts/collect-notices.mjs --release-strict && electron-builder --mac --arm64 --dir --publish never",
+    "dist:mac": "node scripts/verify-builder-config.mjs && npm run build && node scripts/verify-neural-sources.mjs && node scripts/collect-notices.mjs --release-strict && electron-builder --mac --arm64 --publish never && node scripts/checksums.mjs",
     "verify:mac": "node scripts/verify-mac-package.mjs",
-    "verify:speech": "ELECTRON_RUN_AS_NODE=1 \"release/mac-arm64/MD Duck.app/Contents/MacOS/MD Duck\" scripts/verify-speech-runtime.cjs \"release/mac-arm64/MD Duck.app/Contents/Resources/app.asar\""
+    "verify:speech": "ELECTRON_RUN_AS_NODE=1 \"release/mac-arm64/MD Duck.app/Contents/MacOS/MD Duck\" scripts/verify-speech-runtime.cjs \"release/mac-arm64/MD Duck.app/Contents/Resources/app.asar\"",
+    "pack:win": "node scripts/verify-builder-config.mjs && node scripts/assert-build-host.mjs win32 x64 && npm run build && node scripts/verify-neural-sources.mjs && node scripts/collect-notices.mjs --release-strict && electron-builder --win --x64 --dir --publish never",
+    "dist:win": "node scripts/verify-builder-config.mjs && node scripts/assert-build-host.mjs win32 x64 && npm run build && node scripts/verify-neural-sources.mjs && node scripts/collect-notices.mjs --release-strict && electron-builder --win --x64 --publish never && node scripts/checksums.mjs",
+    "verify:win": "node scripts/verify-windows-package.mjs",
+    "verify:speech:win": "node scripts/run-packaged-check.mjs --platform win32 --check speech",
+    "verify:startup:win": "node scripts/run-packaged-check.mjs --platform win32 --check startup",
+    "verify:startup:mac": "node scripts/run-packaged-check.mjs --platform darwin --check startup",
+    "verify:config": "node --test scripts/verify-builder-config.test.mjs && node scripts/verify-builder-config.mjs",
+    "verify:neural-sources": "node scripts/verify-neural-sources.mjs"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
-    "kokoro-js": "^1.2.1",
+    "chokidar": "4.0.3",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "onnxruntime-node": "1.21.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
@@ -37,9 +45,6 @@
     "vite": "^7.3.6",
     "vitest": "^4.1.11"
   },
-  "overrides": {
-    "sharp": "0.35.5"
-  },
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -48,5 +53,8 @@
   "homepage": "https://mdduck.com",
   "bugs": {
     "url": "https://github.com/jslynn777/md-duck/issues"
+  },
+  "overrides": {
+    "global-agent": "4.1.3"
   }
 }

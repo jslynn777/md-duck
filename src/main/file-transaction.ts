@@ -7,7 +7,9 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { createNoteQueue } from './note-queue'
 
 type Options = { timeoutMs?: number }
-type Identity = { dev: number; ino: number }
+// Windows file IDs can exceed Number.MAX_SAFE_INTEGER. Keep exact identities
+// when deciding whether a lock still belongs to the descriptor we opened.
+type Identity = { dev: bigint; ino: bigint }
 type Owner = { pid: number; token: string; hostname?: string }
 type Lock = Identity & Owner
 
@@ -42,26 +44,37 @@ function isDead(owner: Owner) {
   }
 }
 
-async function readLock(path: string): Promise<Lock | null> {
-  const before = await lstat(path).catch((error: unknown) => {
+async function statLock(path: string) {
+  const stat = await lstat(path, { bigint: true }).catch((error: unknown) => {
     if (errorCode(error) === 'ENOENT') return null
     throw error
   })
-  if (!before) return null
-  if (!before.isFile() || before.isSymbolicLink() || constants.O_NOFOLLOW === undefined) throw busy()
+  if (stat && (!stat.isFile() || stat.isSymbolicLink())) throw busy()
+  return stat
+}
 
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW).catch((error: unknown) => {
+async function readLock(path: string): Promise<Lock | null> {
+  const before = await statLock(path)
+  if (!before) return null
+
+  const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0)).catch((error: unknown) => {
     if (errorCode(error) === 'ENOENT') return null
     if (errorCode(error) === 'ELOOP') throw busy()
     throw error
   })
   if (!handle) return null
   try {
-    const stat = await handle.stat()
+    const stat = await handle.stat({ bigint: true })
     if (!stat.isFile() || !sameFile(before, stat)) return null
+    // Windows has no O_NOFOLLOW. Before reading any bytes, require the path to
+    // remain a regular file with the same exact identity as both the pre-open
+    // lstat and descriptor. A substituted symlink is rejected even if it points
+    // at the original inode; a link to another file fails the descriptor check.
+    const after = await statLock(path)
+    if (!after || !sameFile(stat, after)) return null
     // A new owner may still be writing its record. Never reclaim an empty,
     // incomplete, or unrecognised file: there is no confirmed dead PID yet.
-    if (stat.size === 0 || stat.size > 4096) return null
+    if (stat.size === 0n || stat.size > 4096n) return null
     let owner: unknown
     try { owner = JSON.parse(await handle.readFile('utf8')) } catch { return null }
     if (!owner || typeof owner !== 'object') return null
@@ -70,6 +83,8 @@ async function readLock(path: string): Promise<Lock | null> {
     if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0 || pid > 0x7fffffff) return null
     if (typeof value.token !== 'string' || value.token.length === 0 || value.token.length > 200) return null
     if (value.hostname !== undefined && typeof value.hostname !== 'string') return null
+    const final = await statLock(path)
+    if (!final || !sameFile(stat, final)) return null
     return { dev: stat.dev, ino: stat.ino, pid, token: value.token, hostname: value.hostname }
   } finally {
     await handle.close()
@@ -96,13 +111,13 @@ async function createLock(path: string): Promise<Lock | null> {
   let identity: Identity | null = null
   const owner: Owner = { pid: process.pid, token: randomUUID(), hostname: host }
   try {
-    identity = await handle.stat()
+    identity = await handle.stat({ bigint: true })
     await handle.writeFile(JSON.stringify(owner), 'utf8')
     return { dev: identity.dev, ino: identity.ino, ...owner }
   } catch (error) {
     // This creation has not been published to a task. Clean only the inode
     // obtained by our exclusive open, even if its record could not be written.
-    const current = await lstat(path).catch(() => null)
+    const current = await lstat(path, { bigint: true }).catch(() => null)
     if (identity && current?.isFile() && sameFile(current, identity)) await unlink(path).catch(() => undefined)
     throw error
   } finally {

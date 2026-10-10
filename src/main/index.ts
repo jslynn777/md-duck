@@ -23,15 +23,20 @@ import { createReviewStore } from './review-store'
 import { assertReviewSource } from './review-files'
 import { prepareExampleLibrary } from './example-library'
 import { isPathInsideRoot } from './allowed-path'
+import { createFileActionService, presentFileMenu, revealTarget } from './file-menu'
 import { createWordHelpService } from './word-help'
 import { createAIService, requestChat } from './ai-service'
 import { createDocumentTranslator, translationPath, resolveSourcePath } from './document-translation'
 import { createSettingsWriter, defaultUiLanguage } from './settings-store'
+import { createStartup } from './startup'
+import { windowChrome } from './window-options'
+import { createStartupProbe } from './startup-probe'
 import type { AIConfigInput } from '../shared/ai'
 import { buildCatalog, fallbackCatalog } from '../shared/models'
 import {
   DEFAULT_MODEL,
   type AppState,
+  type FileMenuResult,
   type LibraryEntry,
   type ModelCatalog,
   type LearnedWord,
@@ -77,6 +82,9 @@ let window: BrowserWindow | null = null
 let watcher: FSWatcher | null = null
 let settings: Settings
 let library: LibraryEntry[] = []
+let fileActionRevision = 0
+let fileMenuRequest = 0
+let cancelFileMenu: (() => void) | null = null
 let openPath = ''
 let documentOpenRequest = 0
 let assetVersion = 1
@@ -105,15 +113,11 @@ if (testProfile) {
   app.setPath('userData', testProfile)
   app.setPath('sessionData', join(testProfile, 'session'))
 }
+const startupProbe = createStartupProbe(testProfile, process.env.MD_DUCK_STARTUP_CHECK_REPORT, app.getVersion())
 
 const firstInstance = app.requestSingleInstanceLock()
 if (!firstInstance) app.quit()
-app.on('second-instance', () => {
-  if (!window && settings) createWindow()
-  if (window?.isMinimized()) window.restore()
-  window?.show()
-  window?.focus()
-})
+app.on('second-instance', activateWindow)
 
 const reviews = createReviewStore({
   isAllowed,
@@ -136,7 +140,10 @@ const reviews = createReviewStore({
   }
 })
 
-if (firstInstance) app.whenReady().then(async () => {
+const startup = createStartup({ openWindow: createWindow, initialize })
+if (firstInstance) void app.whenReady().then(() => startup.start())
+
+async function initialize() {
   settings = await loadSettings()
   ai = createAIService({
     storePath: join(app.getPath('userData'), 'ai-settings.json'),
@@ -172,8 +179,6 @@ if (firstInstance) app.whenReady().then(async () => {
       }
     }
   })
-  buildMenu()
-
   protocol.handle('md-duck', async (request) => {
     const filePath = new URL(request.url).searchParams.get('path') ?? ''
     const type = IMAGE_TYPES[extname(filePath).toLowerCase()]
@@ -188,25 +193,32 @@ if (firstInstance) app.whenReady().then(async () => {
     app.dock?.setIcon(dockIcon)
   }
   if (settings.root) await watchRoot(settings.root)
-  createWindow()
-  if (aiStorageError) {
+  buildMenu()
+  startupProbe.mark('initialized')
+  if (aiStorageError && window) {
     void dialog.showMessageBox(window!, {
       type: 'error',
       message: settings.prefs.ui === 'zh' ? 'AI 设置暂时无法读取或安全保存' : 'AI settings could not be loaded or saved securely',
       detail: settings.prefs.ui === 'zh'
-        ? '原有配置已保留，阅读仍可正常使用。请检查系统钥匙串和应用数据目录的访问权限，再重新打开 MD Duck。'
-        : 'Your existing configuration is preserved and reading still works. Check access to the system keychain and application data folder, then reopen MD Duck.'
+        ? '原有配置已保留，阅读仍可正常使用。请检查系统凭据存储和应用数据目录的访问权限，再重新打开 MD Duck。'
+        : 'Your existing configuration is preserved and reading still works. Check access to system credential storage and the application data folder, then reopen MD Duck.'
     })
   }
-})
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('activate', () => {
-  if (firstInstance && settings && BrowserWindow.getAllWindows().length === 0) createWindow()
-})
+app.on('activate', activateWindow)
+
+function activateWindow() {
+  if (!firstInstance || !app.isReady() || startup.phase() === 'idle') return
+  if (!window || window.isDestroyed()) void createWindow().catch(() => undefined)
+  if (window?.isMinimized()) window.restore()
+  window?.show()
+  window?.focus()
+}
 
 app.on('before-quit', (event) => {
   if (!settings || quitSaved) {
@@ -245,18 +257,18 @@ app.on('will-quit', () => {
   translator?.dispose?.()
 })
 
-function createWindow() {
-  window = new BrowserWindow({
+function createWindow(): Promise<void> {
+  if (window && !window.isDestroyed()) { window.show(); return Promise.resolve() }
+  const createdWindow = new BrowserWindow({
     width: 1320,
     height: 860,
     minWidth: 900,
     minHeight: 600,
     title: 'MD Duck',
     icon: iconPath,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 18, y: 18 },
+    ...windowChrome(process.platform),
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1b1a18' : '#fbfaf7',
-    show: false,
+    show: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -264,16 +276,18 @@ function createWindow() {
       sandbox: true
     }
   })
-  window.once('ready-to-show', () => window?.show())
-  window.on('closed', () => {
-    window = null
+  window = createdWindow
+  if (createdWindow.isVisible()) startupProbe.mark('window-visible')
+  createdWindow.once('show', () => startupProbe.mark('window-visible'))
+  createdWindow.on('closed', () => {
+    if (window === createdWindow) window = null
   })
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: 'deny' }
   })
   window.webContents.on('will-prevent-unload', (event) => {
-    const zh = settings.prefs.ui === 'zh'
+    const zh = settings?.prefs.ui === 'zh'
     const response = dialog.showMessageBoxSync(window!, {
       type: 'warning',
       message: zh ? '批注草稿还没有保存到磁盘' : 'Note drafts have not been saved to disk',
@@ -291,8 +305,25 @@ function createWindow() {
     if (devUrl && url.startsWith(devUrl)) return
     event.preventDefault()
   })
-  if (process.env.ELECTRON_RENDERER_URL) void window.loadURL(process.env.ELECTRON_RENDERER_URL)
-  else void window.loadFile(join(__dirname, '../renderer/index.html'))
+  const loading = process.env.ELECTRON_RENDERER_URL
+    ? createdWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+    : createdWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  return loading.then(() => { startupProbe.mark('renderer-loaded') }).catch(async () => {
+    // Closing a Mac window while it loads is normal; activating the app creates
+    // another window. It must not permanently reject profile initialization.
+    if (createdWindow.isDestroyed()) return
+    const zh = settings?.prefs.ui === 'zh' || defaultUiLanguage(app.getPreferredSystemLanguages()) === 'zh'
+    const result = await dialog.showMessageBox(createdWindow, {
+      type: 'error',
+      message: zh ? '阅读界面无法加载' : 'The reader could not load',
+      detail: zh ? '请重新启动 MD Duck。文章和已保存的批注不受影响。' : 'Restart MD Duck. Your articles and saved notes are preserved.',
+      buttons: zh ? ['重新启动', '关闭'] : ['Restart', 'Close'],
+      defaultId: 0, cancelId: 1
+    })
+    if (result.response === 0) app.relaunch()
+    app.quit()
+    throw new Error('ERR_STARTUP')
+  })
 }
 
 function buildMenu() {
@@ -300,14 +331,15 @@ function buildMenu() {
   const lang = settings?.prefs.ui ?? 'en'
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
-      { role: 'appMenu' },
+      ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
       {
         label: t(lang, 'menuFile'),
         submenu: [
-          { label: t(lang, 'menuOpenFolder'), accelerator: 'CmdOrCtrl+O', click: () => void pickRoot() },
-          { label: t(lang, 'menuOpenFile'), accelerator: 'CmdOrCtrl+Shift+O', click: () => void pickFile() },
+          { label: t(lang, 'menuOpenFolder'), accelerator: 'CmdOrCtrl+O', click: () => void startup.ready().then(pickRoot).catch(() => undefined) },
+          { label: t(lang, 'menuOpenFile'), accelerator: 'CmdOrCtrl+Shift+O', click: () => void startup.ready().then(pickFile).catch(() => undefined) },
           { type: 'separator' },
-          { role: 'close' }
+          { role: 'close' },
+          ...(process.platform !== 'darwin' ? [{ role: 'quit' as const }] : [])
         ]
       },
       { role: 'editMenu' },
@@ -323,19 +355,35 @@ function buildMenu() {
   )
 }
 
-ipcMain.handle('state:get', () => publicState())
+function handleReady(channel: string, listener: Parameters<typeof ipcMain.handle>[1]) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    await startup.ready()
+    const result = await listener(event, ...args)
+    if (channel === 'state:get') startupProbe.mark('state-served')
+    if (channel === 'doc:open') startupProbe.mark('document-restored')
+    return result
+  })
+}
 
-ipcMain.handle('root:pick', async () => {
+ipcMain.handle('startup:restart', (event) => {
+  if (event.sender !== window?.webContents || startup.phase() !== 'failed') return
+  app.relaunch()
+  app.quit()
+})
+
+handleReady('state:get', () => publicState())
+
+handleReady('root:pick', async () => {
   const opened = await pickRoot()
   return { state: publicState(), openPath: opened }
 })
 
-ipcMain.handle('file:pick', async () => {
+handleReady('file:pick', async () => {
   const opened = await pickFile()
   return { state: publicState(), openPath: opened }
 })
 
-ipcMain.handle('path:open', async (_event, target: string) => {
+handleReady('path:open', async (_event, target: string) => {
   const stat = await fs.stat(target).catch(() => null)
   if (!stat) throw new Error('ERR_NOT_FOUND')
   if (stat.isDirectory()) {
@@ -347,7 +395,7 @@ ipcMain.handle('path:open', async (_event, target: string) => {
   return { state: publicState(), openPath: await resolveSourcePath(target) }
 })
 
-ipcMain.handle('root:example', async () => {
+handleReady('root:example', async () => {
   const source = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'examples')
   const exampleRoot = await prepareExampleLibrary(source, join(app.getPath('userData'), 'examples'))
   await setRoot(exampleRoot)
@@ -357,8 +405,8 @@ ipcMain.handle('root:example', async () => {
   return opened
 })
 
-ipcMain.handle('doc:open', async (_event, filePath: string) => openDocument(filePath))
-ipcMain.handle('doc:close', (_event, filePath: string) => {
+handleReady('doc:open', async (_event, filePath: string) => openDocument(filePath))
+handleReady('doc:close', (_event, filePath: string) => {
   if (openPath !== filePath) return
   ++documentOpenRequest
   openPath = ''
@@ -366,7 +414,7 @@ ipcMain.handle('doc:close', (_event, filePath: string) => {
   scheduleSave()
 })
 
-ipcMain.handle('prefs:set', (_event, prefs: Partial<Preferences>) => {
+handleReady('prefs:set', (_event, prefs: Partial<Preferences>) => {
   const uiChanged = prefs.ui != null && prefs.ui !== settings.prefs.ui
   settings.prefs = { ...settings.prefs, ...prefs }
   if (uiChanged) buildMenu()
@@ -376,7 +424,7 @@ ipcMain.handle('prefs:set', (_event, prefs: Partial<Preferences>) => {
 
 let modelCache: { at: number; catalog: ModelCatalog } | null = null
 
-ipcMain.handle('models:list', async () => {
+handleReady('models:list', async () => {
   if (modelCache && Date.now() - modelCache.at < 6 * 60 * 60 * 1000) return modelCache.catalog
   try {
     const response = await fetch('https://openrouter.ai/api/v1/models', { signal: AbortSignal.timeout(12000) })
@@ -390,20 +438,20 @@ ipcMain.handle('models:list', async () => {
   }
 })
 
-ipcMain.handle('key:set', async (_event, key: string | null) => {
+handleReady('key:set', async (_event, key: string | null) => {
   const current = ai.state()
   const profile = current.profiles[current.provider]
   const next = await ai.save({ provider: current.provider, baseUrl: profile.baseUrl, model: profile.model, key })
   return next.profiles[next.provider].hasKey
 })
 
-ipcMain.handle('ai:get', () => ai.state())
-ipcMain.handle('ai:save', (_event, input: AIConfigInput) => ai.save(input))
-ipcMain.handle('ai:test', () => ai.test())
-ipcMain.handle('ai:connect', () => ai.connectOpenRouter())
-ipcMain.handle('ai:cancel-auth', () => ai.cancelAuth())
-ipcMain.handle('translation:info', (_event, filePath: string) => translator.inspect(filePath))
-ipcMain.handle('translation:start', async (_event, filePath: string) => {
+handleReady('ai:get', () => ai.state())
+handleReady('ai:save', (_event, input: AIConfigInput) => ai.save(input))
+handleReady('ai:test', () => ai.test())
+handleReady('ai:connect', () => ai.connectOpenRouter())
+handleReady('ai:cancel-auth', () => ai.cancelAuth())
+handleReady('translation:info', (_event, filePath: string) => translator.inspect(filePath))
+handleReady('translation:start', async (_event, filePath: string) => {
   const credentials = ai.credentials()
   if (!credentials.key) throw new Error('NO_KEY')
   return translator.start(filePath, {
@@ -412,8 +460,8 @@ ipcMain.handle('translation:start', async (_event, filePath: string) => {
     request: (messages, signal) => requestChat(credentials, messages, { signal, temperature: 0.2 })
   })
 })
-ipcMain.handle('translation:stop', (_event, filePath: string) => translator.stop(filePath))
-ipcMain.handle('translation:choose', async (_event, filePath: string) => {
+handleReady('translation:stop', (_event, filePath: string) => translator.stop(filePath))
+handleReady('translation:choose', async (_event, filePath: string) => {
   if (!window || !(await isAllowed(filePath))) throw new Error('ERR_NOT_IN_FOLDER')
   const picked = await dialog.showOpenDialog(window, {
     title: settings.prefs.ui === 'zh' ? '选择对应的中文译文' : 'Choose the Chinese translation',
@@ -428,49 +476,111 @@ ipcMain.handle('translation:choose', async (_event, filePath: string) => {
   return true
 })
 
-ipcMain.handle('scroll:save', (_event, filePath: string, blockKey: string) => {
+handleReady('scroll:save', (_event, filePath: string, blockKey: string) => {
   settings.scroll[filePath] = blockKey
   scheduleSave()
 })
 
-ipcMain.handle('notes:save', (_event, path: string, note: Note) => reviews.saveNote(path, note))
-ipcMain.handle('notes:get', (_event, path: string) => reviews.load(path))
-ipcMain.handle('notes:edit', (_event, path: string, id: string, comment: string) => reviews.editNote(path, id, comment))
-ipcMain.handle('notes:status', (_event, path: string, id: string, status: Note['status']) => reviews.setNoteStatus(path, id, status))
-ipcMain.handle('notes:delete', (_event, path: string, id: string) => reviews.deleteNote(path, id))
-ipcMain.handle('notes:restore', (_event, path: string) => reviews.restore(path))
-ipcMain.handle('words:save', (_event, path: string, word: LearnedWord) => reviews.saveWord(path, word))
-ipcMain.handle('words:delete', (_event, path: string, id: string) => reviews.deleteWord(path, id))
-ipcMain.handle('review:legacy', async (_event, path: string) => shell.showItemInFolder(await reviews.legacyFile(path)))
-ipcMain.handle('review:candidates', (_event, path: string) => reviews.listCandidates(path))
-ipcMain.handle('review:associate', (_event, path: string, id: string) => reviews.associate(path, id))
+handleReady('notes:save', (_event, path: string, note: Note) => reviews.saveNote(path, note))
+handleReady('notes:get', (_event, path: string) => reviews.load(path))
+handleReady('notes:edit', (_event, path: string, id: string, comment: string) => reviews.editNote(path, id, comment))
+handleReady('notes:status', (_event, path: string, id: string, status: Note['status']) => reviews.setNoteStatus(path, id, status))
+handleReady('notes:delete', (_event, path: string, id: string) => reviews.deleteNote(path, id))
+handleReady('notes:restore', (_event, path: string) => reviews.restore(path))
+handleReady('words:save', (_event, path: string, word: LearnedWord) => reviews.saveWord(path, word))
+handleReady('words:delete', (_event, path: string, id: string) => reviews.deleteWord(path, id))
+handleReady('review:legacy', async (_event, path: string) => shell.showItemInFolder(await reviews.legacyFile(path)))
+handleReady('review:candidates', (_event, path: string) => reviews.listCandidates(path))
+handleReady('review:associate', (_event, path: string, id: string) => reviews.associate(path, id))
 
-ipcMain.handle('clipboard:write', (_event, text: string) => clipboard.writeText(text))
+handleReady('clipboard:write', (_event, text: string) => clipboard.writeText(text))
 
-ipcMain.handle('shell:open', (_event, url: string) => {
+handleReady('shell:open', (_event, url: string) => {
   if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
 })
 
-ipcMain.handle('shell:reveal', (_event, filePath: string) => {
-  if (settings.root && isInside(filePath, settings.root)) shell.showItemInFolder(filePath)
+handleReady('shell:reveal', async (_event, filePath: string) => {
+  const root = settings.root
+  const canonical = await revealTarget(filePath, root)
+  if (settings.root !== root) throw new Error('ERR_NOT_IN_FOLDER')
+  shell.showItemInFolder(canonical)
 })
 
-ipcMain.handle('speech:speak', (_event, id: string, text: string) => {
+const fileActions = createFileActionService(
+  () => ({ root: settings.root, library, revision: fileActionRevision }),
+  { reveal: (path) => shell.showItemInFolder(path), open: (path) => shell.openPath(path), copy: (path) => clipboard.writeText(path) }
+)
+
+handleReady('file:menu', async (event, filePath: string, position?: { x: number; y: number }) => {
+  const targetWindow = window
+  if (!targetWindow || targetWindow.isDestroyed() || event.sender !== targetWindow.webContents || event.senderFrame !== targetWindow.webContents.mainFrame) {
+    throw new Error('ERR_NOT_IN_FOLDER')
+  }
+  const request = ++fileMenuRequest
+  cancelFileMenu?.()
+  const session = await fileActions.prepare(filePath)
+  if (request !== fileMenuRequest || window !== targetWindow || targetWindow.isDestroyed()) return null
+  const zh = settings.prefs.ui === 'zh'
+  const labels = {
+    reveal: zh ? process.platform === 'darwin' ? '在 Finder 中显示' : '显示文件所在位置' : process.platform === 'darwin' ? 'Show in Finder' : 'Show in folder',
+    open: zh ? '用默认应用打开' : 'Open with default app',
+    copy: zh ? '复制完整路径' : 'Copy full path',
+    translation: zh ? '译文文件' : 'Translation file'
+  }
+  const pending = presentFileMenu({
+    create: (choose) => {
+      const items = (target: FileMenuResult['target']) => [
+        { label: labels.reveal, click: () => choose({ action: 'reveal', target }) },
+        { label: labels.open, click: () => choose({ action: 'open-default', target }) },
+        { label: labels.copy, click: () => choose({ action: 'copy-path', target }) }
+      ]
+      const menu = Menu.buildFromTemplate([
+        ...items('source'),
+        ...(session.translationReal ? [{ type: 'separator' as const }, { label: labels.translation, submenu: items('translation') }] : [])
+      ])
+      return {
+        popup: (callback) => {
+          const bounds = targetWindow.getContentBounds()
+          const zoom = targetWindow.webContents.getZoomFactor()
+          const anchor = position && typeof position === 'object' && Number.isFinite(position.x) && Number.isFinite(position.y)
+            ? {
+                x: Math.max(0, Math.min(bounds.width - 1, Math.round(position.x * zoom))),
+                y: Math.max(0, Math.min(bounds.height - 1, Math.round(position.y * zoom)))
+              }
+            : {}
+          menu.popup({ window: targetWindow, ...anchor, callback })
+        },
+        close: () => menu.closePopup()
+      }
+    },
+    onWindowClosed: (cancel) => {
+      targetWindow.once('closed', cancel)
+      return () => targetWindow.removeListener('closed', cancel)
+    },
+    execute: (choice, canceled) => fileActions.execute(session, choice, () => canceled() || targetWindow.isDestroyed())
+  })
+  cancelFileMenu = pending.cancel
+  try { return await pending.result } finally {
+    if (cancelFileMenu === pending.cancel) cancelFileMenu = null
+  }
+})
+
+handleReady('speech:speak', (_event, id: string, text: string) => {
   if (!speech) startSpeech()
   speech?.postMessage({ type: 'speak', id, text, voice: settings.prefs.voice, speed: settings.prefs.speed })
 })
 
-ipcMain.handle('speech:cancel', () => {
+handleReady('speech:cancel', () => {
   speech?.postMessage({ type: 'cancel' })
 })
 
 const wordHelp = createWordHelpService()
-ipcMain.handle('word:dictionary', (_event, word: string) => wordHelp.lookupDictionary(word))
-ipcMain.handle('word:explain', (_event, word: string, sentence: string, detail: boolean) => {
+handleReady('word:dictionary', (_event, word: string) => wordHelp.lookupDictionary(word))
+handleReady('word:explain', (_event, word: string, sentence: string, detail: boolean) => {
   return wordHelp.explainWord(word, sentence, detail, ai.credentials())
 })
 
-ipcMain.handle('gloss', async (_event, word: string, sentence: string, detail: boolean, learn = false) => {
+handleReady('gloss', async (_event, word: string, sentence: string, detail: boolean, learn = false) => {
   const credentials = ai.credentials()
   const model = credentials.model
   const lang = settings.prefs.ui ?? 'en'
@@ -498,7 +608,8 @@ function startSpeech() {
   speech.postMessage({
     type: 'init',
     cacheDir: join(app.getPath('userData'), 'speech-cache'),
-    modelDir: join(app.getPath('userData'), 'kokoro-cache')
+    modelDir: join(app.getPath('userData'), 'kokoro-cache'),
+    voiceDirectory: app.isPackaged ? join(process.resourcesPath, 'kokoro-voices') : resolve('src/main/data/kokoro-voices')
   })
   speech.on('message', (event: SpeechEvent) => {
     window?.webContents.send('speech:event', event)
@@ -544,6 +655,9 @@ async function pickFile() {
 
 async function setRoot(next: string) {
   ++documentOpenRequest
+  ++fileActionRevision
+  ++fileMenuRequest
+  cancelFileMenu?.()
   settings.root = next
   settings.openPath = null
   openPath = ''
@@ -553,11 +667,11 @@ async function setRoot(next: string) {
 
 async function watchRoot(dir: string) {
   library = await listLibrary(dir)
+  ++fileActionRevision
   await watcher?.close()
   const watchedDir = await fs.realpath(dir).catch(() => dir)
   watcher = chokidar.watch(watchedDir, {
-    // macOS FSEvents can miss removal of a file published by hard link.
-    useFsEvents: false,
+    // Chokidar 4 uses native fs.watch without the former FSEvents backend.
     ignoreInitial: true,
     depth: 6,
     ignored: (target) => {
@@ -586,11 +700,11 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
   const sourcePath = await resolveSourcePath(filePath)
   if (!(await isAllowed(sourcePath))) throw new Error('ERR_NOT_IN_FOLDER')
   const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
-  const [sourceText, zhText, review, translationAlignment] = await Promise.all([
+  const [sourceText, zhText, review, alignmentInspection] = await Promise.all([
     fs.readFile(sourcePath, 'utf8'),
     zhPath && zhPath !== sourcePath ? fs.readFile(zhPath, 'utf8').catch(() => null) : Promise.resolve(null),
     reviews.load(sourcePath),
-    translator.loadAlignment(sourcePath).catch(() => null)
+    translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
   ])
   // A missing draft document must not detach the visible article from its watcher.
   if (request === documentOpenRequest) {
@@ -611,7 +725,8 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
     legacyUnassigned: review.legacyUnassigned,
     words: review.words,
     assetVersion,
-    translationAlignment,
+    translationAlignment: alignmentInspection.alignment,
+    translationAlignmentState: alignmentInspection.state,
     missing: false
   }
 }
@@ -627,7 +742,7 @@ async function onFile(file: string) {
   if (file === openPath || file === zhPath) {
     window?.webContents.send('doc:status', { sourcePath: openPath, status: 'updating' })
     const text = await fs.readFile(file, 'utf8').catch(() => null)
-    const translationAlignment = await translator.loadAlignment(sourcePath).catch(() => null)
+    const alignmentInspection = await translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
     if (openPath !== sourcePath) return
     assetVersion += 1
     window?.webContents.send('doc:update', {
@@ -638,7 +753,8 @@ async function onFile(file: string) {
       zhPath,
       zhDir: zhPath ? dirname(zhPath) : null,
       assetVersion,
-      translationAlignment
+      translationAlignment: alignmentInspection.alignment,
+      translationAlignmentState: alignmentInspection.state
     })
     return
   }
@@ -653,6 +769,7 @@ function scheduleLibrary() {
   libraryTimer = setTimeout(async () => {
     if (!settings.root) return
     library = await listLibrary(settings.root)
+    ++fileActionRevision
     window?.webContents.send('library:update', library)
   }, 150)
 }

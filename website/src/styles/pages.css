@@ -49,14 +49,19 @@
 .release-progress h3 { font-size: 16px; margin-bottom: 8px; }
 .release-progress li p { font-size: 14px; color: var(--muted); }
 .artifact-list { list-style: none; padding: 0; margin-top: 25px; }
-.artifact-list li { margin-block: 25px; }
-.artifact-list li p { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.artifact-list li { padding-block: 22px; border-top: 1px solid var(--line); }
+.artifact-list h3 { font-size: 17px; margin-bottom: 7px; }
+.artifact-list li p { font-size: 13px; color: var(--muted); }
+.artifact-list .artifact-requirement { margin: 0 0 15px; line-height: 1.75; }
+.artifact-details { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 .artifact-list summary { font-size: 13px; cursor: pointer; margin-top: 10px; }
-.artifact-list code { display: block; font-size: 13px; overflow-wrap: anywhere; background: var(--wash); padding: 10px; margin-top: 10px; }
+.artifact-list code { display: block; font-size: 12px; overflow-wrap: anywhere; background: var(--paper); border: 1px solid var(--line); padding: 10px; margin-top: 10px; }
+.release-card .beta-note { font-size: 12px; margin-block: 10px 22px; }
 .source-section { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; padding-block: 38px 70px; border-top: 1px solid var(--line); }
 .source-section h2 { font-size: 26px; margin-top: 12px; }
 .source-section > div > p:not(.eyebrow) { color: var(--muted); font-size: 14px; line-height: 1.9; }
 .source-section .text-link { margin-top: 15px; }
+.source-section .source-download-link { display: block; width: fit-content; }
 .not-found { text-align: center; padding-block: 85px 140px; }
 .not-found h1 { font-size: 42px; margin: 15px 0 22px; }
 .not-found > p:not(.eyebrow) { color: var(--muted); }

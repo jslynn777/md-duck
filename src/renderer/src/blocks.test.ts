@@ -9,9 +9,9 @@ vi.mock('@shared/words', async () => import('../../shared/words'))
 vi.mock('@shared/quote-anchor', async () => import('../../shared/quote-anchor'))
 vi.mock('./i18n', () => ({ useT: () => (key: string) => key }))
 
-function render(markdown: string) {
+function render(markdown: string, dir = '/library') {
   return parseDocument(markdown, 'test').blocks.map((block) => renderToStaticMarkup(createElement(BlockView, {
-    block, dir: '/library', version: 0, lang: 'source', notes: [], flash: false,
+    block, dir, version: 0, lang: 'source', notes: [], flash: false,
     speaking: false, paused: false, onImage: () => undefined, onAnnotate: () => undefined, onTranslate: () => undefined
   }))).join('')
 }
@@ -41,6 +41,20 @@ describe('Markdown content rendering', () => {
     expect(html).toContain('href="https://example.com/guide"')
     expect(html).toContain('alt="Bow"')
     expect(html).toContain(encodeURIComponent('/library/assets/bow.png'))
+  })
+
+  it('routes Windows absolute, file URL, and inline relative images through the local asset protocol', () => {
+    const html = render('![Drive](D:/图片/photo%20one.png)\n\n![File](file:///C:/资料/photo.png)\n\nInline ![Relative](assets/配图.png).', 'C:\\资料\\文章')
+    for (const destination of ['D:/图片/photo one.png', 'C:/资料/photo.png', 'C:/资料/文章/assets/配图.png']) {
+      expect(html).toContain(encodeURIComponent(destination))
+    }
+    expect(html).not.toContain('src="file:')
+  })
+
+  it('omits unsupported image schemes without changing ordinary text', () => {
+    const html = render('![Blocked](data:image/png;base64,AAAA)\n\nText ![Blocked](ftp://example.com/photo.png).')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('Text ')
   })
 
   it('provides a dedicated note-text host for table and fenced code', () => {

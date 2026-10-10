@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, posix, relative, resolve, sep, win32 } from 'node:path'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import { parseDocument } from '../shared/markdown'
 import { translationContentHash } from '../shared/translation-alignment'
 import type { AIMessage } from '../shared/ai'
-import type { TranslationAlignment, TranslationInfo, TranslationState } from '../shared/translation'
+import type { TranslationAlignment, TranslationAlignmentInspection, TranslationInfo, TranslationState } from '../shared/translation'
 
 type MdNode = {
   type: string
@@ -148,17 +148,31 @@ export function createDocumentTranslator(options: Options) {
     return { sourcePath, targetPath, hasTranslation, canTranslate: !reason, reason, task }
   }
 
-  async function loadAlignment(sourcePath: string): Promise<TranslationAlignment | null> {
+  async function inspectAlignment(sourcePath: string): Promise<TranslationAlignmentInspection> {
     await requireAllowed(sourcePath)
     const targetPath = await getTargetPath(sourcePath)
     await requireAllowed(targetPath)
-    const record = await readJSON(metadataPath(sourcePath, 'alignment'))
-    if (!record || metadataTarget(sourcePath, record) !== targetPath ||
+    let record: unknown
+    try {
+      record = JSON.parse(await fs.readFile(metadataPath(sourcePath, 'alignment'), 'utf8'))
+    } catch (error) {
+      return { alignment: null, state: isRecord(error) && error.code === 'ENOENT' ? 'absent' : 'invalid' }
+    }
+    if (!isRecord(record) || metadataTarget(sourcePath, record) !== targetPath ||
         typeof record.sourceHash !== 'string' || typeof record.targetHash !== 'string' || !Array.isArray(record.pairs) ||
-        record.pairs.some((pair: unknown) => !isRecord(pair) || typeof pair.sourceKey !== 'string' || typeof pair.targetKey !== 'string')) return null
+        record.pairs.some((pair: unknown) => !isRecord(pair) || typeof pair.sourceKey !== 'string' || typeof pair.targetKey !== 'string')) {
+      return { alignment: null, state: 'invalid' }
+    }
     const [source, target] = await Promise.all([fs.readFile(sourcePath, 'utf8'), fs.readFile(targetPath, 'utf8')]).catch(() => [null, null])
-    if (source === null || target === null || record.sourceHash !== translationContentHash(source) || record.targetHash !== translationContentHash(target)) return null
-    return { sourceHash: record.sourceHash, targetHash: record.targetHash, pairs: record.pairs }
+    if (source === null || target === null) return { alignment: null, state: 'invalid' }
+    if (record.sourceHash !== translationContentHash(source) || record.targetHash !== translationContentHash(target)) {
+      return { alignment: null, state: 'stale' }
+    }
+    return { alignment: { sourceHash: record.sourceHash, targetHash: record.targetHash, pairs: record.pairs }, state: 'valid' }
+  }
+
+  async function loadAlignment(sourcePath: string): Promise<TranslationAlignment | null> {
+    return (await inspectAlignment(sourcePath)).alignment
   }
 
   async function associate(sourcePath: string, targetPath: string): Promise<TranslationInfo> {
@@ -276,7 +290,7 @@ export function createDocumentTranslator(options: Options) {
 
   function dispose() { for (const task of running.values()) task.controller.abort() }
 
-  return { inspect, start, stop, loadAlignment, getTargetPath, associate, dispose }
+  return { inspect, start, stop, inspectAlignment, loadAlignment, getTargetPath, associate, dispose }
 }
 
 function state(draft: Draft): TranslationState {
@@ -305,18 +319,37 @@ function saveDraft(draft: Draft) {
 
 /** Metadata travels with its source folder, while all resolved destinations are re-authorized. */
 function portablePaths(sourcePath: string, targetPath: string) {
-  return { version: 2, sourceFile: basename(sourcePath), targetRelative: relative(dirname(sourcePath), targetPath) }
+  return { version: 2, sourceFile: basename(sourcePath), targetRelative: relative(dirname(sourcePath), targetPath).split(sep).join('/') }
+}
+
+function portableRelative(value: string): string | null {
+  // Older Windows metadata used backslashes. Decode separators before checking
+  // absoluteness, even when reading on a POSIX host. Drive-relative paths (C:x)
+  // are also excluded: their destination depends on a process's drive state.
+  const normalized = value.replace(/\\/g, '/')
+  if (!normalized || normalized.includes('\0') || posix.isAbsolute(normalized) || win32.isAbsolute(normalized) || /^[a-z]:/i.test(normalized)) return null
+  return normalized
+}
+
+function fullWindowsPath(value: string): boolean {
+  return win32.isAbsolute(value) && /^(?:[a-z]:|[\\/]{2})/i.test(value)
 }
 
 function metadataTarget(sourcePath: string, value: Record<string, any>): string | null {
-  if (value.version === 2 && value.sourceFile === basename(sourcePath) && typeof value.targetRelative === 'string' &&
-      !!value.targetRelative && !isAbsolute(value.targetRelative) && !value.targetRelative.includes('\0')) {
-    return resolve(dirname(sourcePath), value.targetRelative)
+  if (value.version === 2 && value.sourceFile === basename(sourcePath) && typeof value.targetRelative === 'string') {
+    const targetRelative = portableRelative(value.targetRelative)
+    return targetRelative === null ? null : resolve(dirname(sourcePath), targetRelative)
   }
-  if (value.version === 1 && typeof value.sourcePath === 'string' && isAbsolute(value.sourcePath) &&
-      basename(value.sourcePath) === basename(sourcePath) && typeof value.targetPath === 'string' && isAbsolute(value.targetPath)) {
-    // Old absolute metadata remains usable when the complete source folder moves.
-    return resolve(dirname(sourcePath), relative(dirname(value.sourcePath), value.targetPath))
+  if (value.version === 1 && typeof value.sourcePath === 'string' && typeof value.targetPath === 'string' &&
+      !value.sourcePath.includes('\0') && !value.targetPath.includes('\0')) {
+    // Compute the old relationship using the originating platform's path
+    // rules, then resolve it under the current library. This also lets legacy
+    // absolute checkpoints move between Windows and macOS/Linux.
+    const paths = fullWindowsPath(value.sourcePath) ? win32 : posix
+    if (!paths.isAbsolute(value.sourcePath) || !paths.isAbsolute(value.targetPath) ||
+        paths === win32 && !fullWindowsPath(value.targetPath) || paths.basename(value.sourcePath) !== basename(sourcePath)) return null
+    const targetRelative = portableRelative(paths.relative(paths.dirname(value.sourcePath), value.targetPath))
+    return targetRelative === null ? null : resolve(dirname(sourcePath), targetRelative)
   }
   return null
 }

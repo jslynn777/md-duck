@@ -41,7 +41,10 @@ async function reviewPaths(sourcePath: string, targetPath: string, isAllowed: Al
   if (typeof targetPath !== 'string' || !isAbsolute(targetPath)) return unsafe()
   const reviewDir = join(dirname(source), '.review')
   const requestedTarget = resolve(targetPath)
-  if (targetPath.split(sep).some((part) => part === '.' || part === '..')) return unsafe()
+  // Windows accepts both slash styles. Check the unnormalised input before
+  // resolve() removes an explicit traversal component.
+  const separators = process.platform === 'win32' ? /[\\/]/ : sep
+  if (targetPath.split(separators).some((part) => part === '.' || part === '..')) return unsafe()
   let suffix = childPath(reviewDir, requestedTarget)
 
   // Root aliases may occur before .review; links inside .review are never followed.
@@ -72,9 +75,26 @@ export async function assertReviewPath(sourcePath: string, targetPath: string, i
 
 export async function readReviewFile(sourcePath: string, targetPath: string, isAllowed: AllowedPath): Promise<string | null> {
   const { target } = await reviewPaths(sourcePath, targetPath, isAllowed)
+  return readRegularReviewFile(target, () => assertReviewPath(sourcePath, targetPath, isAllowed))
+}
+
+/** Read a checked review/backup file without following a substituted link on
+ * platforms without O_NOFOLLOW. The guard also checks ancestor directories.
+ */
+export async function readRegularReviewFile(target: string, assertSafe: () => Promise<void>): Promise<string | null> {
+  await assertSafe()
   try {
-    const handle = await open(target, constants.O_RDONLY | constants.O_NOFOLLOW)
+    const before = await lstat(target, { bigint: true })
+    if (!before.isFile() || before.isSymbolicLink()) return unsafe()
+    const handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0))
     try {
+      const opened = await handle.stat({ bigint: true })
+      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino) return unsafe()
+      // Recheck parents and the path itself before reading bytes. Checking only
+      // the descriptor would miss a link pointing back to the original inode.
+      await assertSafe()
+      const after = await lstat(target, { bigint: true })
+      if (!after.isFile() || after.isSymbolicLink() || after.dev !== opened.dev || after.ino !== opened.ino) return unsafe()
       return await handle.readFile('utf8')
     } finally {
       await handle.close()

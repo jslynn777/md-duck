@@ -6,7 +6,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.APACHE",
@@ -15,7 +16,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.BSD2",
@@ -24,7 +26,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "a8b0c1c7d7af6c0415c068be8cf373799d1a42b0707b79dc4ccfcaf593cd902d",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-COPYING.UCD",
@@ -33,7 +36,8 @@
     "kind": "license",
     "referenceOnly": true,
     "sha256": "be029c50df83105a810e391778b6edcb522d6cb4b4e142332aca54437a499bf7",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "espeak-ng-reference-1.52.0-README.md",
@@ -42,13 +46,15 @@
     "kind": "reference",
     "referenceOnly": true,
     "sha256": "765e894f83a47e2d003bd2256e86d1ae412e6e0078c3092d66ece293b051e278",
-    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package."
+    "comment": "Reference eSpeak NG 1.52.0 license set; phonemizer 1.2.1 embeds eSpeak NG but its exact engine revision is not stated by the npm package. Retired reference: the matching source-built ephone engine and runtime texts are collected directly from their fixed source manifests instead.",
+    "retired": true
   },
   {
     "file": "LGPL-3.0.txt",
     "source": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-15.1.0/COPYING3.LIB",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "kind": "license",
     "referenceOnly": false,
@@ -61,7 +67,8 @@
     "file": "libvips-8.18.7-LICENSE",
     "source": "https://raw.githubusercontent.com/libvips/libvips/v8.18.7/LICENSE",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "kind": "license",
     "referenceOnly": false,
@@ -164,7 +171,8 @@
     "kind": "license",
     "sha256": "30e556b3959e3985d66efefec5eaac51d4995053caa1d3cffe6eb916f146f229",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "archive",
     "componentVersion": "3.8.9",
@@ -176,7 +184,8 @@
     "kind": "license",
     "sha256": "7264dede477abab4ac3fe8236beb8153845c04ccd33b18f281085087e219fc6d",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "cgif",
     "componentVersion": "0.5.4",
@@ -188,7 +197,8 @@
     "kind": "license",
     "sha256": "36b6d3fa47916943fd5fec313c584784946047ec1337a78b440e5992cb595f89",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "exif",
     "componentVersion": "0.6.26",
@@ -200,7 +210,8 @@
     "kind": "license",
     "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "expat",
     "componentVersion": "2.8.5",
@@ -212,7 +223,8 @@
     "kind": "license",
     "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "ffi",
     "componentVersion": "3.8.0",
@@ -224,7 +236,8 @@
     "kind": "license",
     "sha256": "5a5ee54c5001bbad1cdc1a57cc3dd4c42199b2da09d39c7ee41fab002d02967f",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "freetype",
     "componentVersion": "2.14.3",
@@ -236,7 +249,8 @@
     "kind": "license",
     "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "fribidi",
     "componentVersion": "1.0.17",
@@ -248,7 +262,8 @@
     "kind": "license",
     "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "glib",
     "componentVersion": "2.90.0",
@@ -260,7 +275,8 @@
     "kind": "license",
     "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "harfbuzz",
     "componentVersion": "14.5.0",
@@ -272,7 +288,8 @@
     "kind": "license",
     "sha256": "fa81ce652315b013359d6e8e4744335f31a50c7c192907176d3632f78a3b4596",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "heif",
     "componentVersion": "1.23.5",
@@ -284,7 +301,8 @@
     "kind": "license",
     "sha256": "e340270d4f64384569a91d546acb5b094d69ce47f0c015db77abb74dc6f815af",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "highway",
     "componentVersion": "1.4.0",
@@ -296,7 +314,8 @@
     "kind": "license",
     "sha256": "7391bfbcde4404cefb9849553362c3ab436f929f5cc1abb57071ec045590ee99",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "imagequant",
     "componentVersion": "2.4.1",
@@ -308,7 +327,8 @@
     "kind": "license",
     "sha256": "96f5b328adbb78eeaaec6980d73fd558cb1e4d62560ed615646bc3cf5e532430",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "mozjpeg",
     "componentVersion": "0826579",
@@ -320,7 +340,8 @@
     "kind": "license",
     "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "pango",
     "componentVersion": "1.58.2",
@@ -332,7 +353,8 @@
     "kind": "license",
     "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "png",
     "componentVersion": "1.6.58",
@@ -344,7 +366,8 @@
     "kind": "license",
     "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "proxy-libintl",
     "componentVersion": "0.5",
@@ -356,7 +379,8 @@
     "kind": "license",
     "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "rsvg",
     "componentVersion": "2.63.2",
@@ -368,7 +392,8 @@
     "kind": "license",
     "sha256": "c9247b5cb07866938643cc238292434e6f2af8642e1fce10771c0e4cc7909316",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "uhdr",
     "componentVersion": "2.0.2",
@@ -380,7 +405,8 @@
     "kind": "license",
     "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "webp",
     "componentVersion": "1.6.0",
@@ -392,7 +418,8 @@
     "kind": "notice",
     "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "webp",
     "componentVersion": "1.6.0",
@@ -404,7 +431,8 @@
     "kind": "notice",
     "sha256": "f251be89fd442bd9d701360730aea163cc8e2076ff03528f59267dc2c4f8b60a",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "webp",
     "componentVersion": "1.6.0",
@@ -416,7 +444,8 @@
     "kind": "license",
     "sha256": "5d4873884a890122a4b9b20ad56ac6f7da1d796a5bfcf04a427970ac96217626",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "xml2",
     "componentVersion": "2.15.4",
@@ -428,7 +457,8 @@
     "kind": "license",
     "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "zlib-ng",
     "componentVersion": "2.3.3",
@@ -440,7 +470,8 @@
     "kind": "license",
     "sha256": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "aom",
     "componentVersion": "3.15.1",
@@ -453,7 +484,8 @@
     "kind": "notice",
     "sha256": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "aom",
     "componentVersion": "3.15.1",
@@ -466,7 +498,8 @@
     "kind": "license",
     "sha256": "51a51aa9823704fd90bccc616cdd17ebabb5b2b3e9cbde886ca02c7002288067",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "fontconfig",
     "componentVersion": "2.18.3",
@@ -478,7 +511,8 @@
     "kind": "license",
     "sha256": "fac9270f0987b96ff4533fca3548c633e02083cbba4a0172a3b149b2e4019793",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "pixman",
     "componentVersion": "0.46.4",
@@ -490,7 +524,8 @@
     "kind": "license",
     "sha256": "67228a9f7c5f9b67c58f556f1be178f62da4d9e2e6285318d8c74d567255abdf",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "cairo",
     "componentVersion": "1.18.6",
@@ -502,7 +537,8 @@
     "kind": "license",
     "sha256": "0e27c2382d7b8147972bbb746e04059a1152c8d0fda9d03ef1399d1a433c4ade",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "tiff",
     "componentVersion": "4.7.2",
@@ -514,7 +550,8 @@
     "kind": "license",
     "sha256": "6dbd60437f8ef91d8de1f08ad75882547fd4931bfcc3566a0735f28db1484d31",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "lcms",
     "componentVersion": "2.19.1",
@@ -526,7 +563,8 @@
     "kind": "notice",
     "sha256": "bd36c8b474855fa294c2ec5c184544478ef3720aad37d65a6296a4f264fd2d3b",
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "component": "freetype",
     "componentVersion": "2.14.3",
@@ -541,7 +579,8 @@
     "sha256": "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f",
     "bytes": 25755,
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
   },
@@ -554,7 +593,8 @@
     "sha256": "9e9e8608c4cdda51a78cc3a385f4ec9a2e4c96d5ecad74ac8bca5fca3e563b7d",
     "bytes": 26533,
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
   },
@@ -567,7 +607,8 @@
     "sha256": "c4120c6752c910c299e3bd9cb3a46ff262c268303ca2069b61f92f10a5656c18",
     "bytes": 17994,
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
   },
@@ -580,7 +621,8 @@
     "sha256": "7984455e7e5a9faba3797c8bf095fbe10cc846316b7320aff8c58402e22b82fe",
     "bytes": 5972,
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
   },
@@ -593,7 +635,8 @@
     "sha256": "18d9782898d9eac04476e2f744678137b2a889689ed3e923e052fc396a86f86b",
     "bytes": 3311,
     "appliesTo": [
-      "@img/sharp-libvips-darwin-arm64@1.3.4"
+      "@img/sharp-libvips-darwin-arm64@1.3.4",
+      "@img/sharp-win32-x64@0.35.5"
     ],
     "comment": "Verbatim notice at the exact component version/ref recorded by publisher build script."
   },
@@ -697,11 +740,34 @@
   },
   {
     "file": "release-audit.json",
-    "source": "https://github.com/lovell/sharp-libvips/tree/ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+    "source": "https://github.com/jslynn777/md-duck",
     "kind": "reference",
     "referenceOnly": true,
-    "sha256": "762b2538ade2775e86ed5c6bc47b14bff5d4ccfe478c7415fb5a995dc30c7655",
+    "sha256": "6cc1881565520a85ff3311dba91c8297938d66867d20ee9da1b9af5a8973f03b",
     "appliesTo": [],
     "comment": "MD Duck audit decisions and public upstream evidence; a generated review record, not upstream license text."
+  },
+  {
+    "file": "_img_sharp-win32-x64-0.35.5-PROVENANCE.json",
+    "source": "https://registry.npmjs.org/%40img%2Fsharp-win32-x64/0.35.5",
+    "kind": "reference",
+    "verifyPublishedPackageFiles": true,
+    "comment": "Exact published package archive and binary file hashes, matched to the project lock. This is provenance, not corresponding-source closure.",
+    "appliesTo": [
+      "@img/sharp-win32-x64@0.35.5"
+    ],
+    "referenceOnly": false,
+    "sha256": "3c68525280b6c71af84973019baac30d50a7fe7601d852e1585b34c6deff0fbe"
+  },
+  {
+    "file": "sharp-libvips-ebb95f8-win.sh",
+    "source": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/win.sh",
+    "kind": "reference",
+    "comment": "Pinned upstream Windows packaging script. Records the build-win64-mxe input URL; corresponding Windows source and build closure remain pending.",
+    "appliesTo": [
+      "@img/sharp-win32-x64@0.35.5"
+    ],
+    "referenceOnly": false,
+    "sha256": "52f2d9d76b07d4b4ad1720659b1e9bbc76121b85f21d9d084a85af28014473f3"
   }
 ]

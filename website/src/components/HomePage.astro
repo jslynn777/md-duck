@@ -1,10 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { localizePath, type Locale } from '../i18n';
+import { release } from '../data/release';
 interface Props { lang?: Locale }
 const { lang = 'zh' } = Astro.props;
 const zh = lang === 'zh';
 const route = (path: string) => localizePath(path, lang);
+const available = release.status === 'published' && release.artifacts.length > 0;
 const copy = zh ? {
   title: 'MD Duck — 本地 Markdown 精读与审阅',
   description: '打开本地 Markdown，对照中英译文，把意见留在原句旁。查词、听读帮助理解，配合熟悉的编辑器修改与复核。',
@@ -12,8 +14,8 @@ const copy = zh ? {
   headline: ['读懂文章，', '把意见留在原句旁。'],
   intro: '打开本地 Markdown，对照中英译文，查词、听读，在原句旁记录修改意见。继续用熟悉的编辑器，保存后回来复核。',
   audience: '适合英文稿件审阅、技术文档阅读，以及边读边理解英文。',
-  how: '看看怎么用', guide: '查看使用指南', download: '版本与下载',
-  release: 'macOS 开发预览 · 公开安装包准备中',
+  how: '看看怎么用', guide: '查看使用指南', download: available ? '免费下载' : '版本与下载',
+  release: available ? `v${release.version} · Mac 苹果芯片 / Windows x64 · 免费测试版` : `v${release.version} · Mac / Windows 公开安装包准备中`,
   previewLabel: '实际阅读与批注界面', choose: '选择界面预览', reading: '双语阅读', notes: '原文批注', zoom: '查看完整界面',
   readingAlt: 'MD Duck 将英文文章与中文译文并排展示，保留文章的段落结构。',
   notesAlt: 'MD Duck 的原文高亮与右侧批注关联，批注保留引用、意见和处理状态。',
@@ -39,9 +41,9 @@ const copy = zh ? {
   faqs: [
     ['没有 AI 密钥，也能用吗？', '可以阅读、写批注、对照已有译文和查看可用音标。语境释义与生成译文需要连接自己的服务；OpenRouter 支持浏览器登录授权，也可以填写 API 密钥。', '/guide/#ai-setup', '查看连接方式'],
     ['没有中文译文怎么办？', '可以先读原文，或选择已有译文。连接 AI 服务后，切换到中文或对照模式，可以确认生成中文稿；译文另存为文件，原文保留。', '/guide/#bilingual', '了解译文的准备方式'],
-    ['两份稿子会自动逐段对齐吗？', 'AI 生成的译文会自动保存对齐关系。自己准备的译文可以并排看；如果需要精确逐段对应，按指南给对应段落添加匹配标记。', '/guide/#bilingual', '查看段落对齐方法'],
+    ['两份稿子会自动逐段对齐吗？', '已有的对应标记或有效翻译记录用于逐段展示；没有对应关系时仍可并排阅读。「检查整篇」只检查结构并定位问题，不会自动配对或改写文件。', '/guide/#pairing-check', '了解整篇配对检查'],
     ['批注会写进我的原文吗？', '批注、草稿和词义记录单独保存。修改正文时继续使用自己的编辑器；MD Duck 在文件保存后更新阅读界面。', '/guide/#privacy', '查看数据与联网说明'],
-    ['现在可以下载吗？', '目前有可运行的 macOS 开发预览，公开安装包仍在准备。安装包、平台要求和源码公开状态，以版本页为准。', '/download/', '查看发布状态'],
+    ['现在可以下载吗？', available ? '可以，下载页提供苹果芯片 Mac 和 Windows x64 的免费测试版、安装步骤与校验值。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。' : 'Mac 和 Windows 的公开安装包仍在准备。安装包、平台要求和源码状态，以版本页为准。', '/download/', available ? '选择安装包' : '查看发布状态'],
   ],
   closingTitle: '从第一篇文章开始。', closingText: '先用示例熟悉对照阅读与批注，再打开自己的材料。',
 } : {
@@ -51,8 +53,8 @@ const copy = zh ? {
   headline: ['Read closely.', 'Leave feedback in context.'],
   intro: 'Open local Markdown, read English alongside Chinese, look up words and listen as you read. Leave comments beside the text, then review changes made in your favorite editor.',
   audience: 'For reviewing English drafts, reading technical docs, and understanding English as you read.',
-  how: 'See how it works', guide: 'Read the guide', download: 'Releases & downloads',
-  release: 'macOS development preview · Public installer in preparation',
+  how: 'See how it works', guide: 'Read the guide', download: available ? 'Download for free' : 'Releases & downloads',
+  release: available ? `v${release.version} · Apple Silicon Mac / Windows x64 · Free beta` : `v${release.version} · Mac / Windows public installers in preparation`,
   previewLabel: 'Inside the reader', choose: 'Choose an interface preview', reading: 'Side by side', notes: 'Review comments', zoom: 'Open the full screenshot',
   readingAlt: 'MD Duck displaying an English article beside its Chinese translation, with the article structure preserved.',
   notesAlt: 'MD Duck connecting a highlighted passage to its review comment, with the quotation and review status in the side panel.',
@@ -78,9 +80,9 @@ const copy = zh ? {
   faqs: [
     ['Can I use it without an AI key?', 'Yes. Read, annotate, view existing translations and look up available pronunciations. Contextual explanations and new translations need your own service connection. OpenRouter supports browser sign-in and authorization; you can also enter an API key.', '/guide/#ai-setup', 'See connection options'],
     ['What if I have no Chinese translation?', 'Read the original or choose an existing translation. With AI connected, switch to Chinese or Side by side and confirm generation of a Chinese version. The translation gets its own file; the original stays intact.', '/guide/#bilingual', 'About preparing a translation'],
-    ['Will any two drafts align automatically?', 'AI-generated translations save paragraph alignment automatically. Your own translation can be read in two columns. For precise paragraph alignment, follow the guide to add matching markers.', '/guide/#bilingual', 'See paragraph alignment'],
+    ['Will any two drafts align automatically?', 'Existing matching markers or a valid translation record provide paragraph alignment. Files without those can still be read in two columns. Check whole document inspects structure and locates problems; it does not assign pairs or rewrite files.', '/guide/#pairing-check', 'About the article pairing check'],
     ['Are comments written into my article?', 'Comments, drafts and word explanations are saved separately. Keep using your editor to change the article; MD Duck refreshes the reading view when you save.', '/guide/#privacy', 'See data and network use'],
-    ['Can I download it now?', 'A working macOS development preview exists, but public installers are still being prepared. Check the releases page for installers, platform requirements and source availability.', '/download/', 'See release status'],
+    ['Can I download it now?', available ? 'Yes. Downloads provides free betas for Apple Silicon Macs and Windows x64, with installation steps and checksums. There are no Intel Mac, Windows ARM or Linux installers yet.' : 'Public Mac and Windows installers are still being prepared. Check Downloads for files, platform requirements and source availability.', '/download/', available ? 'Choose an installer' : 'See release status'],
   ],
   closingTitle: 'Start with one article.', closingText: 'Try parallel reading and a review comment with the sample, then open your own material.',
 };
