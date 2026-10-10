@@ -73,6 +73,9 @@ jobs:
       - name: Verify package and both executable payloads
         run: |
           New-Item -ItemType Directory -Force release/validation | Out-Null
+          $archiver = Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+          if (-not (Test-Path $archiver)) { throw 'The Windows build runner is missing 7-Zip' }
+          $env:MD_DUCK_SEVEN_ZIP = $archiver
           npm run verify:win 2>&1 | Tee-Object release/validation/package.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify packaged native speech dependencies without a model download

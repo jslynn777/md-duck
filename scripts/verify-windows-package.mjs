@@ -9,7 +9,11 @@ import { join, resolve } from 'node:path'
 
 const require = createRequire(import.meta.url)
 const { listPackage, extractFile } = require('@electron/asar')
-const { path7za } = require('7zip-bin')
+// GitHub's Windows runner includes current 7-Zip. Do not rely on an undeclared
+// transitive npm package or bundle an old archiver into the application.
+const installedSevenZip = process.platform === 'win32' && process.env.ProgramFiles
+  ? join(process.env.ProgramFiles, '7-Zip', '7z.exe') : null
+const sevenZip = process.env.MD_DUCK_SEVEN_ZIP || (installedSevenZip && existsSync(installedSevenZip) ? installedSevenZip : '7z')
 const expected = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
 const app = resolve(process.argv.find((value, index) => index > 1 && !value.startsWith('--')) ?? 'release/win-unpacked')
 const resources = join(app, 'resources')
@@ -37,8 +41,8 @@ async function sha256(file) {
   return hash.digest('hex')
 }
 function extract(archive, destination) {
-  const result = spawnSync(path7za, ['x', '-y', '-bd', `-o${destination}`, archive], { encoding: 'utf8', timeout: 180_000, windowsHide: true })
-  if (result.error) throw result.error
+  const result = spawnSync(sevenZip, ['x', '-y', '-bd', `-o${destination}`, archive], { encoding: 'utf8', timeout: 180_000, windowsHide: true })
+  if (result.error) throw new Error(`7-Zip is required to verify Windows artifact payloads. Install 7-Zip or set MD_DUCK_SEVEN_ZIP to its executable. ${result.error.message}`)
   assert.equal(result.status, 0, `Could not extract ${archive}: ${result.stderr || result.stdout}`)
 }
 async function locate(directory, name) {
