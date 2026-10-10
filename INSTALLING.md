@@ -58,8 +58,12 @@ Notes, words and translation progress live in the article's nearby `.review/` fo
 
 Windows 构建面向 **Windows 10 及以上 x64**，目前提供维护者测试安装程序，尚未作为公开下载版本发布。安装程序采用每用户安装，不要求管理员权限；可选择安装位置，并创建开始菜单入口。已有测试版本可安装到相同位置更新，文章及旁边的 `.review/` 保持原位。
 
-正式提供测试文件后，运行文件名含 `Windows-x64-setup` 的 EXE 并按向导安装。文件名含 `portable` 的 EXE 不需要安装，但目前只完成包内容检查，其实际启动和退出清理仍需验收。应用未进行 Windows 发布者签名，系统可能显示来源提示；请核对发布来源与 SHA-256，不要关闭系统防护。校验命令为 `Get-FileHash -Algorithm SHA256 "文件完整路径"`。
+本地朗读还需要 **Microsoft Visual C++ v14 x64 运行库**。如果未安装或朗读无法启动，可按 [微软官方说明](https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist?view=msvc-170) 安装 x64 运行库；不需要购买 Visual Studio。运行库安装可能要求管理员权限，MD Duck 不会自动安装它。普通阅读、批注和每用户安装不需要这一步。
+
+正式提供测试文件后，运行文件名含 `Windows-x64-Setup` 的 EXE 并按向导安装。文件名含 `Portable` 的 EXE 不需要安装，但目前只完成包内容检查，其实际启动和退出清理仍需验收。应用未进行 Windows 发布者签名，系统可能显示来源提示；请核对发布来源与 SHA-256，不要关闭系统防护。校验命令为 `Get-FileHash -Algorithm SHA256 "文件完整路径"`。
 
 The Windows build targets **Windows 10 and later, x64**. Maintainer test installers are being prepared; there is no public Windows download yet. The installer runs per user without administrator privileges, allows a destination folder and creates a Start menu entry. Install updates into the same location; keep your articles and their `.review/` folders together.
 
-When test files are provided, run the EXE whose name includes `Windows-x64-setup` and follow the installer. The `portable` EXE needs no installation, but its launch and cleanup behavior has not yet been accepted; only its packaged payload has been checked. The app has no Windows publisher signature. Verify the download source and SHA-256 if Windows shows a source prompt; do not disable system protection. In PowerShell, use `Get-FileHash -Algorithm SHA256 "full file path"`.
+Local speech also requires the **Microsoft Visual C++ v14 x64 runtime**. If it is missing or speech cannot start, install the x64 runtime using [Microsoft's official instructions](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). You do not need to buy Visual Studio. Installing the runtime may require administrator privileges; MD Duck does not install it automatically. Reading, annotations and per-user installation do not require this step.
+
+When test files are provided, run the EXE whose name includes `Windows-x64-Setup` and follow the installer. The `Portable` EXE needs no installation, but its launch and cleanup behavior has not yet been accepted; only its packaged payload has been checked. The app has no Windows publisher signature. Verify the download source and SHA-256 if Windows shows a source prompt; do not disable system protection. In PowerShell, use `Get-FileHash -Algorithm SHA256 "full file path"`.

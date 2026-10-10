@@ -150,6 +150,8 @@ release/MD-Duck-0.1.0-beta.4-Windows-x64-Portable-local-test.exe
 
 [Windows 自动构建](.github/workflows/windows-build.yml) 在 GitHub Windows runner 运行上述检查，并静默安装至带中文和空格的临时路径后再次检查启动与原生朗读依赖。CI 产物是有限保留期的测试文件，不是 GitHub Release。portable 当前核对 payload，尚未单独验收其启动与解压清理行为。Windows 桌面的手动交互、实际扬声器播放和不同版本系统仍需验收。
 
+ONNX 的 Windows 二进制依赖 Microsoft Visual C++ v14 x64 运行库。`verify:win` 报告应用目录内的四个相关 DLL，但不把缺失作为包完整性失败；runner 自带开发工具，朗读依赖检查通过不能证明未安装运行库的全新电脑也可朗读。安装说明中的 [微软官方运行库指引](https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist?view=msvc-170) 属于可选朗读的前置条件，程序不自动安装第三方运行库。
+
 Windows libvips/MXE 对应源码和可替换构建材料另有 `WINVIPS-SOURCE` 核对项，不以 Mac 的源码材料替代 Windows 二进制要求。公开安装包仍保持准备中。
 
 Linux、Intel Mac 和 Windows ARM 当前不在打包目标中。增加目标前需要在对应环境安装原生依赖、核对第三方材料并验证文件读写、图片、批注及朗读。

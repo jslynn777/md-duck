@@ -78,12 +78,37 @@ for (const file of [
   'node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.7.dll'
 ]) assert.equal(peMachine(join(unpacked, file)), 0x8664, `Native dependency must be x64 and unpacked: ${file}`)
 for (const file of ['examples/christmas-ribbon/article.md', 'examples/christmas-ribbon/assets/bow.png', 'third-party/ipa-dict/LICENSE-UK-GPL-3.0', 'third-party/ipa-dict/en_UK.txt']) assert(existsSync(join(resources, file)), `Missing resource: ${file}`)
-for (const file of ['LICENSE', 'LICENSES.chromium.html']) assert(existsSync(join(app, file)), `Missing Electron notice: ${file}`)
+// electron-builder preserves the runtime license under this Windows filename
+// so it does not collide with the application's own LICENSE resource.
+for (const file of ['LICENSE.electron.txt', 'LICENSES.chromium.html']) assert(existsSync(join(app, file)), `Missing Electron notice: ${file}`)
 const notices = JSON.parse(readFileSync(join(resources, 'third-party/manifest.json'), 'utf8'))
 assert.equal(notices.application.version, expected.version)
 assert.equal(notices.platform, 'win32', 'Notices must be generated on the Windows build host')
 assert.equal(notices.architecture, 'x64')
 assert(notices.nativeComponents.some(({ name }) => name === '@img/sharp-win32-x64'), 'The bundled Windows libvips inventory must be collected')
+
+// ONNX imports these Visual C++ runtime libraries. A CI runner may provide them
+// system-wide, so report app-local files without treating their absence as a
+// package-integrity failure or claiming a clean Windows machine was tested.
+const visualCppLibraries = ['MSVCP140.dll', 'MSVCP140_1.dll', 'VCRUNTIME140.dll', 'VCRUNTIME140_1.dll']
+const visualCppRuntime = {
+  appLocalFiles: [],
+  absentAppLocalLibraries: [],
+  systemRuntimeValidated: false,
+  guidance: 'Optional local speech requires the Microsoft Visual C++ v14 x64 runtime; CI does not validate a clean machine without it.'
+}
+for (const name of visualCppLibraries) {
+  const locations = []
+  const rootFile = (await readdir(app)).find((file) => file.toLowerCase() === name.toLowerCase())
+  if (rootFile) locations.push(rootFile)
+  for (const file of files) {
+    if (file.split('/').at(-1)?.toLowerCase() !== name.toLowerCase()) continue
+    const relative = file.replace(/^\//, '')
+    if (existsSync(join(unpacked, relative))) locations.push(`resources/app.asar.unpacked/${relative}`)
+  }
+  if (locations.length) visualCppRuntime.appLocalFiles.push({ library: name, locations })
+  else visualCppRuntime.absentAppLocalLibraries.push(name)
+}
 
 const artifacts = []
 if (!process.argv.includes('--dir-only')) {
@@ -121,4 +146,4 @@ if (!process.argv.includes('--dir-only')) {
     } finally { await rm(directory, { recursive: true, force: true }) }
   }
 }
-console.log(JSON.stringify({ status: 'passed', version: metadata.version, platform: 'win32', architecture: 'x64', packagedFiles: files.length, privateFiles: 0, notices: 'Windows native inventory present', codeSigned: false, artifacts, remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), scope: 'Package and archive integrity; runtime startup and speech checks run separately.' }, null, 2))
+console.log(JSON.stringify({ status: 'passed', version: metadata.version, platform: 'win32', architecture: 'x64', packagedFiles: files.length, privateFiles: 0, notices: 'Windows native inventory present', codeSigned: false, visualCppRuntime, artifacts, remainingThirdPartyReleaseItems: (notices.releaseAudit?.remainingItems ?? []).map(({ id }) => id), scope: 'Package and archive integrity; runtime startup and speech checks run separately.' }, null, 2))
