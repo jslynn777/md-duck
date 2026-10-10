@@ -19,7 +19,8 @@ const app = resolve(process.argv.find((value, index) => index > 1 && !value.star
 const resources = join(app, 'resources')
 const asar = join(resources, 'app.asar')
 const unpacked = `${asar}.unpacked`
-const files = listPackage(asar)
+// @electron/asar lists using the host's path separator, including Windows.
+const files = listPackage(asar).map((file) => file.replaceAll('\\', '/'))
 const metadata = JSON.parse(extractFile(asar, 'package.json').toString())
 
 function peMachine(file) {
