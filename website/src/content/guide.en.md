@@ -22,7 +22,7 @@ The beta has no Windows publisher signature, so Windows may show a source warnin
 
 Local speech also requires the **Microsoft Visual C++ v14 x64 runtime**. If it is missing or speech cannot start, install the x64 runtime using [Microsoft's official instructions](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). You do not need to buy Visual Studio. The runtime installer may need administrator privileges; reading and annotations do not require it.
 
-Windows builds have automated checks for tests, installation, startup restoration and speech dependencies. Hands-on desktop reading and complete playback still need user feedback. Keep a copy of your articles and `.review/` folders before updating. Install the new version into the same location; articles stay in the folders you choose.
+Windows builds passed automated tests, installation, startup restoration and offline synthesis with all five voices. Hands-on desktop use and speaker playback have not been validated. Keep a copy of your articles and `.review/` folders before updating. Install the new version into the same location; articles stay in the folders you choose.
 
 <h2 id="open">Open your first article</h2>
 

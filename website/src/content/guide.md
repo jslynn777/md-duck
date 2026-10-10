@@ -22,7 +22,7 @@ MD Duck 免费提供。Mac 安装包面向 Apple Silicon（M 系列芯片），�
 
 本地朗读还需要 **Microsoft Visual C++ v14 x64 运行库**。如未安装，或点击朗读后无法启动，可按[微软官方说明](https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist?view=msvc-170)安装 x64 运行库，不需要购买 Visual Studio。运行库安装可能需要管理员权限；普通阅读和批注不需要这一步。
 
-Windows 已做自动化测试、安装、启动恢复和朗读依赖检查，日常桌面操作与完整朗读仍需实际使用反馈。更新前保留文章和 `.review/` 副本；将新版安装到原位置即可，文章继续保存在你选择的文件夹中。
+Windows 已通过自动化测试、安装、启动恢复及五声音离线合成检查；手动桌面操作和扬声器播放尚未验收。更新前保留文章和 `.review/` 副本；将新版安装到原位置即可，文章继续保存在你选择的文件夹中。
 
 <h2 id="open">打开一篇文章</h2>
 
