@@ -56,10 +56,10 @@ Notes, words and translation progress live in the article's nearby `.review/` fo
 
 ## Windows 测试构建 / Windows test build
 
-Windows 构建面向 **Windows x64**，目前提供维护者测试安装程序，尚未作为公开下载版本发布。安装程序采用每用户安装，不要求管理员权限；可选择安装位置，并创建开始菜单入口。已有测试版本可安装到相同位置更新，文章及旁边的 `.review/` 保持原位。
+Windows 构建面向 **Windows 10 及以上 x64**，目前提供维护者测试安装程序，尚未作为公开下载版本发布。安装程序采用每用户安装，不要求管理员权限；可选择安装位置，并创建开始菜单入口。已有测试版本可安装到相同位置更新，文章及旁边的 `.review/` 保持原位。
 
 正式提供测试文件后，运行文件名含 `Windows-x64-setup` 的 EXE 并按向导安装。文件名含 `portable` 的 EXE 不需要安装，但目前只完成包内容检查，其实际启动和退出清理仍需验收。应用未进行 Windows 发布者签名，系统可能显示来源提示；请核对发布来源与 SHA-256，不要关闭系统防护。校验命令为 `Get-FileHash -Algorithm SHA256 "文件完整路径"`。
 
-The Windows build targets **Windows x64**. Maintainer test installers are being prepared; there is no public Windows download yet. The installer runs per user without administrator privileges, allows a destination folder and creates a Start menu entry. Install updates into the same location; keep your articles and their `.review/` folders together.
+The Windows build targets **Windows 10 and later, x64**. Maintainer test installers are being prepared; there is no public Windows download yet. The installer runs per user without administrator privileges, allows a destination folder and creates a Start menu entry. Install updates into the same location; keep your articles and their `.review/` folders together.
 
 When test files are provided, run the EXE whose name includes `Windows-x64-setup` and follow the installer. The `portable` EXE needs no installation, but its launch and cleanup behavior has not yet been accepted; only its packaged payload has been checked. The app has no Windows publisher signature. Verify the download source and SHA-256 if Windows shows a source prompt; do not disable system protection. In PowerShell, use `Get-FileHash -Algorithm SHA256 "full file path"`.

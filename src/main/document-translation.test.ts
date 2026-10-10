@@ -427,6 +427,48 @@ describe('translation metadata moves with the library', () => {
       hasTranslation: true, targetPath: join(root, 'chinese', 'translated.md')
     })
   })
+  it.each([
+    { version: 2, sourceFile: 'source.md', targetRelative: '..\\chinese\\translated.md' },
+    { version: 1, sourcePath: 'C:\\old-library\\english\\source.md', targetPath: 'C:\\old-library\\chinese\\translated.md' },
+    { version: 1, sourcePath: '\\\\server\\share\\old-library\\english\\source.md', targetPath: '\\\\server\\share\\old-library\\chinese\\translated.md' }
+  ])('reads a Windows-origin cross-directory association after the library moves: %j', async (legacy) => {
+    const source = join(root, 'english', 'source.md')
+    const target = join(root, 'chinese', 'translated.md')
+    await fs.mkdir(dirname(source))
+    await fs.mkdir(dirname(target))
+    await fs.writeFile(source, '# English')
+    await fs.writeFile(target, '# 中文')
+    await service().translator.associate(source, target)
+    const metaDir = join(dirname(source), '.review', 'translations')
+    const association = (await fs.readdir(metaDir)).find((file) => file.endsWith('.association.json'))!
+    await fs.writeFile(join(metaDir, association), JSON.stringify(legacy))
+    await moveLibrary()
+    expect(await service().translator.inspect(join(root, 'english', 'source.md'))).toMatchObject({
+      hasTranslation: true, targetPath: join(root, 'chinese', 'translated.md')
+    })
+  })
+
+  it.each([
+    { version: 2, sourceFile: 'source.md', targetRelative: '..\\..\\outside.md' },
+    { version: 2, sourceFile: 'source.md', targetRelative: 'C:\\private\\outside.md' },
+    { version: 2, sourceFile: 'source.md', targetRelative: 'C:outside.md' },
+    { version: 2, sourceFile: 'source.md', targetRelative: '\\\\server\\share\\outside.md' },
+    { version: 2, sourceFile: 'source.md', targetRelative: '\\private\\outside.md' },
+    { version: 1, sourcePath: 'C:\\old-library\\source.md', targetPath: 'D:\\other-library\\outside.md' },
+    { version: 1, sourcePath: 'C:\\old-library\\source.md', targetPath: '\\\\server\\share\\outside.md' },
+    { version: 1, sourcePath: 'C:\\old-library\\source.md', targetPath: '\\private\\outside.md' }
+  ])('ignores Windows-origin metadata that is not an authorized relative library path: %j', async (invalid) => {
+    const source = join(root, 'source.md')
+    const target = join(root, 'manual.md')
+    await fs.writeFile(source, '# English')
+    await fs.writeFile(target, '# 中文')
+    await service().translator.associate(source, target)
+    const association = (await metadataFiles()).find((file) => file.endsWith('.association.json'))!
+    await fs.writeFile(join(root, '.review', 'translations', association), JSON.stringify(invalid))
+    expect(await service().translator.inspect(source)).toMatchObject({
+      hasTranslation: false, canTranslate: true, targetPath: join(root, 'source.zh.md')
+    })
+  })
   it('keeps a legacy absolute association working after a whole-folder move', async () => {
     const source = join(root, 'source.md')
     const target = join(root, 'manual.md')
@@ -439,7 +481,7 @@ describe('translation metadata moves with the library', () => {
     await moveLibrary()
     expect(await service().translator.inspect(join(root, 'source.md'))).toMatchObject({ hasTranslation: true, targetPath: join(root, 'manual.md') })
   })
-  it('retains completed alignment and legacy checkpoint metadata after moving the full folder', async () => {
+  it.each(['native', 'Windows'] as const)('retains completed alignment and %s legacy checkpoint metadata after moving the full folder', async (origin) => {
     const source = join(root, 'source.md')
     await fs.writeFile(source, '# English\n\nOrdinary prose.')
     const { translator, progress } = service()
@@ -449,12 +491,76 @@ describe('translation metadata moves with the library', () => {
     for (const name of await metadataFiles()) {
       const path = join(root, '.review', 'translations', name)
       const { sourceFile: _sourceFile, targetRelative: _targetRelative, ...fields } = JSON.parse(await fs.readFile(path, 'utf8'))
-      await fs.writeFile(path, JSON.stringify({ ...fields, version: 1, sourcePath: source, targetPath: join(root, 'source.zh.md') }))
+      await fs.writeFile(path, JSON.stringify({ ...fields, version: 1,
+        sourcePath: origin === 'Windows' ? 'C:\\old-library\\source.md' : source,
+        targetPath: origin === 'Windows' ? 'C:\\old-library\\source.zh.md' : join(root, 'source.zh.md') }))
     }
     await moveLibrary()
     const moved = join(root, 'source.md')
     expect((await service().translator.inspect(moved)).task).toMatchObject({ phase: 'complete', sourcePath: moved, targetPath: join(root, 'source.zh.md') })
     expect(await service().translator.loadAlignment(moved)).not.toBeNull()
+  })
+  it('retains a completed Windows v2 alignment across directories after moving the library', async () => {
+    const source = join(root, 'english', 'source.md')
+    const target = join(root, 'chinese', 'translated.md')
+    await fs.mkdir(dirname(source))
+    await fs.mkdir(dirname(target))
+    await fs.writeFile(source, '# English\n\nOrdinary prose.')
+    const first = service()
+    await first.translator.start(source, config(async (messages) => response(messages)))
+    await complete(first.progress)
+    await fs.rename(join(dirname(source), 'source.zh.md'), target)
+    const metaDir = join(dirname(source), '.review', 'translations')
+    const paths = { version: 2, sourceFile: 'source.md', targetRelative: '..\\chinese\\translated.md' }
+    const files = await fs.readdir(metaDir)
+    for (const name of files) {
+      const metadata = JSON.parse(await fs.readFile(join(metaDir, name), 'utf8'))
+      await fs.writeFile(join(metaDir, name), JSON.stringify({ ...metadata, ...paths }))
+    }
+    await fs.writeFile(join(metaDir, files.find((name) => name.endsWith('.draft.json'))!.replace('.draft.json', '.association.json')), JSON.stringify(paths))
+    await moveLibrary()
+    const moved = join(root, 'english', 'source.md')
+    const second = service()
+    expect(await second.translator.inspect(moved)).toMatchObject({
+      hasTranslation: true, targetPath: join(root, 'chinese', 'translated.md'), task: { phase: 'complete' }
+    })
+    expect(await second.translator.loadAlignment(moved)).not.toBeNull()
+  })
+  it('resumes a Windows-origin paused checkpoint for a sibling directory after moving and rewrites portable metadata with slashes', async () => {
+    const source = join(root, 'english', 'resume.md')
+    await fs.mkdir(dirname(source))
+    await fs.mkdir(join(root, 'chinese'))
+    await fs.writeFile(source, '# Heading\n\nFirst paragraph.\n\nSecond paragraph.')
+    const pending = deferred<string>()
+    const first = service()
+    const firstRequest = vi.fn(async (messages: AIMessage[]) => firstRequest.mock.calls.length === 1 ? response(messages) : pending.promise)
+    await first.translator.start(source, config(firstRequest))
+    await vi.waitFor(() => expect(firstRequest).toHaveBeenCalledTimes(2))
+    expect(await first.translator.stop(source)).toMatchObject({ phase: 'paused', completed: 1 })
+    const metaDir = join(dirname(source), '.review', 'translations')
+    const draftFile = (await fs.readdir(metaDir)).find((file) => file.endsWith('.draft.json'))!
+    const draft = JSON.parse(await fs.readFile(join(metaDir, draftFile), 'utf8'))
+    const paths = { version: 2, sourceFile: 'resume.md', targetRelative: '..\\chinese\\resume.md' }
+    await fs.writeFile(join(metaDir, draftFile), JSON.stringify({ ...draft, ...paths }))
+    await fs.writeFile(join(metaDir, draftFile.replace('.draft.json', '.association.json')), JSON.stringify(paths))
+    await moveLibrary()
+    const moved = join(root, 'english', 'resume.md')
+    const second = service()
+    expect((await second.translator.inspect(moved)).task).toMatchObject({
+      phase: 'paused', completed: 1, sourcePath: moved, targetPath: join(root, 'chinese', 'resume.md')
+    })
+    const request = vi.fn(async (messages: AIMessage[]) => response(messages))
+    await second.translator.start(moved, config(request))
+    await complete(second.progress)
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(await second.translator.loadAlignment(moved)).not.toBeNull()
+    const movedMeta = join(dirname(moved), '.review', 'translations')
+    for (const name of (await fs.readdir(movedMeta)).filter((name) => !name.endsWith('.association.json'))) {
+      expect(JSON.parse(await fs.readFile(join(movedMeta, name), 'utf8'))).toMatchObject({
+        version: 2, sourceFile: 'resume.md', targetRelative: '../chinese/resume.md'
+      })
+    }
+    pending.resolve('{}')
   })
   it('resumes a portable paused checkpoint after a move without repeating completed requests', async () => {
     const source = join(root, 'resume.md')

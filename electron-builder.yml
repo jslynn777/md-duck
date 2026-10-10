@@ -37,6 +37,10 @@ extraResources:
 mac:
   artifactName: MD-Duck-${version}-macOS-${arch}-local-test.${ext}
   files:
+    - out/**/*
+    - package.json
+    - '!**/*.map'
+    - '!**/*.test.*'
     - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
     - '!node_modules/onnxruntime-node/bin/napi-v3/win32/**'
     - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/x64/**'
@@ -60,6 +64,10 @@ win:
   icon: src/main/icon.png
   artifactName: MD-Duck-${version}-Windows-${arch}-local-test.${ext}
   files:
+    - out/**/*
+    - package.json
+    - '!**/*.map'
+    - '!**/*.test.*'
     - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/**'
     - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
     - '!node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**'

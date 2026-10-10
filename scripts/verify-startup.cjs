@@ -76,7 +76,7 @@ async function main() {
       }
     }
     console.log(JSON.stringify({ package: asar, executable: exe, checks, isolatedProfile: true, scope: 'Real packaged window startup, renderer load and article restoration; no manual Windows usability or audio playback acceptance.' }, null, 2));
-  } finally { await fs.rm(profile, { recursive: true, force: true }); }
+  } finally { await fs.rm(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
 }
 
 main().catch(error => { console.error(error.stack || String(error)); process.exitCode = 1; });
