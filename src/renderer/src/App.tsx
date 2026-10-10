@@ -9,6 +9,7 @@ import {
   LoaderCircle as Loader2,
   MessageSquarePlus,
   MessageSquareText,
+  MoreHorizontal,
   PanelLeft,
   PanelRight,
   Pause,
@@ -67,6 +68,7 @@ type Doc = OpenedDocument & { source: ParsedDoc; zh: ParsedDoc | null; notes: No
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
+  const [startupError, setStartupError] = useState(false)
   const [doc, setDoc] = useState<Doc | null>(null)
   const [status, setStatus] = useState('')
   const [speechNote, setSpeechNote] = useState('')
@@ -173,7 +175,7 @@ export function App() {
       setState(next)
       const target = next.openPath ?? (next.root ? next.library[0]?.path ?? null : null)
       if (target) void openDoc(target)
-    })
+    }).catch(() => setStartupError(true))
   }, [openDoc])
 
   const updateRef = useRef<(update: DocUpdate) => void>(() => undefined)
@@ -331,10 +333,15 @@ export function App() {
   }, [])
 
   if (!state) {
+    const zh = /^zh\b/i.test(navigator.language)
     return (
       <div className="welcome">
-        <div className="card">
-          <Loader2 className="spin" size={22} />
+        <div className="card" role={startupError ? 'alert' : 'status'}>
+          <h1>MD Duck</h1>
+          {startupError ? <>
+            <p>{zh ? '暂时无法打开阅读界面，请重新启动。文章和已保存的批注不受影响。' : 'The reader could not start. Restart the app; your articles and saved notes are preserved.'}</p>
+            <button className="btn primary" onClick={() => void window.api.restartStartup()}>{zh ? '重新启动' : 'Restart'}</button>
+          </> : <p className="startup-loading"><Loader2 className="spin" size={18} />{zh ? '正在打开阅读内容…' : 'Opening your reading…'}</p>}
         </div>
       </div>
     )
@@ -402,6 +409,7 @@ export function App() {
         onPrefs={savePrefs}
         onJump={jumpToHeading}
         onPickRoot={() => void window.api.pickRoot()}
+        onFileMenu={(path, position) => void showFileMenu(path, position)}
       />
 
       <div className="main">
@@ -779,6 +787,19 @@ export function App() {
   function reportReviewError(error: unknown) {
     flashToast(reviewError(error))
     if (doc && error instanceof Error && error.message.includes('REVIEW_')) void refreshReviewState(doc.sourcePath)
+  }
+
+  async function showFileMenu(path: string, position: { x: number; y: number }) {
+    try {
+      const result = await window.api.showFileMenu(path, position)
+      if (result?.action === 'copy-path') {
+        flashToast(t(ui, result.target === 'translation' ? 'translationPathCopied' : 'filePathCopied'))
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      flashToast(/ERR_(?:NOT_FOUND|ONLY_MD|NOT_IN_FOLDER|OPEN_FILE)\b/.test(message)
+        ? errorText(ui, message, 'fileActionFailed') : t(ui, 'fileActionFailed'))
+    }
   }
 
   async function refreshReviewState(path: string) {
@@ -1204,7 +1225,8 @@ function Sidebar({
   onOpen,
   onPrefs,
   onJump,
-  onPickRoot
+  onPickRoot,
+  onFileMenu
 }: {
   state: AppState
   visible: boolean
@@ -1213,15 +1235,11 @@ function Sidebar({
   onPrefs: (patch: Partial<Preferences>) => void
   onJump: (key: string) => void
   onPickRoot: () => void
+  onFileMenu: (path: string, position: { x: number; y: number }) => void
 }) {
   const tr = useT()
   if (!visible) return null
   const tab = state.prefs.sidebarTab
-  const titleCounts = new Map<string, number>()
-  for (const entry of state.library) {
-    const title = entry.title.trim().toLocaleLowerCase()
-    titleCounts.set(title, (titleCounts.get(title) ?? 0) + 1)
-  }
   const folderName = state.root?.split(/[/\\]/).filter(Boolean).pop() ?? tr('folderFallback')
   return (
     <aside className="sidebar">
@@ -1243,19 +1261,48 @@ function Sidebar({
               {state.library.map((entry) => {
                 const isCurrent = entry.path === doc?.sourcePath
                 const filename = entry.path.split(/[/\\]/).pop() ?? ''
-                const relativePath = entry.folder === '.' ? filename : `${entry.folder}/${filename}`
-                const duplicateTitle = (titleCounts.get(entry.title.trim().toLocaleLowerCase()) ?? 0) > 1
                 return (
-                  <button
+                  <div
                     key={entry.path}
                     className={`entry ${isCurrent ? 'on' : ''}`}
-                    aria-current={isCurrent ? 'page' : undefined}
-                    title={`${entry.title}\n${entry.path}${entry.zhPath ? `\n${tr('bilingualTag')}` : ''}`}
-                    onClick={() => onOpen(entry.path)}
+                    onContextMenu={(event) => {
+                      event.preventDefault()
+                      onFileMenu(entry.path, { x: event.clientX, y: event.clientY })
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10') {
+                        event.preventDefault()
+                        const target = event.target as HTMLElement
+                        const rect = target.getBoundingClientRect()
+                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
+                      }
+                    }}
                   >
-                    <span className="t">{entry.title}</span>
-                    {duplicateTitle && <span className="entry-path">{relativePath}</span>}
-                  </button>
+                    <button
+                      className="entry-open"
+                      aria-current={isCurrent ? 'page' : undefined}
+                      title={`${entry.title}\n${entry.path}${entry.zhPath ? `\n${tr('bilingualTag')}` : ''}`}
+                      onClick={() => onOpen(entry.path)}
+                    >
+                      <span className="t">{entry.title}</span>
+                      <span className="entry-path" title={entry.path}>
+                        {entry.folder !== '.' && <><span className="entry-folder">{entry.folder}</span><span>/</span></>}
+                        <span className="entry-filename">{filename}</span>
+                      </span>
+                    </button>
+                    <button
+                      className="entry-actions"
+                      aria-label={`${tr('fileActions')}: ${entry.title}`}
+                      aria-haspopup="menu"
+                      title={tr('fileActionsHint')}
+                      onClick={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
+                      }}
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                  </div>
                 )
               })}
             </div>

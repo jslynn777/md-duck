@@ -294,6 +294,21 @@ textarea {
   flex: none;
 }
 
+html:not([data-platform="darwin"]) .sidebar-drag {
+  height: 12px;
+}
+
+html:not([data-platform="darwin"]) .topbar .pad {
+  display: none;
+}
+
+.startup-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .sidebar-tabs {
   flex: none;
   display: flex;
@@ -332,14 +347,22 @@ textarea {
 }
 
 .entry {
+  position: relative;
   width: 100%;
   text-align: left;
-  padding: 12px;
   border-radius: 6px;
+  color: var(--ink-soft);
+}
+
+.entry-open {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border-radius: inherit;
+  text-align: left;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 5px;
-  color: var(--ink-soft);
+  gap: 6px;
 }
 
 .article-list {
@@ -347,7 +370,8 @@ textarea {
   gap: 6px;
 }
 
-.entry:hover {
+.entry:hover,
+.entry:focus-within {
   background: var(--panel-2);
 }
 
@@ -371,12 +395,54 @@ textarea {
 }
 
 .entry-path {
+  display: flex;
+  min-width: 0;
+  padding-right: 26px;
   font-size: 11px;
   line-height: 1.5;
   color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.entry-folder {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.entry-filename {
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-folder ~ .entry-filename {
+  max-width: 85%;
+}
+
+.entry-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--ink-soft);
+  opacity: 0;
+}
+
+.entry:hover .entry-actions,
+.entry:focus-within .entry-actions {
+  opacity: 1;
+}
+
+.entry-actions:hover {
+  background: var(--line);
+  color: var(--ink);
 }
 
 .outline-item {
@@ -2347,7 +2413,6 @@ textarea {
 }
 
 /* Reading states remain distinct from hover and keyboard focus. */
-.entry { position: relative; }
 .entry::before {
   content: '';
   position: absolute;
@@ -2360,7 +2425,7 @@ textarea {
   opacity: 0;
 }
 .entry.on::before { opacity: 1; }
-.entry:focus-visible { outline-offset: -2px; }
+.entry-open:focus-visible { outline-offset: -2px; }
 .read-modes button.on {
   background: var(--panel-2);
   color: var(--ink);

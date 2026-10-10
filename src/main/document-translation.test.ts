@@ -397,7 +397,7 @@ describe('translation path authorization', () => {
       await fs.symlink(target, join(root, 'safe.zh.md'))
       await expect(translator.getTargetPath(source)).rejects.toThrow('ERR_NOT_IN_FOLDER')
       await fs.unlink(join(root, 'safe.zh.md'))
-      await fs.symlink(outside, join(root, '.review'))
+      await fs.symlink(outside, join(root, '.review'), 'dir')
       await expect(translator.inspect(source)).rejects.toThrow('ERR_NOT_IN_FOLDER')
     } finally { await fs.rm(outside, { recursive: true, force: true }) }
   })

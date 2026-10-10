@@ -36,6 +36,11 @@ const en = {
   dropRelease: 'Drop to open',
   dropReleaseFile: 'Drop to open this file or folder',
   articles: 'Files',
+  fileActions: 'File actions',
+  fileActionsHint: 'File actions (or right-click the article)',
+  filePathCopied: 'File path copied',
+  translationPathCopied: 'Translation path copied',
+  fileActionFailed: 'Could not complete the file action. Check that the file still exists and is accessible.',
   outline: 'Outline',
   noMarkdown: 'No Markdown in this folder.',
   bilingualTag: 'EN/ZH',
@@ -164,7 +169,7 @@ const en = {
   voice: 'Voice',
   speed: 'Speed',
   openRouterKey: 'OpenRouter key',
-  keyDesc: 'Used for word translation. Stored on this computer (encrypted in the system keychain), never written into the article.',
+  keyDesc: 'Used for word translation. Encrypted with this computer’s system credential storage, never written into the article.',
   keySaved: 'Saved — type to replace',
   configured: 'Configured',
   model: 'Translation model',
@@ -254,6 +259,11 @@ const zh: Record<keyof typeof en, string> = {
   dropRelease: '松开以打开',
   dropReleaseFile: '松开以打开这个文件或文件夹',
   articles: '文章',
+  fileActions: '文件操作',
+  fileActionsHint: '文件操作（也可右键点击文章）',
+  filePathCopied: '已复制完整文件路径',
+  translationPathCopied: '已复制译文完整路径',
+  fileActionFailed: '文件操作失败，请检查文件是否仍存在，以及是否有访问权限。',
   outline: '目录',
   noMarkdown: '这个文件夹里还没有 Markdown。',
   bilingualTag: '双语',
@@ -382,7 +392,7 @@ const zh: Record<keyof typeof en, string> = {
   voice: '朗读语音',
   speed: '朗读语速',
   openRouterKey: 'OpenRouter Key',
-  keyDesc: '用于划词翻译。保存在本机（系统钥匙串加密），不写入文章。',
+  keyDesc: '用于划词翻译。通过本机系统凭据存储加密保存，不写入文章。',
   keySaved: '已保存，输入可替换',
   configured: '已配置',
   model: '翻译模型',
@@ -522,6 +532,7 @@ export function errorText(lang: UiLang, message: string, fallback: MessageKey) {
   if (clean === 'ERR_NOT_FOUND') return t(lang, 'errNotFound')
   if (clean === 'ERR_ONLY_MD') return t(lang, 'errOnlyMd')
   if (clean === 'ERR_NOT_IN_FOLDER') return t(lang, 'errNotInFolder')
+  if (clean === 'ERR_OPEN_FILE') return lang === 'zh' ? '无法用默认应用打开文件，请在系统文件管理器中选择打开方式。' : 'Could not open the file with its default app. Choose an app in your file manager.'
   if (clean === 'ERR_NETWORK') return t(lang, 'errNetwork')
   if (clean === 'ERR_BAD_KEY') return t(lang, 'errBadKey')
   if (clean === 'ERR_NO_CREDIT') return t(lang, 'errNoCredit')
@@ -531,7 +542,7 @@ export function errorText(lang: UiLang, message: string, fallback: MessageKey) {
   if (clean === 'ERR_TIMEOUT') return lang === 'zh' ? '请求超时，请重试' : 'The request timed out. Try again.'
   if (clean === 'ERR_CANCELLED') return lang === 'zh' ? '已停止请求' : 'Request stopped.'
   if (clean === 'ERR_CONFIG') return lang === 'zh' ? '请检查 AI 服务的地址和模型设置' : 'Check the AI service URL and model.'
-  if (clean === 'ERR_STORAGE') return lang === 'zh' ? '无法读取或安全保存 AI 配置，请检查本机钥匙串与存储权限' : 'AI settings could not be loaded or saved securely. Check keychain and storage access.'
+  if (clean === 'ERR_STORAGE') return lang === 'zh' ? '无法读取或安全保存 AI 配置，请检查系统凭据存储与本机存储权限' : 'AI settings could not be loaded or saved securely. Check system credential storage and local storage permissions.'
   if (clean === 'ERR_BAD_RESPONSE' || clean === 'ERR_TRUNCATED') return lang === 'zh' ? 'AI 返回的内容不完整，请重试' : 'The AI response was incomplete. Try again.'
   if (clean.startsWith('ERR_MODEL:')) return t(lang, 'errModel', { model: clean.slice('ERR_MODEL:'.length) })
   if (clean.startsWith('ERR_STATUS:')) return t(lang, 'errStatus', { status: clean.slice('ERR_STATUS:'.length) })

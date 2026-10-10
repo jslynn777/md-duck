@@ -5,7 +5,7 @@ import type { LearnedWord, Note, NotesResult, ReviewCandidate, ReviewIssue } fro
 import { editNoteComment } from '../shared/note-edits'
 import { normalizeQuoteText, validQuoteAnchor } from '../shared/quote-anchor'
 import { parseDocument } from '../shared/markdown'
-import { assertReviewPath, assertReviewSource, readReviewFile, writeReviewFile } from './review-files'
+import { assertReviewPath, assertReviewSource, readRegularReviewFile, readReviewFile, writeReviewFile } from './review-files'
 import { withFileTransaction } from './file-transaction'
 import { planLegacyReviewMigration } from './review-migration'
 
@@ -78,13 +78,7 @@ export function createReviewStore(options: Options) {
     }
   }
   async function readBackupFile(path: string) {
-    await checkBackup(path)
-    return fs.open(path, constants.O_RDONLY | constants.O_NOFOLLOW).then(async (handle) => {
-      try { return await handle.readFile('utf8') } finally { await handle.close() }
-    }).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return null
-      throw error
-    })
+    return readRegularReviewFile(path, () => checkBackup(path))
   }
   async function saveBackup(source: string, content: string) {
     const path = backup(source)
@@ -93,7 +87,7 @@ export function createReviewStore(options: Options) {
     await checkBackup(path)
     const temp = `${path}.${randomUUID()}.tmp`
     try {
-      const handle = await fs.open(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600)
+      const handle = await fs.open(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0), 0o600)
       try { await handle.writeFile(content); await handle.sync() } finally { await handle.close() }
       await checkBackup(path)
       await fs.rename(temp, path)

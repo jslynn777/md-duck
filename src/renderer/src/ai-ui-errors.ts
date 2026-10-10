@@ -24,7 +24,7 @@ export function friendlyAIError(cause: unknown, ui: UiLang): string {
     ERR_CANCELLED: ['已取消连接，可以重试或填写密钥。', 'Connection canceled. Try again or enter a key.'],
     ERR_NETWORK: ['无法连接到 AI 服务。请检查网络和接口地址。', 'Could not reach the AI service. Check your network and API URL.'],
     ERR_CONFIG: ['服务设置不完整或格式有误，请检查密钥、模型名称和接口地址。', 'The service settings are incomplete or invalid. Check the key, model name, and API URL.'],
-    ERR_STORAGE: ['无法安全保存密钥，请检查本机钥匙串与存储权限后重试。', 'Could not securely save the key. Check the system keychain and storage permissions, then retry.'],
+    ERR_STORAGE: ['无法安全保存密钥，请检查系统凭据存储与目录访问权限后重试。', 'Could not securely save the key. Check system credential storage and folder permissions, then retry.'],
     NO_KEY: ['请先为所选服务填写 API 密钥。', 'Add an API key for the selected service first.'],
     ERR_NO_KEY: ['请先为所选服务填写 API 密钥。', 'Add an API key for the selected service first.'],
     ERR_BAD_RESPONSE: ['AI 服务返回的内容无法读取，请重试或更换模型。', 'The AI service returned unreadable content. Try again or choose another model.'],

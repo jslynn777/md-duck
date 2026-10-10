@@ -1,0 +1,139 @@
+name: Windows x64 test build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/windows-*']
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'examples/**'
+      - 'package*.json'
+      - 'electron-builder.yml'
+      - 'electron.vite.config.ts'
+      - 'tsconfig*.json'
+      - 'vitest.config.ts'
+      - 'LICENSE'
+      - 'NOTICE'
+      - '.gitattributes'
+      - 'INSTALLING.md'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'examples/**'
+      - 'package*.json'
+      - 'electron-builder.yml'
+      - 'electron.vite.config.ts'
+      - 'tsconfig*.json'
+      - 'vitest.config.ts'
+      - 'LICENSE'
+      - 'NOTICE'
+      - '.gitattributes'
+      - 'INSTALLING.md'
+      - '.github/workflows/windows-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-x64:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install native Windows dependencies
+        run: npm ci --include=optional
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Run tests on Windows
+        run: npm test
+      - name: Build unsigned installer and portable test application
+        run: npm run dist:win
+      - name: Verify package and both executable payloads
+        run: |
+          New-Item -ItemType Directory -Force release/validation | Out-Null
+          npm run verify:win 2>&1 | Tee-Object release/validation/package.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify packaged native speech dependencies without a model download
+        run: |
+          npm run verify:speech:win 2>&1 | Tee-Object release/validation/speech.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify packaged startup and reading-state restoration
+        run: |
+          npm run verify:startup:win 2>&1 | Tee-Object release/validation/startup.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install into a path with Chinese characters and spaces
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $installer = (Resolve-Path "release/MD-Duck-$version-Windows-x64-Setup-local-test.exe").Path
+          $installDir = Join-Path $env:RUNNER_TEMP 'MD Duck 安装测试'
+          $process = Start-Process -FilePath $installer -ArgumentList "/S /currentuser /D=$installDir" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer exited with $($process.ExitCode)" }
+          if (-not (Test-Path (Join-Path $installDir 'MD Duck.exe'))) { throw 'Installer did not create the application' }
+          "MD_DUCK_TEST_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "Silent per-user install succeeded: Chinese characters and spaces in path." | Out-File release/validation/install.log -Encoding utf8
+      - name: Verify the installed application and native dependencies
+        run: |
+          node scripts/run-packaged-check.mjs --platform win32 --check startup --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" 2>&1 | Tee-Object release/validation/installed-startup.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/run-packaged-check.mjs --platform win32 --check speech --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" 2>&1 | Tee-Object release/validation/installed-speech.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Uninstall the test copy
+        if: always() && env.MD_DUCK_TEST_INSTALL_DIR != ''
+        run: |
+          $uninstaller = Join-Path $env:MD_DUCK_TEST_INSTALL_DIR 'Uninstall MD Duck.exe'
+          if (Test-Path $uninstaller) {
+            $process = Start-Process -FilePath $uninstaller -ArgumentList '/S /currentuser' -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "Uninstaller exited with $($process.ExitCode)" }
+          }
+      - name: Record test-build scope
+        if: success()
+        run: |
+          @'
+          MD Duck Windows x64 — unsigned local/CI test build
+          This is a validation artifact, not a GitHub Release or a public download launch.
+          Tests cover Windows execution, isolated profile persistence, NSIS silent install,
+          archive payloads and packaged native dependencies without speech-model downloads.
+          Portable payload integrity is checked; its interactive launcher has not been tested.
+          See bundled third-party notices for unresolved corresponding-source release items.
+          '@ | Out-File release/TEST-BUILD.txt -Encoding utf8
+      - name: Keep validation logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-x64-validation-${{ github.run_id }}
+          path: release/validation/*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Keep successful test packages
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-x64-test-${{ github.run_id }}
+          path: |
+            release/MD-Duck-*-Windows-x64-Setup-local-test.exe
+            release/MD-Duck-*-Windows-x64-Portable-local-test.exe
+            release/SHA256SUMS
+            release/TEST-BUILD.txt
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7

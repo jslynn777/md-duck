@@ -1,9 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises'
+import * as fs from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { isPathInsideRoot } from './allowed-path'
 import { assertReviewPath, assertReviewSource, readReviewFile, writeReviewFile } from './review-files'
+
+const platform = vi.hoisted(() => ({ noFollow: true }))
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return {
+    ...actual,
+    constants: {
+      ...actual.constants,
+      get O_NOFOLLOW() { return platform.noFollow ? actual.constants.O_NOFOLLOW : undefined }
+    }
+  }
+})
+vi.mock('node:fs/promises', async (importOriginal) => ({
+  ...await importOriginal<typeof import('node:fs/promises')>()
+}))
 
 let sandbox: string
 let root: string
@@ -22,9 +39,10 @@ beforeEach(async () => {
   await writeFile(source, '# Article')
 })
 
-afterEach(async () => { await rm(sandbox, { recursive: true, force: true }) })
+afterEach(async () => { vi.restoreAllMocks(); await rm(sandbox, { recursive: true, force: true }) })
 
-describe('review file boundaries', () => {
+describe.each([true, false])('review file boundaries (native O_NOFOLLOW: %s)', (noFollow) => {
+  beforeEach(() => { platform.noFollow = noFollow })
   it('reads and atomically replaces ordinary review files, leaving no temporary files', async () => {
     expect(await assertReviewSource(source, isAllowed)).toBe(source)
     expect(await readReviewFile(source, target, isAllowed)).toBeNull()
@@ -81,7 +99,9 @@ describe('review file boundaries', () => {
       await expect(assertReviewPath(source, input, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
       await expect(writeReviewFile(source, input, 'blocked', isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
     }
-    await expect(assertReviewPath(source, `${root}/.review/linked/../notes.json`, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
+    for (const traversal of [`${root}${sep}.review${sep}linked${sep}..${sep}notes.json`, `${root}/.review/linked/../notes.json`]) {
+      await expect(assertReviewPath(source, traversal, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
+    }
   })
 
   it.each(['outside', 'inside', 'dangling'] as const)('rejects a .review directory symlink pointing %s', async (location) => {
@@ -112,6 +132,50 @@ describe('review file boundaries', () => {
     await expect(readReviewFile(source, target, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
     await expect(writeReviewFile(source, target, 'blocked', isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
     expect(await readFile(destination, 'utf8')).toBe('keep original')
+  })
+
+  it.each(['another file', 'the original inode'])('rejects a target substituted with a link to %s before reading its contents', async (destination) => {
+    await writeReviewFile(source, target, 'keep original', isAllowed)
+    const detached = join(root, '.review', 'detached.json')
+    const external = join(outside, 'private.json')
+    await writeFile(external, 'Never read this file')
+    const originalOpen = fs.open
+    const reads = vi.fn()
+    vi.spyOn(fs, 'open').mockImplementation(async (path, flags, mode) => {
+      if (path === target && typeof flags === 'number' && !(flags & constants.O_CREAT)) {
+        await rename(target, detached)
+        await symlink(destination === 'the original inode' ? detached : external, target)
+        const handle = await originalOpen(path, flags, mode)
+        vi.spyOn(handle, 'readFile').mockImplementation(reads)
+        return handle
+      }
+      return originalOpen(path, flags, mode)
+    })
+    await expect(readReviewFile(source, target, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
+    expect(reads).not.toHaveBeenCalled()
+    expect(await readFile(detached, 'utf8')).toBe('keep original')
+    expect(await readFile(external, 'utf8')).toBe('Never read this file')
+  })
+
+  it('rejects a parent directory changed to a link back to the original file before reading bytes', async () => {
+    await writeReviewFile(source, target, 'keep original', isAllowed)
+    const review = join(root, '.review')
+    const detached = join(root, 'detached-review')
+    const originalOpen = fs.open
+    const reads = vi.fn()
+    vi.spyOn(fs, 'open').mockImplementation(async (path, flags, mode) => {
+      if (path === target && typeof flags === 'number' && !(flags & constants.O_CREAT)) {
+        await rename(review, detached)
+        await symlink(detached, review, 'dir')
+        const handle = await originalOpen(path, flags, mode)
+        vi.spyOn(handle, 'readFile').mockImplementation(reads)
+        return handle
+      }
+      return originalOpen(path, flags, mode)
+    })
+    await expect(readReviewFile(source, target, isAllowed)).rejects.toThrow('REVIEW_PATH_UNSAFE')
+    expect(reads).not.toHaveBeenCalled()
+    expect(await readFile(join(detached, 'notes.json'), 'utf8')).toBe('keep original')
   })
 
   it('preserves the previous file and removes the temporary when permission is revoked before publication', async () => {

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { AppState, DocUpdate, LearnedWord, LibraryEntry, ModelCatalog, Note, NotesResult, OpenedDocument, Preferences, ReviewCandidate, SpeechEvent } from '../shared/types'
+import type { AppState, DocUpdate, FileMenuResult, LearnedWord, LibraryEntry, ModelCatalog, Note, NotesResult, OpenedDocument, Preferences, ReviewCandidate, SpeechEvent } from '../shared/types'
 import type { DictionaryResult, WordExplanation } from '../shared/word-help'
 import type { AIConfigInput, AISettings } from '../shared/ai'
 import type { TranslationInfo, TranslationState } from '../shared/translation'
@@ -7,6 +7,8 @@ import type { TranslationInfo, TranslationState } from '../shared/translation'
 type Opened = { state: AppState; openPath: string | null }
 
 export type DuckApi = {
+  platform: NodeJS.Platform
+  restartStartup: () => Promise<void>
   getState: () => Promise<AppState>
   pickRoot: () => Promise<Opened>
   pickFile: () => Promise<Opened>
@@ -41,6 +43,7 @@ export type DuckApi = {
   copyText: (text: string) => Promise<void>
   openExternal: (url: string) => Promise<void>
   reveal: (path: string) => Promise<void>
+  showFileMenu: (path: string, position?: { x: number; y: number }) => Promise<FileMenuResult | null>
   speak: (id: string, text: string) => Promise<void>
   cancelSpeech: () => Promise<void>
   gloss: (word: string, sentence: string, detail: boolean, learn?: boolean) => Promise<{ text: string; model: string }>
@@ -57,6 +60,8 @@ export type DuckApi = {
 }
 
 const api: DuckApi = {
+  platform: process.platform,
+  restartStartup: () => ipcRenderer.invoke('startup:restart'),
   getState: () => ipcRenderer.invoke('state:get'),
   pickRoot: () => ipcRenderer.invoke('root:pick'),
   pickFile: () => ipcRenderer.invoke('file:pick'),
@@ -91,6 +96,7 @@ const api: DuckApi = {
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path),
+  showFileMenu: (path, position) => ipcRenderer.invoke('file:menu', path, position),
   speak: (id, text) => ipcRenderer.invoke('speech:speak', id, text),
   cancelSpeech: () => ipcRenderer.invoke('speech:cancel'),
   gloss: (word, sentence, detail, learn) => ipcRenderer.invoke('gloss', word, sentence, detail, learn),

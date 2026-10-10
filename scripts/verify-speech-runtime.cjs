@@ -22,8 +22,11 @@ async function main() {
   const manifest = join(appRoot, 'package.json');
   await fs.access(manifest);
   const fromApp = createRequire(manifest);
-  assert.equal(process.platform, 'darwin', 'This release check expects macOS');
-  assert.equal(process.arch, 'arm64', 'This release check expects an arm64 runtime');
+  assert(
+    (process.platform === 'darwin' && process.arch === 'arm64') ||
+    (process.platform === 'win32' && process.arch === 'x64'),
+    'This release check expects a supported macOS arm64 or Windows x64 runtime'
+  );
 
   const dependencies = {};
   for (const name of [

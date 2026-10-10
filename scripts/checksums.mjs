@@ -4,7 +4,7 @@ import { readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const directory = 'release'
-const files = (await readdir(directory)).filter((name) => /^MD-Duck-.*\.(dmg|zip)$/.test(name)).sort()
+const files = (await readdir(directory)).filter((name) => /^MD-Duck-.*\.(dmg|zip|exe)$/.test(name)).sort()
 if (!files.length) throw new Error('No release archives found')
 const lines = []
 for (const file of files) {

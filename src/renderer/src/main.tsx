@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import './styles.css'
 
+document.documentElement.dataset.platform = window.api.platform
+
 type BoundaryState = { error: string; tick: number }
 
 class Boundary extends Component<{ children: ReactNode }, BoundaryState> {

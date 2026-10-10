@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
-  "checkedAt": "2026-10-05",
-  "scope": "Installed macOS arm64 production packages; no project-wide license selected.",
+  "checkedAt": "2026-10-10",
+  "scope": "Installed macOS arm64 and Windows x64 production packages. Local test collection only; remaining source-delivery items block public binary release.",
   "nativePackages": [
     {
       "name": "@img/sharp-libvips-darwin-arm64",
@@ -395,6 +395,419 @@
           ]
         }
       ]
+    },
+    {
+      "name": "@img/sharp-win32-x64",
+      "version": "0.35.5",
+      "publisherGitHead": "51a990faa26ade5586a4934ac9673c98d8893326",
+      "publisherRepository": "https://github.com/lovell/sharp/tree/51a990faa26ade5586a4934ac9673c98d8893326",
+      "libvipsPublisherGitHead": "ebb95f8add54eee8bed840e3fb587e4cbec857d7",
+      "publisherBuildScript": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/win.sh",
+      "sourceStatus": "VERSIONED_COMPONENT_NOTICES_COLLECTED_WINDOWS_SOURCE_DELIVERY_NOT_COMPLETE",
+      "components": [
+        {
+          "name": "aom",
+          "version": "3.15.1",
+          "sourceArchive": "https://storage.googleapis.com/aom-releases/libaom-3.15.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-aom-3.15.1-LICENSE",
+            "native-aom-patent-3.15.1-PATENTS"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "archive",
+          "version": "3.8.9",
+          "sourceArchive": "https://github.com/libarchive/libarchive/releases/download/v3.8.9/libarchive-3.8.9.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-archive-v3.8.9-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "cairo",
+          "version": "1.18.6",
+          "sourceArchive": "https://cairographics.org/releases/cairo-1.18.6.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-cairo-1.18.6-LICENSE",
+            "native-cairo-1.18.6-COPYING-MPL-1.1",
+            "native-cairo-1.18.6-COPYING-LGPL-2.1"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "cgif",
+          "version": "0.5.4",
+          "sourceArchive": "https://github.com/dloebl/cgif/archive/v0.5.4.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-cgif-v0.5.4-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "exif",
+          "version": "0.6.26",
+          "sourceArchive": "https://github.com/libexif/libexif/releases/download/v0.6.26/libexif-0.6.26.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-exif-v0.6.26-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "expat",
+          "version": "2.8.5",
+          "sourceArchive": "https://github.com/libexpat/libexpat/releases/download/R_2_8_5/expat-2.8.5.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-expat-R_2_8_5-expat_COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "ffi",
+          "version": "3.8.0",
+          "sourceArchive": "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-ffi-v3.8.0-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "fontconfig",
+          "version": "2.18.3",
+          "sourceArchive": "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.18.3/fontconfig-2.18.3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-fontconfig-2.18.3-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "freetype",
+          "version": "2.14.3",
+          "sourceArchive": "https://github.com/freetype/freetype/archive/VER-2-14-3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-freetype-VER-2-14-3-docs_FTL.TXT",
+            "native-freetype-2.14.3-LICENSE.TXT",
+            "native-freetype-2.14.3-GPLv2.TXT",
+            "native-freetype-2.14.3-bdf-README",
+            "native-freetype-2.14.3-pcf-README"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "fribidi",
+          "version": "1.0.17",
+          "sourceArchive": "https://github.com/fribidi/fribidi/releases/download/v1.0.17/fribidi-1.0.17.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-fribidi-v1.0.17-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "glib",
+          "version": "2.90.0",
+          "sourceArchive": "https://download.gnome.org/sources/glib/2.90/glib-2.90.0.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-glib-2.90.0-LICENSES_LGPL-2.1-or-later.txt"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "harfbuzz",
+          "version": "14.5.0",
+          "sourceArchive": "https://github.com/harfbuzz/harfbuzz/archive/14.5.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-harfbuzz-14.5.0-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "heif",
+          "version": "1.23.5",
+          "sourceArchive": "https://github.com/strukturag/libheif/releases/download/v1.23.5/libheif-1.23.5.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-heif-v1.23.5-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "highway",
+          "version": "1.4.0",
+          "sourceArchive": "https://github.com/google/highway/archive/1.4.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-highway-1.4.0-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "imagequant",
+          "version": "2.4.1",
+          "sourceArchive": "https://github.com/lovell/libimagequant/archive/v2.4.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-imagequant-v2.4.1-COPYRIGHT"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "lcms",
+          "version": "2.19.1",
+          "sourceArchive": "https://github.com/mm2/Little-CMS/releases/download/lcms2.19.1/lcms2-2.19.1.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-lcms-2.19.1-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "mozjpeg",
+          "version": "0826579",
+          "sourceArchive": "https://github.com/mozilla/mozjpeg/archive/0826579.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-mozjpeg-0826579-LICENSE.md"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "pango",
+          "version": "1.58.2",
+          "sourceArchive": "https://download.gnome.org/sources/pango/1.58/pango-1.58.2.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-pango-1.58.2-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "pixman",
+          "version": "0.46.4",
+          "sourceArchive": "https://cairographics.org/releases/pixman-0.46.4.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-pixman-0.46.4-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "png",
+          "version": "1.6.58",
+          "sourceArchive": "https://github.com/pnggroup/libpng/archive/v1.6.58.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-png-v1.6.58-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "proxy-libintl",
+          "version": "0.5",
+          "sourceArchive": "https://github.com/frida/proxy-libintl/archive/0.5.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-proxy-libintl-0.5-COPYING"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "rsvg",
+          "version": "2.63.2",
+          "sourceArchive": "https://download.gnome.org/sources/librsvg/2.63/librsvg-2.63.2.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-rsvg-2.63.2-COPYING.LIB"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Rust dependency/Cargo feature notices and source vendoring must be audited.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "tiff",
+          "version": "4.7.2",
+          "sourceArchive": "https://gitlab.com/libtiff/libtiff/-/archive/v4.7.2/libtiff-v4.7.2.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-tiff-4.7.2-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "uhdr",
+          "version": "2.0.2",
+          "sourceArchive": "https://github.com/google/libultrahdr/archive/v2.0.2.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-uhdr-v2.0.2-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "vips",
+          "version": "8.18.7",
+          "sourceArchive": "https://github.com/libvips/libvips/releases/download/v8.18.7/vips-8.18.7.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "LGPL-3.0.txt",
+            "libvips-8.18.7-LICENSE"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "webp",
+          "version": "1.6.0",
+          "sourceArchive": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-webp-v1.6.0-COPYING",
+            "native-webp-v1.6.0-PATENTS",
+            "native-webp-v1.6.0-AUTHORS"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "xml2",
+          "version": "2.15.4",
+          "sourceArchive": "https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.4.tar.xz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-xml2-v2.15.4-Copyright"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        },
+        {
+          "name": "zlib-ng",
+          "version": "2.3.3",
+          "sourceArchive": "https://github.com/zlib-ng/zlib-ng/archive/2.3.3.tar.gz",
+          "sourceStatus": "NOT_VENDORED_OR_HASHED",
+          "noticeFiles": [
+            "native-zlib-ng-2.3.3-LICENSE.md"
+          ],
+          "patchFiles": [],
+          "remaining": [
+            "Full per-file/transitive copyright inventory and corresponding source delivery remain to be closed.",
+            "Windows binaries use the libvips build-win64-mxe distribution; its exact build/source/patch inventory and replacement instructions remain pending. Mac POSIX patch records are not attributed to this Windows build."
+          ]
+        }
+      ]
     }
   ],
   "remainingItems": [
@@ -435,6 +848,19 @@
       "evidence": [
         "https://github.com/lovell/sharp-libvips/tree/ebb95f8add54eee8bed840e3fb587e4cbec857d7",
         "https://patch-diff.githubusercontent.com/raw/google/libultrahdr/pull/383.patch"
+      ]
+    },
+    {
+      "id": "WINVIPS-SOURCE",
+      "summary": "The integrity-verified sharp Windows x64 archive embeds libvips DLLs with 28 component versions matching the recorded upstream notices. The Windows build uses libvips/build-win64-mxe; exact MXE/transitive source and patch records plus library replacement/rebuild instructions are not yet delivered.",
+      "resolution": [
+        "Record and deliver the matching Windows source/build configuration and all transitive notices",
+        "Verify that the delivered sources reproduce or can replace the bundled Windows DLLs"
+      ],
+      "evidence": [
+        "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.5.tgz",
+        "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/win.sh",
+        "https://github.com/libvips/build-win64-mxe/releases/tag/v8.18.7"
       ]
     }
   ]

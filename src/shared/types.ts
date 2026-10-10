@@ -62,6 +62,11 @@ export type LibraryEntry = {
   folder: string
 }
 
+export type FileMenuResult = {
+  action: 'copy-path' | 'reveal' | 'open-default'
+  target: 'source' | 'translation'
+}
+
 export type Preferences = {
   fontSize: number
   mode: ReadMode

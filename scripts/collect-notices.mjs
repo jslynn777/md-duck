@@ -141,7 +141,9 @@ const releaseAuditPath = join(sourceDirectory, 'release-audit.json')
 await assertLocalFile(sourceDirectory, releaseAuditPath)
 const releaseAudit = await readJSON(releaseAuditPath)
 if (releaseAudit.formatVersion !== 1 || !Array.isArray(releaseAudit.remainingItems)) throw new Error('Invalid release audit format')
-for (const pkg of packages.filter((pkg) => pkg.name.startsWith('@img/sharp-libvips-'))) {
+// Windows sharp embeds libvips DLLs in the sharp package itself; other hosts
+// use a separate @img/sharp-libvips-* optional package.
+for (const pkg of packages.filter((pkg) => pkg.name.startsWith('@img/sharp-libvips-') || pkg.name.startsWith('@img/sharp-win32-'))) {
   const directory = join(root, pkg.location)
   const versions = await readJSON(join(directory, 'versions.json'))
   const files = []
@@ -161,7 +163,7 @@ for (const pkg of packages.filter((pkg) => pkg.name.startsWith('@img/sharp-libvi
   files.push({ file: slash(relative(output, inventoryDestination)), bytes: (await fs.stat(inventoryDestination)).size,
     sha256: digest(await fs.readFile(inventoryDestination)) })
   native.push({ name: pkg.name, version: pkg.version, components: versions, files, sourceEvidence: inventory,
-    caveat: 'All 28 installed component versions have collected upstream license texts and versioned source URLs. Per-file/transitive notices, source archives and exact reproducible build/source-delivery closure remain pending; see COMPONENTS.json.' })
+    caveat: `All ${components.length} installed component versions have collected upstream license texts and versioned source URLs. Platform-specific per-file/transitive notices, source archives and exact reproducible build/source-delivery closure remain pending; see COMPONENTS.json.` })
 }
 for (const name of ['phonemizer', 'kokoro-js']) {
   const pkg = packages.find((item) => item.name === name)
@@ -199,7 +201,7 @@ const lines = [
   '- kokoro-js and Transformers.js package license texts are retained. The app references onnx-community/Kokoro-82M-v1.0-ONNX at runtime; downloaded model weights, voices, and audio caches are not collected or embedded by this generator. Model source: https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX . Runtime download provenance and terms require their own review.',
   '- phonemizer 1.2.1 is tied to npm publisher commit 6835144b7ee9043129222549c1ed2f6a27216278; package archive integrity and every installed package file were compared. This identifies the wrapper and precompiled worker, not the embedded eSpeak NG C/C++ source revision or Emscripten version. The eSpeak 1.52.0 license set in references/ remains a labelled reference, not a matching-source assertion.',
   '- ONNX Runtime Node/Web/Common license and upstream ThirdPartyNotices supplements are tied to their exact npm release tag or recorded source commit. Broad upstream notice lists may include components not active on this platform; no notices are silently discarded.',
-  '- sharp-libvips 1.3.4 is tied to publisher commit ebb95f8add54eee8bed840e3fb587e4cbec857d7. All 28 installed native component versions have upstream license texts and explicit source URLs in native/COMPONENTS.json; the publisher build script and its five external patches are retained with byte hashes. This does not complete per-file/transitive copyright notices or corresponding-source delivery.', '',
+  '- The installed native image package is inventoried in native/COMPONENTS.json. Windows sharp 0.35.5 includes its own libvips DLLs; the Windows package archive and every file are verified against recorded published-package hashes. Windows and macOS have separate build evidence, and the Mac POSIX patches are not attributed to Windows. Collected component license texts and versioned source URLs do not complete per-file/transitive copyright notices or corresponding-source delivery.', '',
   '## Remaining review items / 尚待核对', '',
   ...missingLines,
   ...releaseAudit.remainingItems.map((item) => `- **${item.id}**: ${item.summary} Resolution: ${item.resolution.join('; ')}.`),

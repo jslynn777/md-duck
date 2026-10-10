@@ -1,6 +1,6 @@
 {
   "name": "md-duck",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.4",
   "private": true,
   "description": "本地 Markdown 查看和审阅",
   "main": "./out/main/index.js",
@@ -13,7 +13,13 @@
     "pack:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --dir --publish never",
     "dist:mac": "npm run build && node scripts/collect-notices.mjs && electron-builder --mac --arm64 --publish never && node scripts/checksums.mjs",
     "verify:mac": "node scripts/verify-mac-package.mjs",
-    "verify:speech": "ELECTRON_RUN_AS_NODE=1 \"release/mac-arm64/MD Duck.app/Contents/MacOS/MD Duck\" scripts/verify-speech-runtime.cjs \"release/mac-arm64/MD Duck.app/Contents/Resources/app.asar\""
+    "verify:speech": "ELECTRON_RUN_AS_NODE=1 \"release/mac-arm64/MD Duck.app/Contents/MacOS/MD Duck\" scripts/verify-speech-runtime.cjs \"release/mac-arm64/MD Duck.app/Contents/Resources/app.asar\"",
+    "pack:win": "node scripts/assert-build-host.mjs win32 x64 && npm run build && node scripts/collect-notices.mjs && electron-builder --win --x64 --dir --publish never",
+    "dist:win": "node scripts/assert-build-host.mjs win32 x64 && npm run build && node scripts/collect-notices.mjs && electron-builder --win --x64 --publish never && node scripts/checksums.mjs",
+    "verify:win": "node scripts/verify-windows-package.mjs",
+    "verify:speech:win": "node scripts/run-packaged-check.mjs --platform win32 --check speech",
+    "verify:startup:win": "node scripts/run-packaged-check.mjs --platform win32 --check startup",
+    "verify:startup:mac": "node scripts/run-packaged-check.mjs --platform darwin --check startup"
   },
   "dependencies": {
     "chokidar": "^3.6.0",

@@ -5,28 +5,14 @@ import { splitWords, wordKey } from '@shared/words'
 import { useT } from './i18n'
 import { sentenceForElement } from './sentence-context'
 import { makeQuoteAnchor, normalizeQuoteText, resolveQuoteRange, type QuoteAnchor } from '@shared/quote-anchor'
+import { assetSrc } from './asset-path'
+
+export { assetSrc } from './asset-path'
 
 export type LearnProps = {
   known: Set<string>
   active: string | null
   onWord: (word: string, rect: DOMRect, sentence?: string, occurrence?: string) => void
-}
-
-export function assetSrc(dir: string, url: string, version: number) {
-  if (/^https?:\/\//i.test(url)) return url
-  let decoded = url
-  try {
-    decoded = decodeURI(url)
-  } catch {
-    decoded = url
-  }
-  const base = decoded.startsWith('/') ? [] : dir.split(/[/\\]/)
-  decoded.split(/[/\\]/).forEach((part) => {
-    if (part === '..') base.pop()
-    else if (part && part !== '.') base.push(part)
-  })
-  const absolute = decoded.startsWith('/') ? `/${base.join('/')}` : base.join('/')
-  return `md-duck://asset/?path=${encodeURIComponent(absolute)}&v=${version}`
 }
 
 type InlineProps = {
@@ -78,6 +64,7 @@ export function Inlines({ nodes, dir, version, onImage, learn }: InlineProps) {
           )
         if (node.type === 'image') {
           const src = assetSrc(dir, node.url, version)
+          if (!src) return null
           return <img key={index} src={src} alt={node.alt} onClick={() => onImage(src)} />
         }
         return null
@@ -182,6 +169,7 @@ function renderBody(block: Block, dir: string, version: number, onImage: (src: s
       const image = block.inlines?.[0]
       if (image?.type !== 'image') return null
       const src = assetSrc(dir, image.url, version)
+      if (!src) return null
       return (
         <figure className="text md-part" {...contentAttrs}>
           <img src={src} alt={image.alt} onClick={() => onImage(src)} />
