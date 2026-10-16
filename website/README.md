@@ -39,13 +39,15 @@ npm run preview
 
 页面右上角的语言入口会打开当前页面的另一语言版本，例如 `/guide/` 对应 `/en/guide/`。站点使用静态链接，不保证保留地址中的片段（如 `#ai-setup`）或当前滚动位置。指南图片和示例 ZIP 由两种语言共用。
 
-当前网站对应 `0.1.0-beta.5` 免费测试版，下载入口面向 Apple Silicon Mac（macOS 13+）和 Windows x64（Windows 10+）。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。Mac 构建使用 ad-hoc 临时签名，没有 Apple Developer ID 签名或苹果公证；Windows 安装包没有发布者签名。中英文指南保留各系统的安装提示，不要求关闭系统安全检查。Mac 安装指导依据 [苹果官方说明](https://support.apple.com/zh-cn/102445)。
+当前网站对应 `0.1.0-beta.6` 免费测试版，下载入口面向 Apple Silicon Mac（macOS 13+）和 Windows x64（Windows 10+）。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。Mac 构建使用 ad-hoc 临时签名，没有 Apple Developer ID 签名或苹果公证；Windows 安装包没有发布者签名。中英文指南保留各系统的安装提示，不要求关闭系统安全检查。Mac 安装指导依据 [苹果官方说明](https://support.apple.com/zh-cn/102445)。
 
 项目仓库为 [jslynn777/md-duck](https://github.com/jslynn777/md-duck)，项目许可证为 GPL-3.0-or-later。安装包的发布状态由 `release.status` 控制；在公开文件验收完成前保持 `preparing`，不生成下载按钮。免费程序与第三方 AI 服务额度分别说明，AI 服务按需由用户连接。
 
 发布安装包时，先完成同版本包的测试、签名与第三方许可材料检查，再填写已验证的 `artifacts`（`kind`、名称、系统与芯片、真实 HTTPS 下载 URL、大小、SHA-256）。`kind` 只接受 `mac-dmg` 和 `windows-setup`，中英页面共用同一份文件数据，各自显示对应语言的下载与安装说明。`sourceUrl` 指向同版本的 `MD-Duck-{version}-Corresponding-Source.tar.gz`，在开源区域显示「对应源码与朗读构建材料」链接；准备阶段保留 `null`。安装包及对应源码文件实际公开下载完整并核对校验值后，再将 `status` 改为 `published`。首页和指南的版本状态会同步变化，页面不会自动请求 GitHub 或猜测平台。
 
 「检查整篇」的指南在两种语言中使用同一个 `#pairing-check` 锚点。检查报告段落配对和标记结构问题，行号用于返回对应原文或译文，不自动配对或改写文件，也不保证译文语义准确。
+
+文章库管理使用中英共享的 `#library` 锚点，说明真实文件夹双向同步、一次最多 50 篇批量建稿、排序和进度、移动/归档/恢复及关联数据保留。文章库记录在 `.mdduck/`，批注等记录在 `.review/`，备份应覆盖整个文章库；本机批注草稿不等于可随文件夹迁移到其他电脑的数据。
 
 ## 部署
 

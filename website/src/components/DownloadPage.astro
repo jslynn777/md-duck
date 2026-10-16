@@ -34,6 +34,7 @@ const platforms = {
       <div class="release-topline"><span class="status-label">{en ? 'Free beta' : '免费测试版'}</span><span>v{release.version}</span></div>
       <h2 id="release-title">MD Duck</h2>
       <p>{en ? 'A local Markdown reader for close reading and review. Read English alongside Chinese, look up words and leave comments beside the passages.' : '本地 Markdown 精读与审阅工具。对照中英译文、查词，把意见留在原句旁。'}</p>
+      <p>{en ? 'New in this version: organize real folders, create a series of drafts, and move or archive articles with their translations, comments and reading positions.' : '本版新增：真实文件夹管理、系列批量建稿，以及保留译文、批注和阅读位置的移动与归档。'} <a class="text-link" href={`${localizePath('/guide/', lang)}#library`}>{en ? 'How to organize articles' : '了解文章管理'}</a></p>
       {available ? <ul class="artifact-list">{release.artifacts.map(artifact => {
         const platform = platforms[artifact.kind];
         return <li data-release-kind={artifact.kind} data-release-size={artifact.size} data-release-sha256={artifact.sha256}>
@@ -44,7 +45,7 @@ const platforms = {
           <details><summary>{en ? 'SHA-256 checksum' : '校验值 SHA-256'}</summary><code>{artifact.sha256}</code></details>
         </li>;
       })}</ul> : <div class="release-unavailable"><p>{en ? 'Public installers are being prepared' : '公开安装包准备中'}</p><span>{en ? 'No release file is available to download yet.' : '当前没有可下载的发布文件。'}</span></div>}
-      <p class="beta-note">{en ? 'This is an early beta. Keep a copy of your articles and their .review folders before updating. Intel Macs, Windows ARM and Linux builds are not provided.' : '这是早期测试版，更新前请保留文章和旁边 .review 目录的副本。暂未提供 Intel Mac、Windows ARM 和 Linux 安装包。'}</p>
+      <p class="beta-note">{en ? 'This is an early beta. Back up your whole article library, including hidden .review and .mdduck folders, before updating. Intel Macs, Windows ARM and Linux builds are not provided.' : '这是早期测试版，更新前请备份整个文章库，包括隐藏的 .review 和 .mdduck 目录。暂未提供 Intel Mac、Windows ARM 和 Linux 安装包。'}</p>
       <div class="download-actions"><a class="text-link" href={localizePath('/guide/', lang)}>{en ? 'Read the guide' : '使用指南'} <span aria-hidden="true">→</span></a><a class="text-link" href="/examples/a-slower-morning.zip" download>{en ? 'Sample article' : '下载示例文章'} <span aria-hidden="true">↓</span></a></div>
     </section>
     <section class="release-progress" aria-labelledby="progress-title">

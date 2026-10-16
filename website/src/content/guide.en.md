@@ -2,7 +2,7 @@
 
 MD Duck is free to use. The Mac package targets Apple Silicon (M-series chips) and requires macOS 13 or later. It has been checked on one Mac running macOS 27. See [Downloads](/en/download/) for files, versions and checksums. An Intel Mac installer is not provided.
 
-Open the DMG and drag MD Duck into **Applications**. Eject the disk image after copying, then launch the installed app. Before updating a beta, keep a copy of your articles and their `.review/` folders.
+Open the DMG and drag MD Duck into **Applications**. Eject the disk image after copying, then launch the installed app. Before updating a beta, back up your whole article library, including hidden `.review/` and `.mdduck/` folders.
 
 ### Does macOS block the first launch?
 
@@ -22,15 +22,48 @@ The beta has no Windows publisher signature, so Windows may show a source warnin
 
 Local speech also requires the **Microsoft Visual C++ v14 x64 runtime**. If it is missing or speech cannot start, install the x64 runtime using [Microsoft's official instructions](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170). You do not need to buy Visual Studio. The runtime installer may need administrator privileges; reading and annotations do not require it.
 
-Windows builds passed automated tests, installation, startup restoration and offline synthesis with all five voices. Hands-on desktop use and speaker playback have not been validated. Keep a copy of your articles and `.review/` folders before updating. Install the new version into the same location; articles stay in the folders you choose.
+Windows builds passed automated tests, installation, startup restoration and offline synthesis with all five voices. Hands-on desktop use and speaker playback have not been validated. Back up your whole article library, including hidden `.review/` and `.mdduck/` folders, before updating. Install the new version into the same location; articles stay in the folders you choose.
 
 <h2 id="open">Open your first article</h2>
 
-Choose **Open folder** or **Open a file** in MD Duck, or drop a Markdown file into the window. After opening a folder, select an article from the list on the left.
+Choose **Open folder** or **Open a file** in MD Duck, or drop a Markdown file into the window. After opening a folder, choose an article from the directory tree on the left. A source file and its associated Chinese translation open as one article.
 
 For a first look, choose **Open example**. You can also download the [bilingual sample article](/examples/a-slower-morning.zip), unzip it, and open `article.md`.
 
 Keep using your preferred editor to change the text. MD Duck refreshes the reading view when you save. Use **Typography** to adjust text size, and **Settings** to change the interface language.
+
+<h2 id="library">Organize series and archives in local folders</h2>
+
+The directory tree shows real folders on disk. Add, edit, move or rename files in Finder or Windows File Explorer and MD Duck updates. Organizing in the app changes the local files too, so you do not need a second set of categories.
+
+### Create a series of drafts
+
+1. Open your article library. Use **＋** beside search or a folder’s **…** menu, then choose **New folder** and name your series.
+2. In that series folder, choose **Create multiple articles**. Paste one title per line, up to 50 at once.
+3. Each draft gets its own folder containing an `article.md` file with the title. Keep writing in your editor or AI tool, and keep the translation and images in the same article folder.
+
+For example:
+
+```text
+Articles/
+  Christmas ribbon guide/
+    How to choose ribbon/
+      article.md
+      article.zh.md
+      assets/
+    Prepare artwork files/
+      article.md
+```
+
+Existing files do not need to follow this layout. Search by title or path. Use an article’s **…** menu to **Move up** or **Move down**, or **Set progress** to Writing, To review or Final. Order and progress stay with the library without changing the article text or requiring numbered filenames.
+
+### Move, rename and archive
+
+An article or folder’s **…** menu provides **Rename**, **Move to…** and **Archive**. An article in its own folder is organized as a whole, keeping the source, translation, images, comments and saved words together. Local comment drafts and reading positions follow the updated paths. If the destination already exists, the operation stops without overwriting it. If an article refers to shared images or relative links outside its folder, follow the prompt to move the full parent folder containing those resources.
+
+Archiving moves the real files into the library’s `Archive/` folder. Open **Archived** and choose **Restore** to return them to their previous location. If that location is missing or occupied, follow the prompt or choose a new location with **Move to…**. Archiving does not delete the text or comments.
+
+When an external move or rename can be matched reliably to the original article, its associated records follow it. If the association is uncertain, a file is unavailable or records conflict, MD Duck preserves the records and asks you to check rather than guessing. When backing up or moving between libraries, keep source files, translations, resources and hidden `.review/` and `.mdduck/` folders together. Comment drafts still live on the current computer. Wait for a translation to finish or cancel it before organizing files.
 
 <h2 id="bilingual">Read the original alongside its translation</h2>
 
@@ -133,7 +166,7 @@ Requests use your own service account credit. Even the short connection test may
 
 <h2 id="privacy">Where your files stay, and what goes online</h2>
 
-Your articles stay on your computer. MD Duck reads them from your folder and saves notes, word explanations, and translation progress in a nearby `.review/` directory. App settings and annotation drafts are also stored locally.
+Your articles stay on your computer. MD Duck reads real folders and saves notes, word explanations and translation progress in a nearby `.review/` directory. Library order, progress and path associations stay in the library’s `.mdduck/` folder. App settings and annotation drafts are stored on the current computer. Folder management and archiving do not require a network connection.
 
 | Feature | Network activity |
 | --- | --- |
@@ -168,7 +201,7 @@ The first use downloads and loads the voice model. The time needed depends on yo
 
 ### How do I keep my notes when moving an article?
 
-Keep the article’s `.review/` directory with it. Move the source, translation, and `.review/` together: relative links and saved translation progress remain usable when the source and configuration are unchanged. Moving only some files requires linking again. After renaming an article, preview and explicitly link its former notes and words from the new article; original records are preserved.
+Use **Move to…**, **Rename** or **Archive** in the app’s **…** menu to organize an article with its associated translation, comments, resources, drafts and reading position. In your file manager, move the complete article folder where possible and keep hidden `.review/` and `.mdduck/` folders. If an association cannot be confirmed, MD Duck preserves the records and asks you to check. Do not delete old records or overwrite them manually. See [folders and archiving](#library).
 
 ### What if a note fails to save?
 
