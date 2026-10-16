@@ -9,7 +9,6 @@ import {
   LoaderCircle as Loader2,
   MessageSquarePlus,
   MessageSquareText,
-  MoreHorizontal,
   PanelLeft,
   PanelRight,
   Pause,
@@ -41,7 +40,7 @@ import { BlockView, canSpeak, isLatin, paintNoteHighlights, quoteSelectionForRan
 import { UiProvider, useT, useUi } from './i18n'
 import { useSpeech } from './useSpeech'
 import logoMark from './assets/logo-mark.png'
-import { editNoteDraftKey, listNoteDrafts, noteDraftKey, readNoteDrafts, writeNoteDrafts, type NoteDraftEntry, type NoteDrafts } from './note-drafts'
+import { editNoteDraftKey, listNoteDrafts, noteDraftKey, readNoteDrafts, writeNoteDrafts, relocateNoteDraftKey, relocateNoteDrafts, type NoteDraftEntry, type NoteDrafts } from './note-drafts'
 import { NotesPanel } from './NotesPanel'
 import { NoteEditor, type NoteEditorTarget } from './NoteEditor'
 import { noteReadMode, resolveNoteBlock } from './note-location'
@@ -59,11 +58,15 @@ import { sentenceForRange } from './sentence-context'
 import { selectionPosition, type SelectionRect } from './selection-position'
 import { inspectPairing } from '@shared/pairing-diagnostics'
 import { PairingStatus, PairingCheckDialog } from './PairingCheck'
+import { LibraryPanel } from './LibraryPanel'
+import { libraryErrorCopy } from './library-tree'
+import type { LibraryChange } from '@shared/library'
+import { relocatePath, relocateScroll } from '@shared/library-relocation'
 
 type Selection = { block: Block; quote: string; lang: 'source' | 'zh'; x: number; y: number; anchor?: SelectionRect; sentence?: string; quoteAnchor?: QuoteAnchor; keyboard?: boolean }
 type Popover = Selection & {
   mode: 'menu' | 'note' | 'gloss' | 'learn'; gloss?: string; detail?: string; loading?: boolean; busy?: boolean; sentence?: string
-  lookupId?: string; sourcePath?: string; dictionary?: DictionaryResult; dictionaryLoading?: boolean
+  lookupId?: string; sourcePath?: string; documentId?: string; dictionary?: DictionaryResult; dictionaryLoading?: boolean
   explanation?: WordExplanation; details?: WordExplanation; error?: string; detailError?: string; wordOccurrence?: string
 }
 type Doc = OpenedDocument & { source: ParsedDoc; zh: ParsedDoc | null; notes: Note[] }
@@ -103,6 +106,7 @@ export function App() {
   const [restoringReview, setRestoringReview] = useState(false)
   const [noteError, setNoteError] = useState('')
   const savingNoteRef = useRef(false)
+  const pendingNoteSave = useRef<{ sourcePath: string; draftKey: string; target: Popover | NoteEditorTarget } | null>(null)
   const [compactWindow, setCompactWindow] = useState(() => window.matchMedia('(max-width: 1499px)').matches)
   const activeContextRef = useRef({ sourcePath: doc?.sourcePath, pop, noteEditor })
   activeContextRef.current = { sourcePath: doc?.sourcePath, pop, noteEditor }
@@ -127,6 +131,10 @@ export function App() {
   const prevText = useRef<Map<string, string>>(new Map())
   const lastSavedPosition = useRef<{ path: string; key: string } | null>(null)
   const flashTimer = useRef<number>(0)
+  const relocatedOpenRef = useRef<string | null>(null)
+  const latestStateRef = useRef(state)
+  const lastLibraryRevision = useRef(0)
+  latestStateRef.current = state
 
   const speechNoteCb = useCallback((message: string) => setSpeechNote(message), [])
   const speech = useSpeech(speechNoteCb)
@@ -159,8 +167,10 @@ export function App() {
 
   const applyState = useCallback(
     (next: AppState, openPath: string | null) => {
+      latestStateRef.current = next
       setState(next)
-      const target = openPath ?? (next.root ? next.library[0]?.path ?? null : null)
+      if (next.libraryChange) libraryChangeRef.current(next.libraryChange)
+      const target = openPath ?? (next.root ? next.library.find((entry) => !entry.archived)?.path ?? null : null)
       if (target) void openDoc(target)
       else {
         ++documentRequest.current
@@ -176,8 +186,10 @@ export function App() {
 
   useEffect(() => {
     void window.api.getState().then((next) => {
+      latestStateRef.current = next
       setState(next)
-      const target = next.openPath ?? (next.root ? next.library[0]?.path ?? null : null)
+      if (next.libraryChange) libraryChangeRef.current(next.libraryChange)
+      const target = next.openPath ?? (next.root ? next.library.find((entry) => !entry.archived)?.path ?? null : null)
       if (target) void openDoc(target)
     }).catch(() => setStartupError(true))
   }, [openDoc])
@@ -188,14 +200,97 @@ export function App() {
     else applyUpdate(update)
   }
 
+  const libraryChangeRef = useRef<(change: LibraryChange) => void>(() => undefined)
+  libraryChangeRef.current = (change) => {
+    if (change.root && latestStateRef.current?.root !== change.root) return
+    if (change.revision && change.revision <= lastLibraryRevision.current) return
+    if (change.revision) lastLibraryRevision.current = change.revision
+    const moves = change.relocations
+    setState((current) => current ? {
+      ...current, library: change.snapshot.entries, folders: change.snapshot.folders,
+      libraryIssue: change.snapshot.issue,
+      openPath: current.openPath ? relocatePath(current.openPath, moves) : null,
+      scroll: relocateScroll(current.scroll, moves)
+    } : current)
+    if (!moves.length) return
+    const context = activeContextRef.current
+    const nextPath = context.sourcePath ? relocatePath(context.sourcePath, moves) : undefined
+    const oldDrafts = draftsRef.current
+    const nextDrafts = relocateNoteDrafts(oldDrafts, moves)
+    persistDrafts(nextDrafts)
+    const editor = context.noteEditor
+    let nextEditor = editor && relocatePath(editor.sourcePath, moves) !== editor.sourcePath ? {
+      ...editor, sourcePath: relocatePath(editor.sourcePath, moves),
+      draftKey: (() => {
+        const key = relocateNoteDraftKey(editor.draftKey, moves)
+        return oldDrafts[editor.draftKey] && nextDrafts[key] !== oldDrafts[editor.draftKey] ? editor.draftKey : key
+      })()
+    } : editor
+    const activeMoved = !!context.sourcePath && nextPath !== context.sourcePath
+    const currentEntry = change.snapshot.entries.find((entry) => entry.path === nextPath)
+    const translationMoved = !!doc && doc.sourcePath === context.sourcePath && !!currentEntry && (doc.zhPath ?? null) !== currentEntry.zhPath
+    let nextPop = activeMoved && context.pop?.mode === 'learn' ? null : context.pop
+    if (activeMoved && context.pop?.mode === 'note' && context.sourcePath && nextPath) {
+      const originalKey = noteDraftKey(context.sourcePath, context.pop.lang, context.pop.block)
+      const mappedKey = relocateNoteDraftKey(originalKey, moves)
+      if (oldDrafts[originalKey] && nextDrafts[mappedKey] !== oldDrafts[originalKey]) {
+        const target = context.pop
+        nextEditor = { sourcePath: nextPath, documentId: doc?.documentId, draftKey: originalKey, quote: target.quote, lang: target.lang,
+          blockId: target.block.id, blockKey: target.block.key, quoteAnchor: target.quoteAnchor,
+          originalComment: '', unavailable: false }
+        nextPop = null
+      }
+    }
+    if (nextEditor !== editor) setNoteEditor(nextEditor)
+    if (nextPop !== context.pop) setPop(nextPop)
+    const saving = pendingNoteSave.current
+    if (saving) {
+      saving.sourcePath = relocatePath(saving.sourcePath, moves)
+      const key = relocateNoteDraftKey(saving.draftKey, moves)
+      if (!oldDrafts[saving.draftKey] || nextDrafts[key] === oldDrafts[saving.draftKey]) saving.draftKey = key
+      if (saving.target === editor && nextEditor) saving.target = nextEditor
+      else if (saving.target === context.pop && nextPop) saving.target = nextPop
+    }
+    activeContextRef.current = { sourcePath: nextPath, pop: nextPop, noteEditor: nextEditor }
+    if (activeMoved) wordRequests.current.clear()
+    // Old unlink events must never mark the relocated document as missing.
+    const movedFrom = new Set(moves.map((move) => move.from))
+    pendingRef.current = pendingRef.current.filter((update) => !movedFrom.has(update.sourcePath) && !(translationMoved && update.sourcePath === context.sourcePath && update.side === 'zh'))
+    setPendingJump((current) => current ? { ...current, sourcePath: relocatePath(current.sourcePath, moves) } : current)
+    setTranslationRequested((current) => current ? relocatePath(current, moves) : current)
+    setDismissedTranslations((current) => new Set([...current].map((path) => relocatePath(path, moves))))
+    if (lastSavedPosition.current) lastSavedPosition.current = { ...lastSavedPosition.current, path: relocatePath(lastSavedPosition.current.path, moves) }
+    if (context.sourcePath && nextPath !== context.sourcePath) {
+      ++documentRequest.current
+      relocatedOpenRef.current = nextPath ?? null
+      captureAnchor()
+      setStatus('')
+      setDoc((current) => {
+        if (!current || current.sourcePath !== context.sourcePath || !nextPath) return current
+        const entry = change.snapshot.entries.find((item) => item.path === nextPath)
+        const zhPath = entry?.zhPath ?? (current.zhPath ? relocatePath(current.zhPath, moves) : null)
+        const parent = (path: string) => path.slice(0, Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')))
+        return { ...current, sourcePath: nextPath, dir: parent(nextPath), zhPath, zhDir: zhPath ? parent(zhPath) : null, missing: false }
+      })
+    } else if (translationMoved && currentEntry) {
+      captureAnchor()
+      setDoc((current) => current && current.sourcePath === context.sourcePath ? { ...current,
+        zhPath: currentEntry.zhPath,
+        zhDir: currentEntry.zhPath ? currentEntry.zhPath.slice(0, Math.max(currentEntry.zhPath.lastIndexOf('/'), currentEntry.zhPath.lastIndexOf('\\'))) : null
+      } : current)
+    }
+  }
+
   useEffect(() => {
     const offState = window.api.onState(({ state: next, openPath }) => applyState(next, openPath))
     const offLibrary = window.api.onLibrary((library) => setState((s) => (s ? { ...s, library } : s)))
+    const offManaged = window.api.onLibraryChange((change) => libraryChangeRef.current(change))
     const offStatus = window.api.onDocStatus(() => setStatus('updating'))
     const offDoc = window.api.onDoc((update) => updateRef.current(update))
     return () => {
       offState()
       offLibrary()
+      offManaged()
       offStatus()
       offDoc()
     }
@@ -248,7 +343,7 @@ export function App() {
     if (!saved || !root) return
     const el = root.querySelector<HTMLElement>(`[data-key="${cssEscape(saved.key)}"]`)
     if (el) root.scrollTop += el.getBoundingClientRect().top - root.getBoundingClientRect().top - saved.top
-  }, [doc?.sourceText, doc?.zhText, doc?.assetVersion, mode])
+  }, [doc?.sourcePath, doc?.sourceText, doc?.zhText, doc?.assetVersion, mode])
 
   useLayoutEffect(
     () => paintNoteHighlights(scrollRef.current, doc?.notes ?? [], activeNote),
@@ -260,6 +355,7 @@ export function App() {
   useEffect(() => {
     const root = scrollRef.current
     if (!doc || !root || !state || pendingJumpRef.current) return
+    if (relocatedOpenRef.current === doc.sourcePath) { relocatedOpenRef.current = null; return }
     const key = state.scroll[doc.sourcePath]
     requestAnimationFrame(() => {
       if (pendingJumpRef.current) return
@@ -420,8 +516,10 @@ export function App() {
         onOpen={(path) => void openDoc(path)}
         onPrefs={savePrefs}
         onJump={jumpToHeading}
-        onPickRoot={() => void window.api.pickRoot()}
+        onPickRoot={() => void window.api.pickRoot().catch((error) => flashToast(libraryErrorCopy(error, ui)))}
         onFileMenu={(path, position) => void showFileMenu(path, position)}
+        onLibraryChange={(change) => libraryChangeRef.current(change)}
+        onError={flashToast}
       />
 
       <div className="main">
@@ -461,6 +559,7 @@ export function App() {
             <TranslationNotice
               key={doc.sourcePath}
               sourcePath={doc.sourcePath}
+              documentId={doc.documentId}
               documentVersion={doc.assetVersion}
               hasTranslation={hasZh}
               hasKey={state.hasKey}
@@ -557,7 +656,7 @@ export function App() {
               speech.speak('words', script)
             }
           }}
-          onDelete={(id) => void window.api.deleteWord(doc.sourcePath, id).then((words) => setWords(words, doc.sourcePath)).catch(reportReviewError)}
+          onDelete={(id) => void window.api.deleteWord(doc.sourcePath, id, doc.documentId).then((words) => setWords(words, doc.sourcePath)).catch(reportReviewError)}
           onClose={() => setWordsOpen(false)}
         />
       )}
@@ -571,8 +670,8 @@ export function App() {
           drafts={panelDrafts}
           onResumeDraft={(key) => void resumeDraft(key)}
           onCopy={(list) => void copyTasks(list)}
-          onStatus={(id, s) => { if (doc) void window.api.setNoteStatus(doc.sourcePath, id, s).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
-          onDelete={(id) => { if (doc) void window.api.deleteNote(doc.sourcePath, id).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
+          onStatus={(id, s) => { if (doc) void window.api.setNoteStatus(doc.sourcePath, id, s, doc.documentId).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
+          onDelete={(id) => { if (doc) void window.api.deleteNote(doc.sourcePath, id, doc.documentId).then((result) => setNotes(result, doc.sourcePath)).catch(reportReviewError) }}
           onClose={() => setNotesOpen(false)}
         />
       )}
@@ -807,6 +906,7 @@ export function App() {
 
   function reviewError(error: unknown, fallback: 'noteSaveFailed' | 'wordSaveFailed' = 'noteSaveFailed') {
     const message = error instanceof Error ? error.message : ''
+    if (message.includes('LIBRARY_')) return libraryErrorCopy(error, ui)
     return message.includes('REVIEW_') ? errorText(ui, message, fallback) : t(ui, fallback)
   }
 
@@ -880,7 +980,7 @@ export function App() {
     const path = doc.sourcePath
     setRestoringReview(true)
     try {
-      const result = await window.api.restoreNotes(path)
+      const result = await window.api.restoreNotes(path, doc?.documentId)
       setNotes(result, path)
       if (activeContextRef.current.sourcePath === path) {
         setNoteError('')
@@ -971,7 +1071,7 @@ export function App() {
     setPop(null)
     setNoteError('')
     setNoteEditor({
-      sourcePath: doc.sourcePath, draftKey, noteId: note.id,
+      sourcePath: doc.sourcePath, documentId: doc.documentId, draftKey, noteId: note.id,
       quote: draftsRef.current[draftKey]?.quote ?? note.quote, lang: note.quoteLang,
       blockId: note.blockId, blockKey: location.block?.key ?? note.blockKey, quoteAnchor: draftsRef.current[draftKey]?.quoteAnchor ?? note.quoteAnchor,
       originalComment: note.comment, unavailable: false,
@@ -997,7 +1097,7 @@ export function App() {
     setPop(null)
     setNoteError('')
     setNoteEditor({
-      sourcePath: entry.sourcePath, draftKey: key, quote: entry.quote, lang: entry.lang, quoteAnchor: saved?.quoteAnchor ?? entry.quoteAnchor,
+      sourcePath: entry.sourcePath, documentId: current?.documentId, draftKey: key, quote: entry.quote, lang: entry.lang, quoteAnchor: saved?.quoteAnchor ?? entry.quoteAnchor,
       noteId: entry.kind === 'note' ? entry.target : undefined,
       blockId: entry.kind !== 'note' && location.block ? location.block.id : target.blockId, blockKey: location.block?.key ?? target.blockKey,
       originalComment: saved?.comment ?? '',
@@ -1047,7 +1147,7 @@ export function App() {
     wordRequests.current.set(requestKey, lookupId)
     editingRef.current = true
     const target: Popover = {
-      block, quote: word, lang: 'source', mode: 'learn', sentence, lookupId, sourcePath, wordOccurrence, keyboard,
+      block, quote: word, lang: 'source', mode: 'learn', sentence, lookupId, sourcePath, documentId: doc.documentId, wordOccurrence, keyboard,
       explanation, loading: !explanation && !!state?.hasKey, dictionaryLoading: true, x, y
     }
     setPop(target)
@@ -1105,7 +1205,7 @@ export function App() {
         blockId: target.block.id,
         createdAt: saved?.createdAt ?? new Date().toISOString()
       }
-      const words = await window.api.saveWord(sourcePath, entry)
+      const words = await window.api.saveWord(sourcePath, entry, target.documentId)
       setDoc((current) => current?.sourcePath === sourcePath ? { ...current, words } : current)
     } catch (error) {
       const message = reviewError(error, 'wordSaveFailed')
@@ -1160,21 +1260,23 @@ export function App() {
     if (!comment.trim() || savingNoteRef.current) return
     const isEdit = 'noteId' in target && !!target.noteId
     savingNoteRef.current = true
+    const saving = { sourcePath, draftKey, target }
+    pendingNoteSave.current = saving
     setNoteSaving(true)
     setNoteError('')
     const stillEditing = () => {
       const active = activeContextRef.current
-      return active.sourcePath === sourcePath && (active.pop === target || active.noteEditor === target)
+      return active.sourcePath === saving.sourcePath && (active.pop === saving.target || active.noteEditor === saving.target)
     }
     try {
       const result = isEdit
-        ? await window.api.editNote(sourcePath, note.id, comment)
-        : await window.api.saveNote(sourcePath, note)
-      setDoc((current) => current?.sourcePath === sourcePath
+        ? await window.api.editNote(sourcePath, note.id, comment, doc?.documentId ?? target.documentId)
+        : await window.api.saveNote(sourcePath, note, doc?.documentId ?? target.documentId)
+      setDoc((current) => current?.sourcePath === saving.sourcePath
         ? { ...current, notesMissing: result.notesMissing, reviewIssue: result.reviewIssue, legacyUnassigned: result.legacyUnassigned, words: result.words ?? current.words, notes: reconcileNotes(result.notes, current.source.blocks, current.zh?.blocks ?? null) }
         : current)
       // Only clear the exact revision that reached disk.
-      if (draftsRef.current[draftKey]?.comment === comment) discardDraft(draftKey)
+      if (draftsRef.current[saving.draftKey]?.comment === comment) discardDraft(saving.draftKey)
       if (stillEditing()) {
         setPop(null)
         setNoteEditor(null)
@@ -1186,11 +1288,12 @@ export function App() {
     } catch (error) {
       const message = error instanceof Error && error.message.includes('ERR_NOTE_MISSING')
         ? t(ui, 'noteDeleted') : reviewError(error, 'noteSaveFailed')
-      if (error instanceof Error && error.message.includes('REVIEW_')) await refreshReviewState(sourcePath)
+      if (error instanceof Error && error.message.includes('REVIEW_')) await refreshReviewState(saving.sourcePath)
       if (stillEditing()) setNoteError(message)
       else flashToast(message)
     } finally {
       savingNoteRef.current = false
+      if (pendingNoteSave.current === saving) pendingNoteSave.current = null
       setNoteSaving(false)
     }
   }
@@ -1252,7 +1355,9 @@ function Sidebar({
   onPrefs,
   onJump,
   onPickRoot,
-  onFileMenu
+  onFileMenu,
+  onLibraryChange,
+  onError
 }: {
   state: AppState
   visible: boolean
@@ -1262,13 +1367,14 @@ function Sidebar({
   onJump: (key: string) => void
   onPickRoot: () => void
   onFileMenu: (path: string, position: { x: number; y: number }) => void
+  onLibraryChange: (change: LibraryChange) => void
+  onError: (message: string) => void
 }) {
   const tr = useT()
-  if (!visible) return null
   const tab = state.prefs.sidebarTab
   const folderName = state.root?.split(/[/\\]/).filter(Boolean).pop() ?? tr('folderFallback')
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{ display: visible ? undefined : 'none' }}>
       <div className="sidebar-drag" />
       <div className="sidebar-tabs">
         <button className={tab === 'files' ? 'on' : ''} aria-pressed={tab === 'files'} onClick={() => onPrefs({ sidebarTab: 'files' })}>
@@ -1280,59 +1386,9 @@ function Sidebar({
       </div>
       <div className="sidebar-scroll">
         {tab === 'files' ? (
-          state.library.length === 0 ? (
-            <p className="empty-notes">{tr('noMarkdown')}</p>
-          ) : (
-            <div className="article-list">
-              {state.library.map((entry) => {
-                const isCurrent = entry.path === doc?.sourcePath
-                const filename = entry.path.split(/[/\\]/).pop() ?? ''
-                return (
-                  <div
-                    key={entry.path}
-                    className={`entry ${isCurrent ? 'on' : ''}`}
-                    onContextMenu={(event) => {
-                      event.preventDefault()
-                      onFileMenu(entry.path, { x: event.clientX, y: event.clientY })
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'ContextMenu' || event.shiftKey && event.key === 'F10') {
-                        event.preventDefault()
-                        const target = event.target as HTMLElement
-                        const rect = target.getBoundingClientRect()
-                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
-                      }
-                    }}
-                  >
-                    <button
-                      className="entry-open"
-                      aria-current={isCurrent ? 'page' : undefined}
-                      title={`${entry.title}\n${entry.path}${entry.zhPath ? `\n${tr('bilingualTag')}` : ''}`}
-                      onClick={() => onOpen(entry.path)}
-                    >
-                      <span className="t">{entry.title}</span>
-                      <span className="entry-path" title={entry.path}>
-                        {entry.folder !== '.' && <><span className="entry-folder">{entry.folder}</span><span>/</span></>}
-                        <span className="entry-filename">{filename}</span>
-                      </span>
-                    </button>
-                    <button
-                      className="entry-actions"
-                      aria-label={`${tr('fileActions')}: ${entry.title}`}
-                      aria-haspopup="menu"
-                      title={tr('fileActionsHint')}
-                      onClick={(event) => {
-                        const rect = event.currentTarget.getBoundingClientRect()
-                        onFileMenu(entry.path, { x: rect.left, y: rect.bottom })
-                      }}
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )
+          <LibraryPanel root={state.root} entries={state.library} folders={state.folders ?? []}
+            issue={state.libraryIssue} ui={state.prefs.ui} currentPath={doc?.sourcePath ?? null}
+            onOpen={onOpen} onFileMenu={onFileMenu} onChange={onLibraryChange} onError={onError} />
         ) : doc ? (
           <Outline doc={doc} onJump={onJump} />
         ) : (
@@ -1579,7 +1635,7 @@ function Reader({
       </div>}
       <DocHeader doc={doc} mode={mode} />
       {mode === 'bilingual' && pairing && <PairingStatus report={pairing} ui={ui} onCheck={onCheckPairing} />}
-      <ReviewAssociation sourcePath={doc.sourcePath}
+      <ReviewAssociation sourcePath={doc.sourcePath} documentId={doc.documentId}
         eligible={!doc.missing && !doc.notesMissing && !doc.reviewIssue && notes.length === 0 && doc.words.length === 0}
         onAssociated={onAssociated} />
       {mode !== 'bilingual' && warnings.length > 0 && (

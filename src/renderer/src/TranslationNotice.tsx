@@ -8,6 +8,7 @@ import './ai-translation.css'
 
 export type TranslationNoticeProps = {
   sourcePath: string
+  documentId?: string
   documentVersion: number
   hasTranslation: boolean
   hasKey: boolean
@@ -18,7 +19,7 @@ export type TranslationNoticeProps = {
   onDismiss: () => void
 }
 
-export function TranslationNotice({ sourcePath, documentVersion, hasTranslation, hasKey, requested, ui, onSettings, onReady, onDismiss }: TranslationNoticeProps) {
+export function TranslationNotice({ sourcePath, documentId, documentVersion, hasTranslation, hasKey, requested, ui, onSettings, onReady, onDismiss }: TranslationNoticeProps) {
   const zh = ui === 'zh'
   const [info, setInfo] = useState<TranslationInfo | null>(null)
   const [settings, setSettings] = useState<AISettings | null>(null)
@@ -111,7 +112,7 @@ export function TranslationNotice({ sourcePath, documentVersion, hasTranslation,
     setError('')
     setShowCompletion(true)
     try {
-      const next = await window.api.startTranslation(path)
+      const next = await window.api.startTranslation(path, documentId)
       if (!alive.current || path !== sourceRef.current || requestVersion.current !== request) return
       if (eventVersion.current === capturedEvent) acceptTask(next)
       setConfirm(false)
@@ -145,7 +146,7 @@ export function TranslationNotice({ sourcePath, documentVersion, hasTranslation,
     setBusy('choose')
     setError('')
     try {
-      const chosen = await window.api.chooseTranslation(path)
+      const chosen = await window.api.chooseTranslation(path, documentId)
       if (!alive.current || path !== sourceRef.current || requestVersion.current !== request) return
       if (chosen) onReady()
     } catch (cause) {

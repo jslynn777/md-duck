@@ -22,6 +22,7 @@ export function verifyBuilderConfig(config) {
   const resources = config.extraResources.map(({ from }) => from)
   assert.deepEqual(resources, ['LICENSE', 'NOTICE', 'INSTALLING.md', 'examples', 'build/third-party', 'src/main/data/ipa-dict', 'src/main/data/kokoro-voices'], 'Only allowlisted shared resources may be copied')
   assert(config.extraResources.find(({ from }) => from === 'examples').filter.includes('!**/.review/**'))
+  assert(config.extraResources.find(({ from }) => from === 'examples').filter.includes('!**/.mdduck/**'), 'Example resources must exclude local library management records')
   for (const pattern of ['out/main/speech-worker*.js', 'out/main/kokoro-runtime*.js', 'out/main/chunks/**']) assert(config.asarUnpack.includes(pattern), `Speech utility process requires ${pattern} outside ASAR`)
 }
 

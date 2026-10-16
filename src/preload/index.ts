@@ -3,6 +3,7 @@ import type { AppState, DocUpdate, FileMenuResult, LearnedWord, LibraryEntry, Mo
 import type { DictionaryResult, WordExplanation } from '../shared/word-help'
 import type { AIConfigInput, AISettings } from '../shared/ai'
 import type { TranslationInfo, TranslationState } from '../shared/translation'
+import type { LibraryChange, LibraryCommand } from '../shared/library'
 
 type Opened = { state: AppState; openPath: string | null }
 
@@ -25,32 +26,34 @@ export type DuckApi = {
   connectOpenRouter: () => Promise<AISettings>
   cancelAIAuth: () => Promise<void>
   getTranslationInfo: (path: string) => Promise<TranslationInfo>
-  startTranslation: (path: string) => Promise<TranslationState>
+  startTranslation: (path: string, documentId?: string) => Promise<TranslationState>
   stopTranslation: (path: string) => Promise<TranslationState>
-  chooseTranslation: (path: string) => Promise<boolean>
+  chooseTranslation: (path: string, documentId?: string) => Promise<boolean>
   onAISettings: (callback: (settings: AISettings) => void) => () => void
   onTranslation: (callback: (state: TranslationState) => void) => () => void
   saveScroll: (path: string, blockKey: string) => Promise<void>
-  saveNote: (path: string, note: Note) => Promise<NotesResult>
+  saveNote: (path: string, note: Note, documentId?: string) => Promise<NotesResult>
   getNotes: (path: string) => Promise<NotesResult & { words: LearnedWord[] }>
-  editNote: (path: string, id: string, comment: string) => Promise<NotesResult>
-  setNoteStatus: (path: string, id: string, status: Note['status']) => Promise<NotesResult>
-  deleteNote: (path: string, id: string) => Promise<NotesResult>
-  restoreNotes: (path: string) => Promise<NotesResult>
+  editNote: (path: string, id: string, comment: string, documentId?: string) => Promise<NotesResult>
+  setNoteStatus: (path: string, id: string, status: Note['status'], documentId?: string) => Promise<NotesResult>
+  deleteNote: (path: string, id: string, documentId?: string) => Promise<NotesResult>
+  restoreNotes: (path: string, documentId?: string) => Promise<NotesResult>
   revealLegacyReview: (path: string) => Promise<void>
   listReviewCandidates: (path: string) => Promise<ReviewCandidate[]>
-  associateReview: (path: string, candidateId: string) => Promise<NotesResult & { words: LearnedWord[] }>
+  associateReview: (path: string, candidateId: string, documentId?: string) => Promise<NotesResult & { words: LearnedWord[] }>
   copyText: (text: string) => Promise<void>
   openExternal: (url: string) => Promise<void>
   reveal: (path: string) => Promise<void>
   showFileMenu: (path: string, position?: { x: number; y: number }) => Promise<FileMenuResult | null>
+  manageLibrary: (command: LibraryCommand) => Promise<LibraryChange>
+  onLibraryChange: (callback: (change: LibraryChange) => void) => () => void
   speak: (id: string, text: string) => Promise<void>
   cancelSpeech: () => Promise<void>
   gloss: (word: string, sentence: string, detail: boolean, learn?: boolean) => Promise<{ text: string; model: string }>
   lookupDictionary: (word: string) => Promise<DictionaryResult>
   explainWord: (word: string, sentence: string, detail: boolean) => Promise<WordExplanation>
-  saveWord: (path: string, word: LearnedWord) => Promise<LearnedWord[]>
-  deleteWord: (path: string, id: string) => Promise<LearnedWord[]>
+  saveWord: (path: string, word: LearnedWord, documentId?: string) => Promise<LearnedWord[]>
+  deleteWord: (path: string, id: string, documentId?: string) => Promise<LearnedWord[]>
   listModels: () => Promise<ModelCatalog>
   onState: (callback: (opened: Opened) => void) => () => void
   onLibrary: (callback: (entries: LibraryEntry[]) => void) => () => void
@@ -78,32 +81,34 @@ const api: DuckApi = {
   connectOpenRouter: () => ipcRenderer.invoke('ai:connect'),
   cancelAIAuth: () => ipcRenderer.invoke('ai:cancel-auth'),
   getTranslationInfo: (path) => ipcRenderer.invoke('translation:info', path),
-  startTranslation: (path) => ipcRenderer.invoke('translation:start', path),
+  startTranslation: (path, documentId) => ipcRenderer.invoke('translation:start', path, documentId),
   stopTranslation: (path) => ipcRenderer.invoke('translation:stop', path),
-  chooseTranslation: (path) => ipcRenderer.invoke('translation:choose', path),
+  chooseTranslation: (path, documentId) => ipcRenderer.invoke('translation:choose', path, documentId),
   onAISettings: (callback) => subscribe('ai:changed', callback),
   onTranslation: (callback) => subscribe('translation:progress', callback),
   saveScroll: (path, blockKey) => ipcRenderer.invoke('scroll:save', path, blockKey),
-  saveNote: (path, note) => ipcRenderer.invoke('notes:save', path, note),
+  saveNote: (path, note, documentId) => ipcRenderer.invoke('notes:save', path, note, documentId),
   getNotes: (path) => ipcRenderer.invoke('notes:get', path),
-  editNote: (path, id, comment) => ipcRenderer.invoke('notes:edit', path, id, comment),
-  setNoteStatus: (path, id, status) => ipcRenderer.invoke('notes:status', path, id, status),
-  deleteNote: (path, id) => ipcRenderer.invoke('notes:delete', path, id),
-  restoreNotes: (path) => ipcRenderer.invoke('notes:restore', path),
+  editNote: (path, id, comment, documentId) => ipcRenderer.invoke('notes:edit', path, id, comment, documentId),
+  setNoteStatus: (path, id, status, documentId) => ipcRenderer.invoke('notes:status', path, id, status, documentId),
+  deleteNote: (path, id, documentId) => ipcRenderer.invoke('notes:delete', path, id, documentId),
+  restoreNotes: (path, documentId) => ipcRenderer.invoke('notes:restore', path, documentId),
   revealLegacyReview: (path) => ipcRenderer.invoke('review:legacy', path),
   listReviewCandidates: (path) => ipcRenderer.invoke('review:candidates', path),
-  associateReview: (path, candidateId) => ipcRenderer.invoke('review:associate', path, candidateId),
+  associateReview: (path, candidateId, documentId) => ipcRenderer.invoke('review:associate', path, candidateId, documentId),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path),
   showFileMenu: (path, position) => ipcRenderer.invoke('file:menu', path, position),
+  manageLibrary: (command) => ipcRenderer.invoke('library:manage', command),
+  onLibraryChange: (callback) => subscribe('library:changed', callback),
   speak: (id, text) => ipcRenderer.invoke('speech:speak', id, text),
   cancelSpeech: () => ipcRenderer.invoke('speech:cancel'),
   gloss: (word, sentence, detail, learn) => ipcRenderer.invoke('gloss', word, sentence, detail, learn),
   lookupDictionary: (word) => ipcRenderer.invoke('word:dictionary', word),
   explainWord: (word, sentence, detail) => ipcRenderer.invoke('word:explain', word, sentence, detail),
-  saveWord: (path, word) => ipcRenderer.invoke('words:save', path, word),
-  deleteWord: (path, id) => ipcRenderer.invoke('words:delete', path, id),
+  saveWord: (path, word, documentId) => ipcRenderer.invoke('words:save', path, word, documentId),
+  deleteWord: (path, id, documentId) => ipcRenderer.invoke('words:delete', path, id, documentId),
   listModels: () => ipcRenderer.invoke('models:list'),
   onState: (callback) => subscribe('state:changed', callback),
   onLibrary: (callback) => subscribe('library:update', callback),

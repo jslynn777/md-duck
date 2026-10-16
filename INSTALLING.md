@@ -1,6 +1,6 @@
 # MD Duck 安装 / Installation
 
-本版本 / This version: **0.1.0-beta.5**。
+本版本 / This version: **0.1.0-beta.6**。
 
 ## 中文
 

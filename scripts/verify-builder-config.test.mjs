@@ -28,3 +28,9 @@ test('rejects a broad resource copy that could include a local profile', () => {
   config.extraResources.push({ from: '.', to: 'workspace' })
   assert.throws(() => verifyBuilderConfig(config), /Only allowlisted shared resources/)
 })
+test('rejects example resources that expose local library paths and records', () => {
+  const config = fixture()
+  const examples = config.extraResources.find(({ from }) => from === 'examples')
+  examples.filter = examples.filter.filter((pattern) => pattern !== '!**/.mdduck/**')
+  assert.throws(() => verifyBuilderConfig(config), /exclude local library management records/)
+})

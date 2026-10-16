@@ -743,7 +743,7 @@
     "source": "https://github.com/jslynn777/md-duck",
     "kind": "reference",
     "referenceOnly": true,
-    "sha256": "6cc1881565520a85ff3311dba91c8297938d66867d20ee9da1b9af5a8973f03b",
+    "sha256": "07c01bef89fc1fe78d295ad4bfd14e2dd801328448e1ca793735df2bc2c349d8",
     "appliesTo": [],
     "comment": "MD Duck audit decisions and public upstream evidence; a generated review record, not upstream license text."
   },

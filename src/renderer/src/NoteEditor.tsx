@@ -6,6 +6,7 @@ import { useT } from './i18n'
 
 export type NoteEditorTarget = {
   sourcePath: string
+  documentId?: string
   draftKey: string
   quote: string
   lang: Lang

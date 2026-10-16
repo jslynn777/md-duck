@@ -60,6 +60,10 @@ export type LibraryEntry = {
   zhPath: string | null
   title: string
   folder: string
+  id?: string
+  fileIdentity?: string
+  stage?: import('./library').ArticleStage
+  archived?: boolean
 }
 
 export type FileMenuResult = {
@@ -95,6 +99,9 @@ export type ModelCatalog = {
 export type AppState = {
   root: string | null
   library: LibraryEntry[]
+  folders?: import('./library').LibraryFolder[]
+  libraryIssue?: string
+  libraryChange?: import('./library').LibraryChange
   prefs: Preferences
   hasKey: boolean
   openPath: string | null
@@ -103,6 +110,7 @@ export type AppState = {
 
 export type OpenedDocument = {
   sourcePath: string
+  documentId?: string
   dir: string
   zhPath?: string | null
   zhDir?: string | null

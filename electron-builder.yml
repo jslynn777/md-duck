@@ -29,6 +29,7 @@ extraResources:
       - '**/*'
       - '!**/.*'
       - '!**/.review/**'
+      - '!**/.mdduck/**'
   - from: build/third-party
     to: third-party
   - from: src/main/data/ipa-dict
