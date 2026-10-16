@@ -22,7 +22,7 @@
 
 每次上线前读取现有服务器配置与当前网站状态，确认站点目录和 HTTPS 不受其他站点影响。公开安装包不是介绍站上线的技术前提；安装包尚未验收时，页面保持准备状态。
 
-当前 `0.1.0-beta.5` 按免费测试版发行，官网仅提供 Mac arm64 DMG 与 Windows x64 Setup。Mac 使用 ad-hoc 临时签名，没有 Developer ID 签名或苹果公证；Windows 没有发布者签名。保持中英文下载页与指南的安装提示。发布前核对源码版本、项目许可证和第三方声明，确认对应原生依赖的许可与源码材料，再验证平台包结构、安装与启动、朗读依赖、完整 HTTP 下载和 SHA-256。未完成这些检查时，`release.status` 保持 `preparing`。
+当前 `0.1.0-beta.6` 按免费测试版发行，官网仅提供 Mac arm64 DMG 与 Windows x64 Setup。Mac 使用 ad-hoc 临时签名，没有 Developer ID 签名或苹果公证；Windows 没有发布者签名。保持中英文下载页与指南的安装提示。发布前核对源码版本、项目许可证和第三方声明，确认对应原生依赖的许可与源码材料，再验证平台包结构、安装与启动、朗读依赖、完整 HTTP 下载和 SHA-256。未完成这些检查时，`release.status` 保持 `preparing`。
 
 上传顺序：先把已经验收的安装包与同版本对应源码/朗读构建材料上传到版本目录，读取公开 HTTPS 下载 URL 并核对字节和哈希；然后填写 `src/data/release.ts` 的两条 `artifacts` 和 `sourceUrl`，将状态设为 `published`，重新构建并验证网站。两条安装包记录分别使用 `kind: 'mac-dmg'` 与 `kind: 'windows-setup'`，文件名须包含同一版本号和平台名；源码归档文件名为 `MD-Duck-{version}-Corresponding-Source.tar.gz`。源码归档在开源区域显示普通下载链接，准备状态不显示占位链接。不要公开 Portable 测试包，也不要在同一个版本 URL 下替换二进制。最后切换网站版本目录并保留回滚版本。
 

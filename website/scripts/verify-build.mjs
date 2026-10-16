@@ -122,7 +122,7 @@ for (const [file, preparation, checksum] of [
   downloadManifests.push({ version: metadata['data-release-version'], status: metadata['data-release-status'], sourceUrl, artifacts });
 }
 assert.deepEqual(downloadManifests[0], downloadManifests[1], 'Both languages expose the same release files, sizes, hashes and corresponding source');
-const guideIds = ['install', 'install-windows', 'open', 'bilingual', 'pairing-check', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
+const guideIds = ['install', 'install-windows', 'open', 'library', 'bilingual', 'pairing-check', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
 for (const file of ['guide/index.html', 'en/guide/index.html']) {
   const html = await readFile(resolve(root, file), 'utf8');
   for (const id of guideIds) assert.ok(html.includes(`id="${id}"`), `${file}: shared guide anchor ${id}`);

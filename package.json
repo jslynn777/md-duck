@@ -1,8 +1,8 @@
 {
   "name": "md-duck",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "private": true,
-  "description": "\u672c\u5730 Markdown \u67e5\u770b\u548c\u5ba1\u9605",
+  "description": "本地 Markdown 查看和审阅",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

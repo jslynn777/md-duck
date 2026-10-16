@@ -3,8 +3,9 @@ import type { NotesResult, ReviewCandidate } from '@shared/types'
 import { errorText } from '@shared/i18n'
 import { useUi } from './i18n'
 
-export function ReviewAssociation({ sourcePath, eligible, onAssociated }: {
+export function ReviewAssociation({ sourcePath, documentId, eligible, onAssociated }: {
   sourcePath: string
+  documentId?: string
   eligible: boolean
   onAssociated: (result: NotesResult, sourcePath: string) => void
 }) {
@@ -33,7 +34,7 @@ export function ReviewAssociation({ sourcePath, eligible, onAssociated }: {
     if (!selected || busy) return
     const token = request.current
     setBusy(true); setError('')
-    try { onAssociated(await window.api.associateReview(sourcePath, selected), sourcePath) }
+    try { onAssociated(await window.api.associateReview(sourcePath, selected, documentId), sourcePath) }
     catch (cause) { if (token === request.current) setError(errorText(ui, cause instanceof Error ? cause.message : '', 'noteSaveFailed')) }
     finally { if (token === request.current) setBusy(false) }
   }

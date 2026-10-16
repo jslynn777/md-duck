@@ -11,6 +11,7 @@ build/THIRD_PARTY_NOTICES.md
 .env.*
 !.env.example
 **/.review/
+**/.mdduck/
 **/kokoro-cache/
 **/speech-cache/
 verification/

@@ -1,4 +1,6 @@
 import { validQuoteAnchor, type QuoteAnchor } from '../../shared/quote-anchor'
+import type { LibraryRelocation } from '../../shared/library'
+import { relocatePath, relocatePathRecords } from '../../shared/library-relocation'
 
 export type NoteDraft = { quote: string; comment: string; quoteAnchor?: QuoteAnchor }
 export type NoteDrafts = Record<string, NoteDraft>
@@ -44,6 +46,18 @@ export function decodeNoteDraftKey(key: string): NoteDraftTarget | null {
   } catch {
     return null
   }
+}
+
+export function relocateNoteDraftKey(key: string, relocations: readonly LibraryRelocation[]): string {
+  const target = decodeNoteDraftKey(key)
+  if (!target) return key
+  const sourcePath = relocatePath(target.sourcePath, relocations)
+  return sourcePath === target.sourcePath ? key : JSON.stringify([sourcePath, target.lang, target.kind, target.target])
+}
+
+export function relocateNoteDrafts(drafts: NoteDrafts, relocations: readonly LibraryRelocation[]): NoteDrafts {
+  const keys = Object.keys(drafts).map((from) => ({ from, to: relocateNoteDraftKey(from, relocations) }))
+  return relocatePathRecords(drafts, keys)
 }
 
 export function listNoteDrafts(drafts: NoteDrafts): NoteDraftEntry[] {

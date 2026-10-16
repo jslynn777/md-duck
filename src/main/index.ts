@@ -31,6 +31,10 @@ import { createSettingsWriter, defaultUiLanguage } from './settings-store'
 import { createStartup } from './startup'
 import { windowChrome } from './window-options'
 import { createStartupProbe } from './startup-probe'
+import { assertLibraryDocument } from './library-write-guard'
+import { createLibraryManager } from './library-manager'
+import type { LibraryChange, LibraryCommand, LibraryFolder } from '../shared/library'
+import { relocateScroll } from '../shared/library-relocation'
 import type { AIConfigInput } from '../shared/ai'
 import { buildCatalog, fallbackCatalog } from '../shared/models'
 import {
@@ -82,6 +86,12 @@ let window: BrowserWindow | null = null
 let watcher: FSWatcher | null = null
 let settings: Settings
 let library: LibraryEntry[] = []
+let libraryFolders: LibraryFolder[] = []
+let libraryIssue: string | undefined
+let managingLibrary = false
+let libraryChangeRevision = 0
+let latestLibraryChange: LibraryChange | undefined
+const activeTranslations = new Set<string>()
 let fileActionRevision = 0
 let fileMenuRequest = 0
 let cancelFileMenu: (() => void) | null = null
@@ -140,6 +150,12 @@ const reviews = createReviewStore({
   }
 })
 
+const libraryManager = createLibraryManager({
+  userData: app.getPath('userData'),
+  listEntries: listLibrary,
+  isBusy: () => activeTranslations.size > 0
+})
+
 const startup = createStartup({ openWindow: createWindow, initialize })
 if (firstInstance) void app.whenReady().then(() => startup.start())
 
@@ -172,6 +188,8 @@ async function initialize() {
   translator = createDocumentTranslator({
     isAllowed,
     onProgress: (progress) => {
+      if (progress.phase === 'running') activeTranslations.add(progress.sourcePath)
+      else { activeTranslations.delete(progress.sourcePath); scheduleLibrary() }
       window?.webContents.send('translation:progress', progress)
       if (progress.phase === 'complete') {
         scheduleLibrary()
@@ -405,7 +423,19 @@ handleReady('root:example', async () => {
   return opened
 })
 
-handleReady('doc:open', async (_event, filePath: string) => openDocument(filePath))
+handleReady('doc:open', async (_event, filePath: string) => libraryManager.exclusive(() => openDocument(filePath)))
+handleReady('library:manage', async (event, command: LibraryCommand) => {
+  if (event.sender !== window?.webContents || event.senderFrame !== window.webContents.mainFrame || !settings.root) throw new Error('ERR_NOT_IN_FOLDER')
+  if (managingLibrary) throw new Error('LIBRARY_BUSY')
+  const root = settings.root
+  managingLibrary = true
+  try {
+    const change = await libraryManager.mutate(root, command)
+    change.root = root
+    await applyLibraryChange(root, change)
+    return change
+  } finally { managingLibrary = false }
+})
 handleReady('doc:close', (_event, filePath: string) => {
   if (openPath !== filePath) return
   ++documentOpenRequest
@@ -451,7 +481,8 @@ handleReady('ai:test', () => ai.test())
 handleReady('ai:connect', () => ai.connectOpenRouter())
 handleReady('ai:cancel-auth', () => ai.cancelAuth())
 handleReady('translation:info', (_event, filePath: string) => translator.inspect(filePath))
-handleReady('translation:start', async (_event, filePath: string) => {
+handleReady('translation:start', async (_event, filePath: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, filePath, documentId)
   const credentials = ai.credentials()
   if (!credentials.key) throw new Error('NO_KEY')
   return translator.start(filePath, {
@@ -459,9 +490,9 @@ handleReady('translation:start', async (_event, filePath: string) => {
     identity: `${credentials.provider}:${credentials.baseUrl}:${credentials.model}`,
     request: (messages, signal) => requestChat(credentials, messages, { signal, temperature: 0.2 })
   })
-})
+}))
 handleReady('translation:stop', (_event, filePath: string) => translator.stop(filePath))
-handleReady('translation:choose', async (_event, filePath: string) => {
+handleReady('translation:choose', async (_event, filePath: string, documentId?: string) => {
   if (!window || !(await isAllowed(filePath))) throw new Error('ERR_NOT_IN_FOLDER')
   const picked = await dialog.showOpenDialog(window, {
     title: settings.prefs.ui === 'zh' ? '选择对应的中文译文' : 'Choose the Chinese translation',
@@ -470,28 +501,56 @@ handleReady('translation:choose', async (_event, filePath: string) => {
     filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
   })
   if (picked.canceled || !picked.filePaths[0]) return false
-  await translator.associate(filePath, picked.filePaths[0])
+  await libraryManager.exclusive(async () => {
+    await assertLibraryDocument(settings.root, library, filePath, documentId)
+    await translator.associate(filePath, picked.filePaths[0])
+  })
   scheduleLibrary()
   if (openPath === filePath) await onFile(picked.filePaths[0])
   return true
 })
 
-handleReady('scroll:save', (_event, filePath: string, blockKey: string) => {
+handleReady('scroll:save', (_event, filePath: string, blockKey: string) => libraryManager.exclusive(async () => {
+  if (filePath !== openPath || !(await isAllowed(filePath)) || !(await fs.stat(filePath).catch(() => null))?.isFile()) return
   settings.scroll[filePath] = blockKey
   scheduleSave()
-})
+}))
 
-handleReady('notes:save', (_event, path: string, note: Note) => reviews.saveNote(path, note))
-handleReady('notes:get', (_event, path: string) => reviews.load(path))
-handleReady('notes:edit', (_event, path: string, id: string, comment: string) => reviews.editNote(path, id, comment))
-handleReady('notes:status', (_event, path: string, id: string, status: Note['status']) => reviews.setNoteStatus(path, id, status))
-handleReady('notes:delete', (_event, path: string, id: string) => reviews.deleteNote(path, id))
-handleReady('notes:restore', (_event, path: string) => reviews.restore(path))
-handleReady('words:save', (_event, path: string, word: LearnedWord) => reviews.saveWord(path, word))
-handleReady('words:delete', (_event, path: string, id: string) => reviews.deleteWord(path, id))
+handleReady('notes:save', (_event, path: string, note: Note, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.saveNote(path, note)
+}))
+handleReady('notes:get', (_event, path: string) => libraryManager.exclusive(() => reviews.load(path)))
+handleReady('notes:edit', (_event, path: string, id: string, comment: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.editNote(path, id, comment)
+}))
+handleReady('notes:status', (_event, path: string, id: string, status: Note['status'], documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.setNoteStatus(path, id, status)
+}))
+handleReady('notes:delete', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.deleteNote(path, id)
+}))
+handleReady('notes:restore', (_event, path: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.restore(path)
+}))
+handleReady('words:save', (_event, path: string, word: LearnedWord, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.saveWord(path, word)
+}))
+handleReady('words:delete', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.deleteWord(path, id)
+}))
 handleReady('review:legacy', async (_event, path: string) => shell.showItemInFolder(await reviews.legacyFile(path)))
-handleReady('review:candidates', (_event, path: string) => reviews.listCandidates(path))
-handleReady('review:associate', (_event, path: string, id: string) => reviews.associate(path, id))
+handleReady('review:candidates', (_event, path: string) => libraryManager.exclusive(() => reviews.listCandidates(path)))
+handleReady('review:associate', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
+  await assertLibraryDocument(settings.root, library, path, documentId)
+  return reviews.associate(path, id)
+}))
 
 handleReady('clipboard:write', (_event, text: string) => clipboard.writeText(text))
 
@@ -623,6 +682,9 @@ function publicState(): AppState {
   return {
     root: settings.root,
     library,
+    folders: libraryFolders,
+    libraryIssue,
+    libraryChange: latestLibraryChange,
     prefs: settings.prefs,
     hasKey: ai ? ai.state().profiles[ai.state().provider].hasKey : Boolean(settings.openRouterKey),
     openPath: settings.openPath,
@@ -654,6 +716,7 @@ async function pickFile() {
 }
 
 async function setRoot(next: string) {
+  if (managingLibrary || activeTranslations.size) throw new Error('LIBRARY_BUSY')
   ++documentOpenRequest
   ++fileActionRevision
   ++fileMenuRequest
@@ -666,14 +729,18 @@ async function setRoot(next: string) {
 }
 
 async function watchRoot(dir: string) {
-  library = await listLibrary(dir)
-  ++fileActionRevision
   await watcher?.close()
+  if (libraryTimer) { clearTimeout(libraryTimer); libraryTimer = null }
+  for (const timer of fileTimers.values()) clearTimeout(timer)
+  fileTimers.clear()
+  const change = await libraryManager.refresh(dir)
+  if (settings.root !== dir) return
+  await applyLibraryChange(dir, change, false)
   const watchedDir = await fs.realpath(dir).catch(() => dir)
   watcher = chokidar.watch(watchedDir, {
     // Chokidar 4 uses native fs.watch without the former FSEvents backend.
     ignoreInitial: true,
-    depth: 6,
+    depth: 24,
     ignored: (target) => {
       const rel = relative(watchedDir, target)
       return rel.split(sep).some((part) => part.startsWith('.') || IGNORED_DIRS.has(part))
@@ -681,17 +748,21 @@ async function watchRoot(dir: string) {
     awaitWriteFinish: { stabilityThreshold: 120, pollInterval: 30 }
   })
   const schedule = (watchedFile: string) => {
+    if (settings.root !== dir) return
     const file = join(dir, relative(watchedDir, watchedFile))
     clearTimeout(fileTimers.get(file))
     fileTimers.set(
       file,
       setTimeout(() => {
         fileTimers.delete(file)
-        void onFile(file)
+        if (managingLibrary) { scheduleLibrary(); return }
+        if (settings.root === dir) void onFile(file).catch(() => scheduleLibrary())
       }, 30)
     )
   }
   watcher.on('add', schedule).on('change', schedule).on('unlink', schedule)
+    .on('addDir', () => { if (settings.root === dir) scheduleLibrary() })
+    .on('unlinkDir', () => { if (settings.root === dir) scheduleLibrary() })
 }
 
 async function openDocument(filePath: string): Promise<OpenedDocument> {
@@ -699,6 +770,8 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
   if (!(await isAllowed(filePath))) throw new Error('ERR_NOT_IN_FOLDER')
   const sourcePath = await resolveSourcePath(filePath)
   if (!(await isAllowed(sourcePath))) throw new Error('ERR_NOT_IN_FOLDER')
+  const entry = library.find((item) => item.path === sourcePath)
+  if (entry?.id && entry.fileIdentity) await assertLibraryDocument(settings.root, library, sourcePath, entry.id)
   const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
   const [sourceText, zhText, review, alignmentInspection] = await Promise.all([
     fs.readFile(sourcePath, 'utf8'),
@@ -714,6 +787,7 @@ async function openDocument(filePath: string): Promise<OpenedDocument> {
   }
   return {
     sourcePath,
+    documentId: library.find((entry) => entry.path === sourcePath)?.id,
     dir: dirname(sourcePath),
     zhPath: zhText !== null ? zhPath : null,
     zhDir: zhText !== null && zhPath ? dirname(zhPath) : null,
@@ -737,13 +811,14 @@ async function onFile(file: string) {
   if (/\.(md|markdown)$/i.test(file)) scheduleLibrary()
   if (!openPath) return
   const sourcePath = openPath
+  const request = documentOpenRequest
   const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
-  if (openPath !== sourcePath) return
+  if (openPath !== sourcePath || request !== documentOpenRequest) return
   if (file === openPath || file === zhPath) {
     window?.webContents.send('doc:status', { sourcePath: openPath, status: 'updating' })
     const text = await fs.readFile(file, 'utf8').catch(() => null)
     const alignmentInspection = await translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
-    if (openPath !== sourcePath) return
+    if (openPath !== sourcePath || request !== documentOpenRequest) return
     assetVersion += 1
     window?.webContents.send('doc:update', {
       sourcePath: openPath,
@@ -766,12 +841,43 @@ async function onFile(file: string) {
 
 function scheduleLibrary() {
   if (libraryTimer) clearTimeout(libraryTimer)
-  libraryTimer = setTimeout(async () => {
-    if (!settings.root) return
-    library = await listLibrary(settings.root)
-    ++fileActionRevision
-    window?.webContents.send('library:update', library)
-  }, 150)
+  const root = settings?.root
+  libraryTimer = setTimeout(() => {
+    libraryTimer = null
+    if (!root || settings.root !== root) return
+    void libraryManager.refresh(root).then((change) => applyLibraryChange(root, change)).catch(() => {
+      if (settings.root !== root) return
+      libraryIssue = 'LIBRARY_REFRESH_FAILED'
+      window?.webContents.send('library:changed', { snapshot: { entries: library, folders: libraryFolders, issue: libraryIssue }, relocations: [] })
+    })
+  }, 350)
+}
+
+async function applyLibraryChange(root: string, change: LibraryChange, notify = true) {
+  if (settings.root !== root) return
+  change.root = root
+  change.revision = ++libraryChangeRevision
+  latestLibraryChange = change
+  const previousTranslation = library.find((entry) => entry.path === openPath)?.zhPath
+  library = change.snapshot.entries
+  libraryFolders = change.snapshot.folders
+  libraryIssue = change.snapshot.issue
+  ++fileActionRevision
+  const moves = new Map(change.relocations.map(({ from, to }) => [from, to]))
+  const nextOpen = openPath ? moves.get(openPath) : undefined
+  if (change.relocations.length) {
+    settings.scroll = relocateScroll(settings.scroll, change.relocations)
+    if (settings.openPath) settings.openPath = moves.get(settings.openPath) ?? settings.openPath
+    if (nextOpen) { openPath = nextOpen; ++documentOpenRequest }
+    await writeSettings()
+  }
+  if (notify) window?.webContents.send('library:changed', change)
+  const currentTranslation = library.find((entry) => entry.path === openPath)?.zhPath
+  if (!nextOpen && previousTranslation !== currentTranslation) ++documentOpenRequest
+  if (notify && openPath && (nextOpen || previousTranslation !== currentTranslation)) {
+    await onFile(openPath)
+    if (currentTranslation) await onFile(currentTranslation)
+  }
 }
 
 async function listLibrary(dir: string): Promise<LibraryEntry[]> {
@@ -807,7 +913,7 @@ async function listLibrary(dir: string): Promise<LibraryEntry[]> {
 }
 
 async function walk(dir: string, files: string[], depth: number) {
-  if (depth > 6 || files.length >= MAX_FILES) return
+  if (depth > 24 || files.length >= MAX_FILES) return
   const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.name.startsWith('.') || IGNORED_DIRS.has(entry.name)) continue

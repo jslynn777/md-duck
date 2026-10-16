@@ -5,6 +5,9 @@ import {
   listNoteDrafts,
   noteDraftKey,
   readNoteDrafts,
+  relocateNoteDraftKey,
+  relocateNoteDrafts,
+  type NoteDrafts,
   writeNoteDrafts
 } from './note-drafts'
 
@@ -153,6 +156,73 @@ describe('note draft storage', () => {
     expect(visible.map((entry) => entry.key)).toEqual([oldKey, editKey])
     expect(visible[0]).toMatchObject({ quote: '  original quote ', comment: '  unfinished\n' })
     expect(restored).toEqual(drafts)
+  })
+})
+
+describe('draft continuity through library moves', () => {
+  const block = { id: null, key: 'paragraph-17' }
+
+  it('moves source, translation, and note edit drafts with quotes and precise anchors intact', () => {
+    const from = 'C:\\文章库\\圣诞系列\\article.md'
+    const to = 'C:\\文章库\\归档\\article.md'
+    const keys = [noteDraftKey(from, 'source', block), noteDraftKey(from, 'zh', { id: 'intro', key: 'heading' }), editNoteDraftKey(from, 'source', 'saved-note')]
+    const otherKey = noteDraftKey(`${from}.backup`, 'source', block)
+    const quoteAnchor = { start: 8, end: 12, prefix: 'the old ', suffix: ' nearby' }
+    const drafts = Object.fromEntries([...keys, otherKey, 'unknown-legacy-key'].map((key, index) => [key, {
+      quote: `quote ${index}`, comment: `  unfinished ${index}\n`, quoteAnchor
+    }]))
+    const moved = relocateNoteDrafts(drafts, [{ from, to }])
+    expect(Object.keys(moved)).toHaveLength(5)
+    for (const key of keys) {
+      const newKey = relocateNoteDraftKey(key, [{ from, to }])
+      expect(decodeNoteDraftKey(newKey)?.sourcePath).toBe(to)
+      expect(moved[newKey]).toBe(drafts[key])
+      expect(moved).not.toHaveProperty(key)
+    }
+    expect(moved[otherKey]).toBe(drafts[otherKey])
+    expect(moved['unknown-legacy-key']).toBe(drafts['unknown-legacy-key'])
+    expect(drafts[keys[0]].quoteAnchor).toBe(quoteAnchor)
+    expect(drafts).toHaveProperty(keys[0])
+  })
+
+  it('keeps both versions when a destination already has a different draft', () => {
+    const a = noteDraftKey('/old/article.md', 'source', block)
+    const b = noteDraftKey('/new/article.md', 'source', block)
+    const drafts = { [a]: { quote: 'first', comment: 'unsaved first' }, [b]: { quote: 'second', comment: 'unsaved second' } }
+    expect(relocateNoteDrafts(drafts, [{ from: '/old/article.md', to: '/new/article.md' }])).toEqual(drafts)
+  })
+
+  it('supports multiple renames and archive without losing an unfinished edit', () => {
+    const from = '/文章/第一篇.md'
+    const key = editNoteDraftKey(from, 'zh', 'note-1')
+    const draft = { quote: '选中的内容', comment: '还没有保存的修改\n' }
+    let drafts: NoteDrafts = { [key]: draft }
+    for (const [oldPath, newPath] of [[from, '/文章/新标题.md'], ['/文章/新标题.md', '/归档/新标题.md'], ['/归档/新标题.md', '/文章/已恢复.md']]) {
+      drafts = relocateNoteDrafts(drafts, [{ from: oldPath, to: newPath }])
+    }
+    expect(drafts).toEqual({ [editNoteDraftKey('/文章/已恢复.md', 'zh', 'note-1')]: draft })
+  })
+
+  it('relocates a swap using the original draft snapshot only once', () => {
+    const a = noteDraftKey('/a.md', 'source', block)
+    const b = noteDraftKey('/b.md', 'source', block)
+    const first = { quote: 'a', comment: 'first draft' }
+    const second = { quote: 'b', comment: 'second draft' }
+    const moves = [{ from: '/a.md', to: '/b.md' }, { from: '/b.md', to: '/a.md' }]
+    expect(relocateNoteDraftKey(a, moves)).toBe(b)
+    expect(relocateNoteDrafts({ [a]: first, [b]: second }, moves)).toEqual({ [b]: first, [a]: second })
+  })
+
+  it('does not chain mappings inside a batch or overwrite an occupied chain destination', () => {
+    const a = noteDraftKey('/a.md', 'source', block)
+    const b = noteDraftKey('/b.md', 'source', block)
+    const c = noteDraftKey('/c.md', 'source', block)
+    const first = { quote: 'a', comment: 'first draft' }
+    const second = { quote: 'b', comment: 'second draft' }
+    const third = { quote: 'c', comment: 'third draft' }
+    const moves = [{ from: '/a.md', to: '/b.md' }, { from: '/b.md', to: '/c.md' }]
+    expect(relocateNoteDrafts({ [a]: first, [b]: second }, moves)).toEqual({ [b]: first, [c]: second })
+    expect(relocateNoteDrafts({ [a]: first, [b]: second, [c]: third }, moves)).toEqual({ [a]: first, [b]: second, [c]: third })
   })
 })
 
