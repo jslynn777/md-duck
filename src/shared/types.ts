@@ -7,6 +7,7 @@ export type Lang = 'source' | 'zh'
 export type UiLang = 'en' | 'zh'
 export type ReadMode = 'source' | 'zh' | 'bilingual'
 export type SidebarTab = 'files' | 'outline'
+export type LibrarySort = 'name-asc' | 'name-desc' | 'title' | 'manual'
 export type VoiceId = 'af_heart' | 'af_bella' | 'am_michael' | 'bf_emma' | 'bm_george'
 
 export type Inline =
@@ -64,6 +65,7 @@ export type LibraryEntry = {
   fileIdentity?: string
   stage?: import('./library').ArticleStage
   archived?: boolean
+  changes?: import('./document-changes').ArticleChangeSummary
 }
 
 export type FileMenuResult = {
@@ -76,6 +78,7 @@ export type Preferences = {
   mode: ReadMode
   sidebar: boolean
   sidebarTab: SidebarTab
+  librarySort?: LibrarySort
   voice: VoiceId
   speed: number
   model: string

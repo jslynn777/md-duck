@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { Copy, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import type { AppState, Preferences } from '@shared/types'
 import type { AISettings } from '@shared/ai'
 import { VOICES } from '@shared/types'
 import { voiceLabel } from '@shared/i18n'
 import { AISettings as AISettingsPanel } from './AISettings'
 import { useT, useUi } from './i18n'
+import { PromptTools } from './UsageGuide'
 
-export function SettingsModal({ state, onPrefs, aiSettings, onAISettings, onClose, onCopyConvention }: {
+export function SettingsModal({ state, onPrefs, aiSettings, onAISettings, onClose }: {
   state: AppState
   onPrefs: (patch: Partial<Preferences>) => void
   aiSettings: AISettings | null
   onAISettings: (next: AISettings) => void
   onClose: () => void
-  onCopyConvention: () => void
 }) {
   const tr = useT()
   const ui = useUi()
@@ -104,9 +104,9 @@ export function SettingsModal({ state, onPrefs, aiSettings, onAISettings, onClos
           <AISettingsPanel value={aiSettings} onChange={onAISettings} ui={ui} onDraftStateChange={setAIDraft} />
         </section>
         <details className="settings-convention">
-          <summary>{tr('convention')}</summary>
-          <p className="desc">{tr('conventionDesc')}</p>
-          <button className="btn ghost" onClick={onCopyConvention}><Copy size={15} />{tr('copyConvention')}</button>
+          <summary>{zh ? '给 AI 的写作与修改规则' : 'Writing and revision rules for your AI'}</summary>
+          <p className="desc">{zh ? '把规则交给任意 AI，按目录保存文章，再回到 MD Duck 审阅。使用外部 AI 写稿无需在这里配置密钥。' : 'Give any AI these rules, save its articles in a folder, then review in MD Duck. External AI writing does not require an API key here.'}</p>
+          <PromptTools ui={ui} />
         </details>
         {confirmClose && (
           <div ref={confirmRef} className="settings-close-confirm" role="alert">

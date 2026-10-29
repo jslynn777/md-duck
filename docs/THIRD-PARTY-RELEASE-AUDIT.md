@@ -1,6 +1,6 @@
-# MD Duck beta.6：第三方声明与对应源码
+# MD Duck beta.7：第三方声明与对应源码
 
-核对日期：2026-10-10。范围：macOS arm64、Windows x64 的生产依赖和内置神经朗读资源。项目自有代码与文档采用 GPL-3.0-or-later，第三方材料保留原始声明。本文记录源码输入与构建证据；最终公开交付还必须通过两平台安装包验证，并在二进制旁提供匹配的完整对应源码下载。
+源码与声明复核日期：2026-10-29；引擎重建和历史事项证据保留原有记录。范围：macOS arm64、Windows x64 的生产依赖和内置神经朗读资源。项目自有代码与文档采用 GPL-3.0-or-later，第三方材料保留原始声明。本文记录源码输入与构建证据；最终公开交付还必须通过两平台安装包验证，并在二进制旁提供匹配的完整对应源码下载。
 
 ## 神经朗读保留了什么
 
@@ -23,7 +23,7 @@ Kokoro 的模型/声音/词表/规范化来源、归档 integrity、逐声音哈
 
 ## 对应源码的交付和替换
 
-公开二进制必须同时提供 `MD-Duck-0.1.0-beta.6-Corresponding-Source.tar.gz`。它由最终二进制 Git revision 的完整 MD Duck 源码和以下明确选择的公开原始输入合并：完整 ephone 源码归档、完整 Emscripten 3.1.64 源码归档、经 npm integrity 校验的 Kokoro 原始归档。`third-party/SOURCE-INPUTS.json` 给出输入来源和哈希；没有复制用户文章、设置、API 密钥、模型/音频缓存或开发审计目录。
+公开二进制必须同时提供 `MD-Duck-0.1.0-beta.7-Corresponding-Source.tar.gz`。它由最终二进制 Git revision 的完整 MD Duck 源码和以下明确选择的公开原始输入合并：完整 ephone 源码归档、完整 Emscripten 3.1.64 源码归档、经 npm integrity 校验的 Kokoro 原始归档。`third-party/SOURCE-INPUTS.json` 给出输入来源和哈希；没有复制用户文章、设置、API 密钥、模型/音频缓存或开发审计目录。
 
 维护者先用 `scripts/stage-neural-sources.mjs --archives <已验证归档目录> --output <源码包根目录>` 选择输入，再合并最终 `git archive`。它只接受明确记录的三个归档，不能用整个工作目录或归档目录代替选择。仅在本机整理好材料，不代表已经完成公开下载交付。
 

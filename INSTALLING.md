@@ -1,6 +1,6 @@
 # MD Duck 安装 / Installation
 
-本版本 / This version: **0.1.0-beta.6**。
+本版本 / This version: **0.1.0-beta.7**。
 
 ## 中文
 
@@ -28,7 +28,9 @@ MD Duck 免费使用。Mac 测试包面向 **Apple Silicon Mac（M 系列芯片�
 
 AI 释义和翻译是可选功能，使用你自己选择的服务商和 API 额度。MD Duck 本身免费，服务商可能对请求收费。在程序设置中填写密钥并测试连接后使用；AI 解释和译文仍需结合原文核对。
 
-批注、单词和译文进度保存在文章旁的 `.review/`。搬移材料时一起保留这个目录；系统中的应用设置和草稿属于本机资料。升级测试版前请保留文章及 `.review/` 的副本。详细操作见 [中文指南](https://mdduck.com/guide/)。
+批注、单词和译文进度保存在文章旁的 `.review/`，文件夹管理与改动快照保存在文章库的 `.mdduck/`。升级或搬移材料时一起保留这两个隐藏目录和全部文章；应用设置和草稿保存在当前电脑。更新时替换程序即可，不需要删除应用数据。详细操作见 [中文指南](https://mdduck.com/guide/)。
+
+beta.7 新增「有改动」筛选和段落前后对照。首次检查文章只会建立起始快照，无法还原安装前的旧稿；之后用「查看改动」复核，再「标为已查看」。仅打开文章不会清除提示。
 
 ## English
 
@@ -56,7 +58,9 @@ In the side-by-side view, **Check whole document** lists pairing and marker issu
 
 AI explanations and translations are optional and use your own provider and API credit. MD Duck is free; the provider may charge for requests. Enter API keys in the app's settings and test the connection before using AI. Check explanations and translations against the original text.
 
-Notes, words and translation progress live in the article's nearby `.review/` folder. Keep it with your articles when moving them. App settings and drafts are local to the computer. Keep a copy of your articles and `.review/` before upgrading a beta. See the [English guide](https://mdduck.com/en/guide/).
+Notes, words and translation progress live in the article's nearby `.review/` folder. Library management and change snapshots live in the library's `.mdduck/` folder. Keep both hidden folders and all articles when backing up or moving your library. App settings and drafts stay on this computer. Replace the app to update; you do not need to delete its application data. See the [English guide](https://mdduck.com/en/guide/).
+
+beta.7 adds the **Updated** filter and paragraph comparisons. The first check of an article creates a starting snapshot; it cannot recover drafts from before installation. For later edits, choose **View changes**, review them, then **Mark as viewed**. Opening an article alone does not clear its marker.
 
 ## Windows 测试构建 / Windows test build
 

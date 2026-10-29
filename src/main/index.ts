@@ -33,6 +33,7 @@ import { windowChrome } from './window-options'
 import { createStartupProbe } from './startup-probe'
 import { assertLibraryDocument } from './library-write-guard'
 import { createLibraryManager } from './library-manager'
+import { createDocumentChangeStore } from './document-change-store'
 import type { LibraryChange, LibraryCommand, LibraryFolder } from '../shared/library'
 import { relocateScroll } from '../shared/library-relocation'
 import type { AIConfigInput } from '../shared/ai'
@@ -155,9 +156,22 @@ const libraryManager = createLibraryManager({
   listEntries: listLibrary,
   isBusy: () => activeTranslations.size > 0
 })
+const documentChanges = createDocumentChangeStore()
+let libraryApplyTail: Promise<unknown> = Promise.resolve()
 
-const startup = createStartup({ openWindow: createWindow, initialize })
+const startup = createStartup({ registerProtocols: registerImageProtocol, openWindow: createWindow, initialize })
 if (firstInstance) void app.whenReady().then(() => startup.start())
+
+function registerImageProtocol() {
+  protocol.handle('md-duck', async (request) => {
+    const filePath = new URL(request.url).searchParams.get('path') ?? ''
+    const type = IMAGE_TYPES[extname(filePath).toLowerCase()]
+    if (!type || !(await isAllowed(filePath))) return new Response('forbidden', { status: 403 })
+    const data = await fs.readFile(filePath).catch(() => null)
+    if (!data) return new Response('missing', { status: 404 })
+    return new Response(data, { headers: { 'Content-Type': type, 'Cache-Control': 'no-store' } })
+  })
+}
 
 async function initialize() {
   settings = await loadSettings()
@@ -197,15 +211,6 @@ async function initialize() {
       }
     }
   })
-  protocol.handle('md-duck', async (request) => {
-    const filePath = new URL(request.url).searchParams.get('path') ?? ''
-    const type = IMAGE_TYPES[extname(filePath).toLowerCase()]
-    if (!type || !(await isAllowed(filePath))) return new Response('forbidden', { status: 403 })
-    const data = await fs.readFile(filePath).catch(() => null)
-    if (!data) return new Response('missing', { status: 404 })
-    return new Response(data, { headers: { 'Content-Type': type, 'Cache-Control': 'no-store' } })
-  })
-
   if (process.platform === 'darwin') {
     const dockIcon = nativeImage.createFromPath(iconPath).resize({ width: 256, height: 256 })
     app.dock?.setIcon(dockIcon)
@@ -424,6 +429,19 @@ handleReady('root:example', async () => {
 })
 
 handleReady('doc:open', async (_event, filePath: string) => libraryManager.exclusive(() => openDocument(filePath)))
+handleReady('changes:get', (_event, filePath: string, documentId?: string) => libraryManager.exclusive(async () => {
+  const { root, entry } = await changeTarget(filePath, documentId)
+  return documentChanges.inspect(root, entry)
+}))
+handleReady('changes:acknowledge', (_event, filePath: string, revision: string, documentId?: string) => libraryManager.exclusive(async () => {
+  const { root, entry } = await changeTarget(filePath, documentId)
+  const result = await documentChanges.acknowledge(root, entry, revision)
+  if (settings.root === root) {
+    const entries = library.map(item => item.id === entry.id ? { ...item, zhPath: result.current.zhText === null ? null : entry.zhPath } : item)
+    await applyLibraryChange(root, { snapshot: { entries, folders: libraryFolders, issue: libraryIssue }, relocations: [] })
+  }
+  return result
+}))
 handleReady('library:manage', async (event, command: LibraryCommand) => {
   if (event.sender !== window?.webContents || event.senderFrame !== window.webContents.mainFrame || !settings.root) throw new Error('ERR_NOT_IN_FOLDER')
   if (managingLibrary) throw new Error('LIBRARY_BUSY')
@@ -853,10 +871,20 @@ function scheduleLibrary() {
   }, 350)
 }
 
-async function applyLibraryChange(root: string, change: LibraryChange, notify = true) {
+function applyLibraryChange(root: string, change: LibraryChange, notify = true) {
+  // Every relocation must reach settings and the reader before a newer scan.
+  // This queue is separate from the manager lock also held by acknowledgement.
+  const next = libraryApplyTail.catch(() => undefined).then(() => applyLibraryChangeNow(root, change, notify))
+  libraryApplyTail = next
+  return next
+}
+
+async function applyLibraryChangeNow(root: string, change: LibraryChange, notify: boolean) {
   if (settings.root !== root) return
   change.root = root
   change.revision = ++libraryChangeRevision
+  change.snapshot.entries = await documentChanges.summarize(root, change.snapshot.entries)
+  if (settings.root !== root) return
   latestLibraryChange = change
   const previousTranslation = library.find((entry) => entry.path === openPath)?.zhPath
   library = change.snapshot.entries
@@ -878,6 +906,17 @@ async function applyLibraryChange(root: string, change: LibraryChange, notify = 
     await onFile(openPath)
     if (currentTranslation) await onFile(currentTranslation)
   }
+}
+
+async function changeTarget(filePath: string, documentId?: string) {
+  const root = settings.root
+  await assertLibraryDocument(root, library, filePath, documentId)
+  if (!root) throw new Error('ERR_NOT_IN_FOLDER')
+  const entry = library.find(item => item.path === filePath)!
+  // Resolve the current companion even if its watcher event has not refreshed
+  // the list yet (for example, an AI creating/removing a translation).
+  const zhPath = await translator.getTargetPath(filePath)
+  return { root, entry: { ...entry, zhPath: zhPath === filePath ? null : zhPath } }
 }
 
 async function listLibrary(dir: string): Promise<LibraryEntry[]> {
@@ -942,7 +981,7 @@ function titleFrom(text: string, fileName: string) {
 }
 
 async function isAllowed(filePath: string) {
-  return isPathInsideRoot(filePath, settings.root)
+  return isPathInsideRoot(filePath, settings?.root ?? null)
 }
 
 function isInside(filePath: string, dir: string) {

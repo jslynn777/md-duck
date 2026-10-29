@@ -9,6 +9,29 @@ function deferred() {
 }
 
 describe('reader startup', () => {
+  it('registers image protocols before the first navigation and only once', async () => {
+    let protocolRegistered = false
+    let firstPageSupportsImages = false
+    const profile = deferred()
+    const registerProtocols = vi.fn(() => { protocolRegistered = true })
+    const startup = createStartup({
+      registerProtocols,
+      // Electron captures the protocol handlers for this navigation, so later
+      // registration cannot repair image requests made by this first page.
+      openWindow: () => { firstPageSupportsImages = protocolRegistered },
+      initialize: () => profile.promise
+    })
+    const firstStart = startup.start()
+    expect(startup.start()).toBe(firstStart)
+    expect(firstPageSupportsImages).toBe(true)
+    expect(registerProtocols).toHaveBeenCalledTimes(1)
+    expect(startup.phase()).toBe('starting')
+    profile.resolve()
+    await startup.ready()
+    await startup.start()
+    expect(registerProtocols).toHaveBeenCalledTimes(1)
+  })
+
   it('opens a window before slow profile/library initialization and gates IPC readiness', async () => {
     const visible = deferred()
     const initialized = deferred()

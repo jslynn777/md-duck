@@ -4,6 +4,7 @@ import type { DictionaryResult, WordExplanation } from '../shared/word-help'
 import type { AIConfigInput, AISettings } from '../shared/ai'
 import type { TranslationInfo, TranslationState } from '../shared/translation'
 import type { LibraryChange, LibraryCommand } from '../shared/library'
+import type { DocumentChangeState } from '../shared/document-changes'
 
 type Opened = { state: AppState; openPath: string | null }
 
@@ -17,6 +18,8 @@ export type DuckApi = {
   openExample: () => Promise<Opened>
   pathForFile: (file: File) => string
   openDoc: (path: string) => Promise<OpenedDocument>
+  getDocumentChanges: (path: string, documentId?: string) => Promise<DocumentChangeState>
+  acknowledgeDocumentChanges: (path: string, revision: string, documentId?: string) => Promise<DocumentChangeState>
   closeDoc: (path: string) => Promise<void>
   setPrefs: (prefs: Partial<Preferences>) => Promise<Preferences>
   setKey: (key: string | null) => Promise<boolean>
@@ -72,6 +75,8 @@ const api: DuckApi = {
   openExample: () => ipcRenderer.invoke('root:example'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   openDoc: (path) => ipcRenderer.invoke('doc:open', path),
+  getDocumentChanges: (path, documentId) => ipcRenderer.invoke('changes:get', path, documentId),
+  acknowledgeDocumentChanges: (path, revision, documentId) => ipcRenderer.invoke('changes:acknowledge', path, revision, documentId),
   closeDoc: (path) => ipcRenderer.invoke('doc:close', path),
   setPrefs: (prefs) => ipcRenderer.invoke('prefs:set', prefs),
   setKey: (key) => ipcRenderer.invoke('key:set', key),

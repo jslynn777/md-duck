@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
-  "checkedAt": "2026-10-10",
-  "scope": "MD Duck 0.1.0-beta.5 macOS arm64 and Windows x64 production tree: direct native neural inference; newly source-built English engine; exact five voice styles. Final platform acceptance and corresponding-source publication remain separate release gates.",
+  "checkedAt": "2026-10-29",
+  "scope": "MD Duck 0.1.0-beta.7 macOS arm64 and Windows x64 production tree: direct native neural inference; fixed-source English engine; exact five voice styles. Final platform acceptance and corresponding-source publication remain separate release gates.",
   "nativePackages": [],
   "remainingItems": [],
   "closedItems": [
@@ -249,7 +249,7 @@
     ]
   },
   "correspondingSource": {
-    "artifactName": "MD-Duck-0.1.0-beta.6-Corresponding-Source.tar.gz",
+    "artifactName": "MD-Duck-0.1.0-beta.7-Corresponding-Source.tar.gz",
     "inputs": [
       {
         "file": "ephone-js-4f6d246.tar.gz",

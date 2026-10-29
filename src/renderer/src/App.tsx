@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   BookOpen,
+  CircleHelp,
   Check,
   Copy,
   FileText,
@@ -21,7 +22,7 @@ import {
   Volume2,
   X
 } from 'lucide-react'
-import { blockConvention, errorText, speechText, t, warningText } from '@shared/i18n'
+import { errorText, speechText, t, warningText } from '@shared/i18n'
 import { alignBlocks, parseDocument, reconcileNotes, formatTasks, type ParsedDoc } from '@shared/markdown'
 import {
   type AppState,
@@ -49,6 +50,7 @@ import { WordPopover } from './WordPopover'
 import type { DictionaryResult, WordExplanation } from '@shared/word-help'
 import { savedWordExplanation } from './word-cache'
 import { SettingsModal } from './SettingsModal'
+import { UsageGuide } from './UsageGuide'
 import { ReviewAssociation } from './ReviewAssociation'
 import { normalizeQuoteText, type QuoteAnchor } from '@shared/quote-anchor'
 import { TranslationNotice } from './TranslationNotice'
@@ -62,6 +64,8 @@ import { LibraryPanel } from './LibraryPanel'
 import { libraryErrorCopy } from './library-tree'
 import type { LibraryChange } from '@shared/library'
 import { relocatePath, relocateScroll } from '@shared/library-relocation'
+import { ChangeReview } from './ChangeReview'
+import type { DocumentChange } from '@shared/document-changes'
 
 type Selection = { block: Block; quote: string; lang: 'source' | 'zh'; x: number; y: number; anchor?: SelectionRect; sentence?: string; quoteAnchor?: QuoteAnchor; keyboard?: boolean }
 type Popover = Selection & {
@@ -81,7 +85,7 @@ export function App() {
   const [wordsOpen, setWordsOpen] = useState(false)
   const [pop, setPop] = useState<Popover | null>(null)
   const [noteEditor, setNoteEditor] = useState<NoteEditorTarget | null>(null)
-  const [pendingJump, setPendingJump] = useState<{ sourcePath: string; key: string; lang: 'source' | 'zh' } | null>(null)
+  const [pendingJump, setPendingJump] = useState<{ sourcePath: string; key: string; lang: 'source' | 'zh'; focus?: boolean } | null>(null)
   const pendingJumpRef = useRef(pendingJump)
   pendingJumpRef.current = pendingJump
   const documentRequest = useRef(0)
@@ -89,11 +93,13 @@ export function App() {
   const [lightbox, setLightbox] = useState('')
   const [toast, setToast] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [pairingOpen, setPairingOpen] = useState(false)
   const [aiSettings, setAISettings] = useState<AISettings | null>(null)
   const [translationRequested, setTranslationRequested] = useState<string | null>(null)
   const [dismissedTranslations, setDismissedTranslations] = useState<Set<string>>(() => new Set())
   const [flash, setFlash] = useState<Set<string>>(new Set())
+  const [changeFocus, setChangeFocus] = useState<{ sourcePath: string; key: string; lang: 'source' | 'zh' } | null>(null)
   const [activeNote, setActiveNote] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [drafts, setDrafts] = useState<NoteDrafts>(() => {
@@ -112,10 +118,10 @@ export function App() {
   activeContextRef.current = { sourcePath: doc?.sourcePath, pop, noteEditor }
 
   useEffect(() => {
-    if (settingsOpen || pairingOpen || noteEditor || lightbox) {
+    if (settingsOpen || guideOpen || pairingOpen || noteEditor || lightbox) {
       setPop((current) => current?.mode === 'learn' ? null : current)
     }
-  }, [settingsOpen, pairingOpen, noteEditor, lightbox])
+  }, [settingsOpen, guideOpen, pairingOpen, noteEditor, lightbox])
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 1499px)')
@@ -147,6 +153,7 @@ export function App() {
       setPop(null)
       setNoteEditor(null)
       setPairingOpen(false)
+      setChangeFocus(null)
       setPendingJump(null)
       setActiveNote(null)
       try {
@@ -318,6 +325,10 @@ export function App() {
   const mode: ReadMode = doc?.zh ? prefs?.mode ?? 'source' : 'source'
   const reviewing = notesOpen || wordsOpen
   const sidebarVisible = !!prefs?.sidebar && !(reviewing && compactWindow)
+  const readingHighlights = useMemo(() => {
+    if (!changeFocus || changeFocus.sourcePath !== doc?.sourcePath) return flash
+    return new Set([...flash, `${changeFocus.lang}:${changeFocus.key}`])
+  }, [flash, changeFocus, doc?.sourcePath])
 
   useEffect(() => {
     document.documentElement.lang = ui === 'zh' ? 'zh-CN' : 'en'
@@ -349,6 +360,14 @@ export function App() {
     () => paintNoteHighlights(scrollRef.current, doc?.notes ?? [], activeNote),
     [doc?.notes, doc?.sourceText, doc?.zhText, mode, activeNote, state?.prefs.fontSize]
   )
+
+  useLayoutEffect(() => {
+    const target = changeFocus && changeFocus.sourcePath === doc?.sourcePath
+      ? scrollRef.current?.querySelector<HTMLElement>(`[data-key="${cssEscape(changeFocus.key)}"][data-lang="${changeFocus.lang}"]`)
+      : null
+    if (target) target.dataset.currentChange = 'true'
+    return () => { if (target) delete target.dataset.currentChange }
+  }, [changeFocus, doc?.sourcePath, doc?.sourceText, doc?.zhText, mode])
 
   // Restore last read position when a document first opens.
   const openedKey = doc?.sourcePath
@@ -383,7 +402,7 @@ export function App() {
     const el = scrollRef.current?.querySelector<HTMLElement>(`[data-key="${cssEscape(pendingJump.key)}"][data-lang="${pendingJump.lang}"]`)
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'instant' })
-      if (!noteEditor) {
+      if (!noteEditor && pendingJump.focus !== false) {
         el.tabIndex = -1
         el.focus({ preventScroll: true })
       }
@@ -398,7 +417,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       // The native dialog handles Escape and keeps reader shortcuts inactive.
-      if (pairingOpen) return
+      if (pairingOpen || guideOpen) return
       if (event.key === 'Escape') {
         if (settingsOpen) return
         else if (noteEditor) setNoteEditor(null)
@@ -427,7 +446,7 @@ export function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, doc, state?.hasKey, ui])
+  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, guideOpen, doc, state?.hasKey, ui])
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => {
@@ -457,16 +476,16 @@ export function App() {
 
   const settingsDialog = settingsOpen && <SettingsModal
     state={state} onPrefs={savePrefs} aiSettings={aiSettings} onAISettings={applyAISettings}
-    onClose={() => setSettingsOpen(false)} onCopyConvention={() => {
-      void window.api.copyText(blockConvention(ui)); flashToast(t(ui, 'copiedConvention'))
-    }}
+    onClose={() => setSettingsOpen(false)}
   />
+  const guideDialog = guideOpen && <UsageGuide ui={ui} onClose={() => setGuideOpen(false)} />
 
   if (!state.root && listNoteDrafts(drafts).length === 0) {
     return (
       <UiProvider value={ui}>
-        <Welcome dragOver={dragOver} setDragOver={setDragOver} onDrop={onDropPath} noRoot onPrefs={savePrefs} onSettings={() => setSettingsOpen(true)} />
+        <Welcome dragOver={dragOver} setDragOver={setDragOver} onDrop={onDropPath} noRoot onPrefs={savePrefs} onSettings={() => setSettingsOpen(true)} onGuide={() => setGuideOpen(true)} />
         {settingsDialog}
+        {guideDialog}
       </UiProvider>
     )
   }
@@ -520,6 +539,7 @@ export function App() {
         onFileMenu={(path, position) => void showFileMenu(path, position)}
         onLibraryChange={(change) => libraryChangeRef.current(change)}
         onError={flashToast}
+        onGuide={() => setGuideOpen(true)}
       />
 
       <div className="main">
@@ -553,6 +573,11 @@ export function App() {
             setNotesOpen(false)
           }}
         />
+
+        {doc && !doc.missing && <ChangeReview key={doc.documentId ?? doc.sourcePath}
+          sourcePath={doc.sourcePath} documentId={doc.documentId} sourceText={doc.sourceText} zhText={doc.zhText}
+          version={doc.assetVersion} summary={state.library.find(entry => entry.path === doc.sourcePath)?.changes} ui={ui}
+          onLocate={locateChange} onClose={() => setChangeFocus(null)} onReload={() => void openDoc(doc.sourcePath, true)} />}
 
         <div className="scroll" ref={scrollRef} onScroll={onScroll}>
           {doc && !doc.missing && (!dismissedTranslations.has(doc.sourcePath) || translationRequested === doc.sourcePath) && (
@@ -589,7 +614,7 @@ export function App() {
               aligned={aligned}
               pairing={pairing}
               onCheckPairing={() => { setPop(null); setPairingOpen(true) }}
-              flash={flash}
+              flash={readingHighlights}
               notes={notes}
               speaking={speech.playing}
               onImage={setLightbox}
@@ -620,7 +645,7 @@ export function App() {
               activeWord={pop?.mode === 'learn' && pop.sourcePath === doc.sourcePath && !settingsOpen && !noteEditor && !lightbox ? pop.wordOccurrence ?? null : null}
             />
           ) : !state.root ? (
-            <Welcome dragOver={dragOver} setDragOver={setDragOver} onDrop={onDropPath} noRoot onPrefs={savePrefs} onSettings={() => setSettingsOpen(true)} />
+            <Welcome dragOver={dragOver} setDragOver={setDragOver} onDrop={onDropPath} noRoot onPrefs={savePrefs} onSettings={() => setSettingsOpen(true)} onGuide={() => setGuideOpen(true)} />
           ) : (
             <div className="empty-reader">
               <FileText size={28} />
@@ -676,6 +701,7 @@ export function App() {
         />
       )}
 
+      {guideDialog}
       {pairingOpen && pairing && doc && (
         <PairingCheckDialog
           report={pairing} ui={ui} sourcePath={doc.sourcePath} zhPath={doc.zhPath}
@@ -813,6 +839,16 @@ export function App() {
         return
       }
     }
+  }
+
+  function locateChange(change: DocumentChange, focus = false) {
+    if (!doc || !change.targetKey) { setChangeFocus(null); return }
+    setPop(null)
+    const target = { sourcePath: doc.sourcePath, key: change.targetKey, lang: change.side }
+    // Submit the latest language even if an earlier switch is still awaiting IPC.
+    if (mode !== 'bilingual') void savePrefs({ mode: change.side })
+    setChangeFocus(target)
+    setPendingJump({ ...target, focus })
   }
 
   function applyUpdate(update: DocUpdate) {
@@ -1357,7 +1393,8 @@ function Sidebar({
   onPickRoot,
   onFileMenu,
   onLibraryChange,
-  onError
+  onError,
+  onGuide
 }: {
   state: AppState
   visible: boolean
@@ -1369,6 +1406,7 @@ function Sidebar({
   onFileMenu: (path: string, position: { x: number; y: number }) => void
   onLibraryChange: (change: LibraryChange) => void
   onError: (message: string) => void
+  onGuide: () => void
 }) {
   const tr = useT()
   const tab = state.prefs.sidebarTab
@@ -1388,6 +1426,7 @@ function Sidebar({
         {tab === 'files' ? (
           <LibraryPanel root={state.root} entries={state.library} folders={state.folders ?? []}
             issue={state.libraryIssue} ui={state.prefs.ui} currentPath={doc?.sourcePath ?? null}
+            sort={state.prefs.librarySort} onSortChange={(librarySort) => onPrefs({ librarySort })}
             onOpen={onOpen} onFileMenu={onFileMenu} onChange={onLibraryChange} onError={onError} />
         ) : doc ? (
           <Outline doc={doc} onJump={onJump} />
@@ -1399,6 +1438,7 @@ function Sidebar({
         <button className="btn ghost small" onClick={onPickRoot} title={`${state.root ?? ''}\n${tr('openOtherFolder')}`}>
           <FolderOpen size={15} /> <span className="folder-name">{folderName}</span>
         </button>
+        <button className="btn ghost icon guide-entry" onClick={onGuide} title={state.prefs.ui === 'zh' ? '使用指南' : 'Using MD Duck'} aria-label={state.prefs.ui === 'zh' ? '使用指南' : 'Using MD Duck'}><CircleHelp size={16} /></button>
       </div>
     </aside>
   )
@@ -1963,7 +2003,8 @@ function Welcome({
   onDrop,
   noRoot,
   onPrefs,
-  onSettings
+  onSettings,
+  onGuide
 }: {
   dragOver: boolean
   setDragOver: (v: boolean) => void
@@ -1971,6 +2012,7 @@ function Welcome({
   noRoot: boolean
   onPrefs: (patch: Partial<Preferences>) => void
   onSettings: () => void
+  onGuide: () => void
 }) {
   const tr = useT()
   const ui = useUi()
@@ -2027,7 +2069,8 @@ function Welcome({
         </div>
         {exampleError && <p role="alert">{tr('exampleOpenFailed')}</p>}
         <p className="hint">{tr('dropHint')}</p>
-        <p className="welcome-reading-hint">{ui === 'zh' ? '点击英文单词查词，选中文字做批注。选中后也可按 ⌥ Enter。' : 'Click an English word to look it up. Select text to comment, or press Alt + Enter.'}</p>
+        <p className="welcome-reading-hint">{ui === 'zh' ? `点击英文单词查词，选中文字做批注。选中后也可按 ${window.api.platform === 'darwin' ? '⌥' : 'Alt'} + Enter。` : 'Click an English word to look it up. Select text to comment, or press Alt + Enter.'}</p>
+        <button className="btn ghost small welcome-guide-link" onClick={onGuide}><CircleHelp size={15} />{ui === 'zh' ? '使用指南与 AI 写作规则' : 'Quick start and AI writing rules'}</button>
       </div>
       {dragOver && (
         <div className="drop-veil">

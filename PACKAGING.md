@@ -1,6 +1,6 @@
 # MD Duck 免费测试版打包
 
-当前版本为 **0.1.0-beta.6**，目标是 **macOS Apple Silicon（arm64）和 Windows x64 免费测试版**。Mac 配置保留 ad-hoc 签名，未使用 Developer ID 签名、未提交 Apple 公证，也未启用 hardened runtime；Windows 未进行发布者签名。产物名称不带 `local-test`，公开前应完成对应版本的许可材料、打包与安装检查。用户安装说明见 [INSTALLING.md](INSTALLING.md)。
+当前版本为 **0.1.0-beta.7**，目标是 **macOS Apple Silicon（arm64）和 Windows x64 免费测试版**。Mac 配置保留 ad-hoc 签名，未使用 Developer ID 签名、未提交 Apple 公证，也未启用 hardened runtime；Windows 未进行发布者签名。产物名称不带 `local-test`，公开前应完成对应版本的许可材料、打包与安装检查。用户安装说明见 [INSTALLING.md](INSTALLING.md)。
 
 本文记录现有命令与验证范围，不代表 DMG 挂载、安装或其他尚未完成的检查已经通过。命令均在项目根目录执行。
 
@@ -37,8 +37,8 @@ npm run dist:mac
 `dist:mac` 同样先构建、核对神经朗读资源并生成严格第三方声明，随后打包 DMG/ZIP，并运行 `scripts/checksums.mjs`。当前版本的目标文件名是：
 
 ```text
-release/MD-Duck-0.1.0-beta.6-macOS-arm64.dmg
-release/MD-Duck-0.1.0-beta.6-macOS-arm64.zip
+release/MD-Duck-0.1.0-beta.7-macOS-arm64.dmg
+release/MD-Duck-0.1.0-beta.7-macOS-arm64.zip
 release/SHA256SUMS
 ```
 
@@ -130,7 +130,7 @@ node scripts/collect-notices.mjs --release-strict
 node scripts/verify-neural-sources.mjs --archives third-party/source-archives/
 ```
 
-`MD-Duck-0.1.0-beta.6-Corresponding-Source.tar.gz` 将版本源码与第三方材料合并，`third-party/source-archives/` 包含固定的 `ephone-js-4f6d246.tar.gz`、`emscripten-3.1.64.tar.gz` 和原始 `kokoro-js-1.2.1.tgz`。资源检查核对生成资源及 ephone/Emscripten 源归档；各材料的来源与交付范围见审计。维护者要重建引擎时，需要 Docker 支持 `linux/amd64`，构建脚本使用 `SOURCE.json` 中固定 digest 的官方 Emscripten 镜像：
+`MD-Duck-0.1.0-beta.7-Corresponding-Source.tar.gz` 将版本源码与第三方材料合并，`third-party/source-archives/` 包含固定的 `ephone-js-4f6d246.tar.gz`、`emscripten-3.1.64.tar.gz` 和原始 `kokoro-js-1.2.1.tgz`。资源检查核对生成资源及 ephone/Emscripten 源归档；各材料的来源与交付范围见审计。维护者要重建引擎时，需要 Docker 支持 `linux/amd64`，构建脚本使用 `SOURCE.json` 中固定 digest 的官方 Emscripten 镜像：
 
 ```bash
 node scripts/build-phonemizer.mjs \
@@ -141,7 +141,7 @@ node scripts/build-phonemizer.mjs \
 
 项目自有代码和文档采用 GPL-3.0-or-later，见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。公开前应完成第三方授权、声明与对应源码核对，并针对最终产物验证安装、首次启动和数据恢复。官网在有可公开分发的真实文件与地址前保持 `preparing`。Developer ID 签名和公证为后续可选发行工作；本轮命令不自动上传安装包。
 
-历史的 [beta.1 安装报告](release/INSTALL-TEST-REPORT.md) 仅对应当时产物。beta.2 的结果保存在 `release-prep-20261005/`，beta.3 保存在 `release-prep-20261010/`，beta.4 保存在 `release-prep-20261010-windows/`。beta.5 重新打包后，需要核对本轮的实际文件、校验值和报告。
+历史的 [beta.1 安装报告](release/INSTALL-TEST-REPORT.md) 仅对应当时产物。beta.2 的结果保存在 `release-prep-20261005/`，beta.3 保存在 `release-prep-20261010/`，beta.4 保存在 `release-prep-20261010-windows/`。beta.6 的记录保存在 `release-prep-20261016-beta6/`。beta.7 重新打包后，需要核对本轮的实际文件、校验值和报告。
 
 ## Windows x64 构建与检查
 
@@ -160,8 +160,8 @@ npm run verify:startup:win
 `dist:win` 生成 NSIS 安装程序、portable 可执行文件和 SHA256SUMS，全部禁用自动发布，未签 Windows 发布者证书。运行时携带 Windows x64 的 ONNX 与同一套源码构建的音素引擎，排除其他平台的二进制；声明生成器核对本平台已安装依赖及固定来源记录。当前目标文件名为：
 
 ```text
-release/MD-Duck-0.1.0-beta.6-Windows-x64-Setup.exe
-release/MD-Duck-0.1.0-beta.6-Windows-x64-Portable.exe
+release/MD-Duck-0.1.0-beta.7-Windows-x64-Setup.exe
+release/MD-Duck-0.1.0-beta.7-Windows-x64-Portable.exe
 ```
 
 - `verify:win` 检查版本、资源、私有数据排除、PE x64 架构、ONNX 原生依赖，以及安装程序和 portable 中的 payload 一致性。

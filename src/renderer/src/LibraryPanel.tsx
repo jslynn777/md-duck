@@ -1,9 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Archive, ChevronDown, ChevronRight, Folder, MoreHorizontal, Plus, Search, X } from 'lucide-react'
+import { ArrowDownAZ, Archive, ChevronDown, ChevronRight, Folder, MoreHorizontal, Plus, Search, X } from 'lucide-react'
 import type { ArticleStage, LibraryChange, LibraryCommand, LibraryFolder } from '../../shared/library'
-import type { LibraryEntry, UiLang } from '../../shared/types'
-import { buildLibraryTree, filterLibraryTree, libraryDestinations, libraryErrorCopy, libraryName, libraryParent, libraryRelative, parseArticleTitles, sameLibraryPath, type LibraryNode } from './library-tree'
+import type { LibraryEntry, LibrarySort, UiLang } from '../../shared/types'
+import { buildLibraryTree, countChangedLibraryArticles, countLibraryChangeIssues, filterLibraryTree, libraryDestinations, libraryErrorCopy, libraryName, libraryParent, libraryRelative, normalizeLibrarySort, parseArticleTitles, sameLibraryPath, type LibraryNode } from './library-tree'
 import './library-panel.css'
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
   issue?: string
   ui: UiLang
   currentPath: string | null
+  sort?: LibrarySort
+  onSortChange: (sort: LibrarySort) => void
   onOpen: (path: string) => void
   onFileMenu: (path: string, position: { x: number; y: number }) => void
   onChange: (change: LibraryChange) => void
@@ -27,7 +29,10 @@ const stages: ArticleStage[] = ['unmarked', 'writing', 'review', 'done']
 const words = {
   zh: {
     search: '搜索标题或路径', all: '全部', archived: '已归档', add: '新建', folder: '新建文件夹', articles: '批量新建文章',
+    changed: '有改动', updated: '更新', changedHint: '只显示当前范围内尚未确认的改动', noChanges: '当前范围内没有待查看的改动。', noChangesMatch: '没有符合搜索条件的待查看改动。',
+    sourceChanged: '原文有改动，尚未确认查看', translationChanged: '译文有改动，尚未确认查看', bothChanged: '原文和译文有改动，尚未确认查看', changeIssue: '无法检查改动', changeIssueHint: '改动记录暂时无法读取，不能确认是否有新改动。文章仍可打开。',
     noRoot: '先打开一个本地文件夹', noArticles: '还没有文章，可以新建或放入 Markdown 文件。', noArchived: '没有已归档的文章或文件夹', noMatch: '没有找到匹配的文章或文件夹',
+    sort: '排序', nameAsc: '名称升序', nameDesc: '名称降序', titleSort: '文章标题', manualSort: '手动排序', useManual: '切换为手动排序', nameSortHint: '按文件夹或文件名称排序，数字按顺序排列',
     menu: '管理', rename: '重命名', move: '移动到…', archive: '归档', restore: '恢复归档', stage: '标记进度', up: '上移', down: '下移',
     fileActions: '文件位置与打开方式…', cancel: '取消', save: '保存', busy: '正在处理…', close: '关闭',
     name: '名称', titles: '文章标题，每行一篇', titleHint: '一次最多 50 篇。每篇创建独立文件夹，内含 article.md，方便一起保存译文和图片。',
@@ -45,7 +50,10 @@ const words = {
   },
   en: {
     search: 'Search titles or paths', all: 'All', archived: 'Archived', add: 'New', folder: 'New folder', articles: 'Create multiple articles',
+    changed: 'Updated', updated: 'Updated', changedHint: 'Show unreviewed changes in the current scope', noChanges: 'No unreviewed changes in this scope.', noChangesMatch: 'No unreviewed changes match your search.',
+    sourceChanged: 'Source changed since your last confirmation', translationChanged: 'Translation changed since your last confirmation', bothChanged: 'Source and translation changed since your last confirmation', changeIssue: 'Check unavailable', changeIssueHint: 'Change records cannot be read right now, so new changes cannot be determined. You can still open the article.',
     noRoot: 'Open a local folder first', noArticles: 'No articles yet. Create drafts or add Markdown files.', noArchived: 'No archived articles or folders', noMatch: 'No matching articles or folders',
+    sort: 'Sort', nameAsc: 'Name A–Z', nameDesc: 'Name Z–A', titleSort: 'Article title', manualSort: 'Manual order', useManual: 'Switch to manual order', nameSortHint: 'Sort by folder or file name, with numbers in natural order',
     menu: 'Manage', rename: 'Rename', move: 'Move to…', archive: 'Archive', restore: 'Restore', stage: 'Set progress', up: 'Move up', down: 'Move down',
     fileActions: 'File location and open options…', cancel: 'Cancel', save: 'Save', busy: 'Working…', close: 'Close',
     name: 'Name', titles: 'Article titles, one per line', titleHint: 'Up to 50 at once. Each article gets its own folder with article.md, keeping translations and images together.',
@@ -63,10 +71,12 @@ const words = {
   }
 }
 
-export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, onOpen, onFileMenu, onChange, onError }: Props) {
+export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, sort, onSortChange, onOpen, onFileMenu, onChange, onError }: Props) {
   const copy = words[ui]
+  const sortMode = normalizeLibrarySort(sort)
   const [query, setQuery] = useState('')
   const [archived, setArchived] = useState(false)
+  const [changedOnly, setChangedOnly] = useState(false)
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const [menu, setMenu] = useState<Menu | null>(null)
   const [editor, setEditor] = useState<Editor | null>(null)
@@ -76,10 +86,13 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
   const opener = useRef<HTMLElement | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
-  const nodes = useMemo(() => root ? filterLibraryTree(buildLibraryTree(root, entries, folders, archived), query) : [], [root, entries, folders, archived, query])
+  const scopedNodes = useMemo(() => root ? buildLibraryTree(root, entries, folders, archived, sortMode) : [], [root, entries, folders, archived, sortMode])
+  const nodes = useMemo(() => filterLibraryTree(scopedNodes, query, changedOnly), [scopedNodes, query, changedOnly])
+  const changedCount = countChangedLibraryArticles(scopedNodes)
+  const changeIssueCount = countLibraryChangeIssues(scopedNodes)
 
   useEffect(() => {
-    setQuery(''); setArchived(false); setCollapsed(new Set()); setMenu(null); setEditor(null); setError('')
+    setQuery(''); setArchived(false); setChangedOnly(false); setCollapsed(new Set()); setMenu(null); setEditor(null); setError('')
   }, [root])
 
   async function run(command: LibraryCommand) {
@@ -130,8 +143,10 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
       const target = folder ? folderTarget(node.path, node.name, node.archived) : {
         path: node.path, title: node.entry.title, folder: false, archived: !!node.entry.archived, bundlePath: node.bundlePath, stage: node.entry.stage, documentId: node.entry.id, fileIdentity: node.entry.fileIdentity
       }
-      const expanded = !!query.trim() || !collapsed.has(node.path)
+      const expanded = !!query.trim() || changedOnly || !collapsed.has(node.path)
       const active = !folder && !!currentPath && sameLibraryPath(node.path, currentPath)
+      const changes = !folder ? node.entry.changes : undefined
+      const changeLabel = changes?.source && changes.translation ? copy.bothChanged : changes?.translation ? copy.translationChanged : copy.sourceChanged
       return <li key={node.path} className={folder ? 'library-folder' : 'library-article'}>
         <div className={`library-row${active ? ' is-current' : ''}`} style={{ paddingLeft: Math.min(depth, 6) * 12 }}
           onContextMenu={folder ? (event) => {
@@ -143,7 +158,11 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
             const next = new Set(previous); if (next.has(node.path)) next.delete(node.path); else next.add(node.path); return next
           })}>
             {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}<Folder size={14} /><span>{node.name}</span>
-            <span className="library-folder-count" aria-label={`${node.count} ${copy.folderCount}`}>{node.count}</span>
+            <span className="library-folder-status">
+              {node.changedCount > 0 && <span className="library-folder-changes" aria-label={ui === 'zh' ? `${node.changedCount} 篇文章有待查看改动` : `${node.changedCount} articles have unreviewed changes`}>{copy.updated} {node.changedCount}</span>}
+              {node.changeIssueCount > 0 && <span className="library-folder-change-issue" title={copy.changeIssueHint} aria-label={ui === 'zh' ? `${node.changeIssueCount} 篇文章无法检查改动` : `Changes cannot be checked for ${node.changeIssueCount} articles`}>!</span>}
+              <span className="library-folder-count" aria-label={`${node.count} ${copy.folderCount}`}>{node.count}</span>
+            </span>
           </button> : <button type="button" className="library-article-open" aria-current={active ? 'page' : undefined}
             title={`${node.entry.title}\n${node.path}${node.entry.zhPath ? `\n${node.entry.zhPath}` : ''}`} onClick={() => onOpen(node.path)}
             onKeyDown={(event) => {
@@ -153,6 +172,10 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
               }
             }}>
             <span className="library-article-title">{node.entry.title}</span>
+            {(changes?.changed || changes?.issue) && <span className="library-article-change-state">
+              {changes.changed && <span className="library-article-changed" title={changeLabel}><span className="library-change-dot" aria-hidden="true" />{copy.changed}</span>}
+              {changes.issue && <span className="library-article-change-issue" title={copy.changeIssueHint}>{copy.changeIssue}</span>}
+            </span>}
             <span className="library-article-meta">
               <span className="library-article-path">{node.relativePath}</span>
               {node.entry.stage && node.entry.stage !== 'unmarked' && <span className="library-article-stage">{copy[node.entry.stage]}</span>}
@@ -181,13 +204,33 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
         <button type="button" className="library-add" aria-label={copy.add} title={root ? copy.add : copy.noRoot} disabled={!root || busy}
           aria-haspopup="menu" aria-expanded={!!menu && !menu.target} onClick={(event) => openMenu(null, event.currentTarget)}><Plus size={17} /></button>
       </div>
-      <div className="library-scope" role="group" aria-label={ui === 'zh' ? '文章范围' : 'Article scope'}>
-        <button type="button" className={!archived ? 'on' : ''} aria-pressed={!archived} onClick={() => { setArchived(false); setMenu(null) }}>{copy.all}</button>
-        <button type="button" className={archived ? 'on' : ''} aria-pressed={archived} onClick={() => { setArchived(true); setMenu(null) }}><Archive size={12} />{copy.archived}</button>
+      <div className="library-view-options">
+        <div className="library-scope" role="group" aria-label={ui === 'zh' ? '文章范围' : 'Article scope'}>
+          <button type="button" className={!archived ? 'on' : ''} aria-pressed={!archived} onClick={() => { setArchived(false); setMenu(null) }}>{copy.all}</button>
+          <button type="button" className={archived ? 'on' : ''} aria-pressed={archived} onClick={() => { setArchived(true); setMenu(null) }}><Archive size={12} />{copy.archived}</button>
+        </div>
+        <label className="library-sort" title={sortMode.startsWith('name-') ? copy.nameSortHint : copy.sort}>
+          <ArrowDownAZ size={13} aria-hidden="true" />
+          <select aria-label={copy.sort} value={sortMode} onChange={(event) => { setMenu(null); onSortChange(normalizeLibrarySort(event.target.value)) }}>
+            <option value="name-asc">{copy.nameAsc}</option>
+            <option value="name-desc">{copy.nameDesc}</option>
+            <option value="title">{copy.titleSort}</option>
+            <option value="manual">{copy.manualSort}</option>
+          </select>
+        </label>
+      </div>
+      <div className="library-change-filter-row">
+        <button type="button" className={`library-change-filter${changedOnly ? ' on' : ''}${changedCount ? ' has-changes' : ''}`} aria-pressed={changedOnly}
+          title={copy.changedHint} aria-label={`${copy.changed} ${changedCount} · ${archived ? copy.archived : copy.all}`} disabled={!root}
+          onClick={() => { setChangedOnly((current) => !current); setMenu(null) }}>
+          <span className="library-change-dot" aria-hidden="true" />{copy.changed}<span className="library-change-count">{changedCount}</span>
+        </button>
+        {changedOnly && <span className="library-change-scope">{archived ? copy.archived : copy.all}</span>}
       </div>
     </div>
     {(issue || error && !editor) && <p className="library-error" role="alert">{error || libraryErrorCopy(issue, ui)}</p>}
-    {nodes.length ? renderNodes(nodes) : <p className="library-empty">{!root ? copy.noRoot : query.trim() ? copy.noMatch : archived ? copy.noArchived : copy.noArticles}</p>}
+    {changeIssueCount > 0 && <p className="library-change-warning" role="status">{ui === 'zh' ? `${changeIssueCount} 篇文章暂时无法检查改动。` : `Changes could not be checked for ${changeIssueCount} ${changeIssueCount === 1 ? 'article' : 'articles'}.`}{changedOnly && <button type="button" onClick={() => setChangedOnly(false)}>{ui === 'zh' ? '显示当前范围全部文章' : 'Show all in this scope'}</button>}</p>}
+    {nodes.length ? renderNodes(nodes) : <p className="library-empty">{!root ? copy.noRoot : changedOnly ? query.trim() ? copy.noChangesMatch : copy.noChanges : query.trim() ? copy.noMatch : archived ? copy.noArchived : copy.noArticles}</p>}
     {menu && createPortal(<LibraryMenu id={menuId} x={menu.x} y={menu.y} label={menuTarget?.title ?? copy.add} onClose={closeMenu}>
       {(!menuTarget || menuTarget.folder && !menuTarget.archived) && <>
         <button role="menuitem" type="button" disabled={busy} onClick={() => menuAction('create-folder')}>{copy.folder}</button>
@@ -199,8 +242,10 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, o
         <button role="menuitem" type="button" disabled={busy} onClick={() => menuAction('move')}>{copy.move}</button>
         {!menuTarget.folder && <>
           <button role="menuitem" type="button" disabled={busy} onClick={() => menuAction('stage')}>{copy.stage}{menuTarget.stage && menuTarget.stage !== 'unmarked' ? ` · ${copy[menuTarget.stage]}` : ''}</button>
-          <button role="menuitem" type="button" disabled={busy} onClick={() => direct({ type: 'reorder', path: menuTarget.path, direction: 'up' })}>{copy.up}</button>
-          <button role="menuitem" type="button" disabled={busy} onClick={() => direct({ type: 'reorder', path: menuTarget.path, direction: 'down' })}>{copy.down}</button>
+          {sortMode === 'manual' ? <>
+            <button role="menuitem" type="button" disabled={busy} onClick={() => direct({ type: 'reorder', path: menuTarget.path, direction: 'up' })}>{copy.up}</button>
+            <button role="menuitem" type="button" disabled={busy} onClick={() => direct({ type: 'reorder', path: menuTarget.path, direction: 'down' })}>{copy.down}</button>
+          </> : <button role="menuitem" type="button" disabled={busy} onClick={() => { closeMenu(); onSortChange('manual') }}>{copy.useManual}</button>}
         </>}
         <div className="library-menu-divider" role="separator" />
         <button role="menuitem" type="button" disabled={busy} onClick={() => menuAction(menuTarget.archived ? 'restore' : 'archive')}>{menuTarget.archived ? copy.restore : copy.archive}</button>

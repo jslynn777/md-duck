@@ -1,8 +1,8 @@
 import type { LibraryFolder } from '../../shared/library'
-import type { LibraryEntry } from '../../shared/types'
+import type { LibraryEntry, LibrarySort } from '../../shared/types'
 
 export type LibraryArticleNode = { kind: 'article'; path: string; entry: LibraryEntry; relativePath: string; bundlePath?: string }
-export type LibraryFolderNode = { kind: 'folder'; path: string; name: string; relativePath: string; archived: boolean; children: LibraryNode[]; count: number }
+export type LibraryFolderNode = { kind: 'folder'; path: string; name: string; relativePath: string; archived: boolean; children: LibraryNode[]; count: number; changedCount: number; changeIssueCount: number }
 export type LibraryNode = LibraryArticleNode | LibraryFolderNode
 
 const auxiliaryNames = new Set(['assets', 'images', 'img', 'attachments', 'node_modules'])
@@ -46,10 +46,21 @@ export function auxiliaryLibraryFolder(root: string, path: string) {
   return libraryRelative(root, path).split('/').some((name) => name.startsWith('.') || auxiliaryNames.has(name.toLowerCase()))
 }
 
+const nameCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' })
+
+export function normalizeLibrarySort(value: unknown): LibrarySort {
+  return value === 'name-desc' || value === 'title' || value === 'manual' ? value : 'name-asc'
+}
+
+/** A collapsed article bundle is named by its containing folder, not its shared article.md filename. */
+function nodeName(node: LibraryNode) {
+  return node.kind === 'folder' ? node.name : libraryName(node.bundlePath ?? node.path)
+}
+
 /** Presentation follows the real directory structure; it never mutates article order or files. */
-export function buildLibraryTree(root: string, entries: LibraryEntry[], folders: LibraryFolder[], archived = false): LibraryNode[] {
+export function buildLibraryTree(root: string, entries: LibraryEntry[], folders: LibraryFolder[], archived = false, sort: LibrarySort = 'name-asc'): LibraryNode[] {
   const actual = entries.filter((entry) => !!entry.archived === archived && libraryWithin(root, entry.path))
-  const rootNode: LibraryFolderNode = { kind: 'folder', path: root, name: libraryName(root), relativePath: '', archived, count: 0, children: [] }
+  const rootNode: LibraryFolderNode = { kind: 'folder', path: root, name: libraryName(root), relativePath: '', archived, count: 0, changedCount: 0, changeIssueCount: 0, children: [] }
   const byPath = new Map<string, LibraryFolderNode>([[pathKey(root), rootNode]])
   const ensure = (path: string): LibraryFolderNode => {
     const key = pathKey(path)
@@ -58,7 +69,7 @@ export function buildLibraryTree(root: string, entries: LibraryEntry[], folders:
     const parent = libraryParent(path)
     // Only descendants of the opened library may become tree nodes.
     if (!libraryWithin(root, path) || sameLibraryPath(path, parent)) return rootNode
-    const node: LibraryFolderNode = { kind: 'folder', path, name: libraryName(path), relativePath: libraryRelative(root, path), archived, count: 0, children: [] }
+    const node: LibraryFolderNode = { kind: 'folder', path, name: libraryName(path), relativePath: libraryRelative(root, path), archived, count: 0, changedCount: 0, changeIssueCount: 0, children: [] }
     byPath.set(key, node)
     ensure(parent).children.push(node)
     return node
@@ -71,6 +82,16 @@ export function buildLibraryTree(root: string, entries: LibraryEntry[], folders:
   }
   for (const entry of actual) ensure(libraryParent(entry.path)).children.push({ kind: 'article', path: entry.path, entry, relativePath: libraryRelative(root, entry.path) })
   const order = new Map(actual.map((entry, index) => [pathKey(entry.path), index]))
+  const mode = normalizeLibrarySort(sort)
+  const compare = (a: LibraryNode, b: LibraryNode) => {
+    if (a.kind === 'folder' && b.kind !== 'folder') return -1
+    if (a.kind !== 'folder' && b.kind === 'folder') return 1
+    if (mode === 'manual' && a.kind === 'article' && b.kind === 'article') return (order.get(pathKey(a.path)) ?? 0) - (order.get(pathKey(b.path)) ?? 0)
+    const aLabel = mode === 'title' && a.kind === 'article' ? a.entry.title : nodeName(a)
+    const bLabel = mode === 'title' && b.kind === 'article' ? b.entry.title : nodeName(b)
+    const result = nameCollator.compare(aLabel, bLabel) || nameCollator.compare(nodeName(a), nodeName(b)) || (pathKey(a.path) < pathKey(b.path) ? -1 : pathKey(a.path) > pathKey(b.path) ? 1 : 0)
+    return mode === 'name-desc' ? -result : result
+  }
   const tidy = (folder: LibraryFolderNode): number => {
     let count = 0
     folder.children = folder.children.map((child): LibraryNode => {
@@ -81,32 +102,39 @@ export function buildLibraryTree(root: string, entries: LibraryEntry[], folders:
       }
       return child
     })
-    folder.children.sort((a, b) => {
-      if (a.kind === 'folder' && b.kind === 'folder') return a.name.localeCompare(b.name, undefined, { numeric: true })
-      if (a.kind === 'folder') return -1
-      if (b.kind === 'folder') return 1
-      return (order.get(pathKey(a.path)) ?? 0) - (order.get(pathKey(b.path)) ?? 0)
-    })
+    folder.children.sort(compare)
     folder.count = count
+    folder.changedCount = countChangedLibraryArticles(folder.children)
+    folder.changeIssueCount = countLibraryChangeIssues(folder.children)
     return count
   }
   tidy(rootNode)
-  return archived ? rootNode.children.flatMap((node) => node.kind === 'folder' && libraryRelative(root, node.path) === 'Archive' ? node.children : [node]) : rootNode.children
+  return archived ? rootNode.children.flatMap((node) => node.kind === 'folder' && libraryRelative(root, node.path) === 'Archive' ? node.children : [node]).sort(compare) : rootNode.children
 }
 
-export function filterLibraryTree(nodes: LibraryNode[], query: string): LibraryNode[] {
+export function filterLibraryTree(nodes: LibraryNode[], query: string, changedOnly = false): LibraryNode[] {
   const term = query.trim().toLocaleLowerCase()
-  if (!term) return nodes
+  if (!term && !changedOnly) return nodes
   return nodes.flatMap((node): LibraryNode[] => {
-    if (node.kind === 'article') return `${node.entry.title}\n${node.relativePath}`.toLocaleLowerCase().includes(term) ? [node] : []
-    if (`${node.name}\n${node.relativePath}`.toLocaleLowerCase().includes(term)) return [node]
-    const children = filterLibraryTree(node.children, query)
-    return children.length ? [{ ...node, children, count: countLibraryArticles(children) }] : []
+    if (node.kind === 'article') return (!changedOnly || node.entry.changes?.changed) && `${node.entry.title}\n${node.relativePath}`.toLocaleLowerCase().includes(term) ? [node] : []
+    const folderMatches = `${node.name}\n${node.relativePath}`.toLocaleLowerCase().includes(term)
+    if (folderMatches && !changedOnly) return [node]
+    // A matching folder name must not reintroduce unchanged articles into the filter.
+    const children = filterLibraryTree(node.children, folderMatches ? '' : query, changedOnly)
+    return children.length ? [{ ...node, children, count: countLibraryArticles(children), changedCount: countChangedLibraryArticles(children), changeIssueCount: countLibraryChangeIssues(children) }] : []
   })
 }
 
 export function countLibraryArticles(nodes: LibraryNode[]): number {
   return nodes.reduce((total, node) => total + (node.kind === 'article' ? 1 : countLibraryArticles(node.children)), 0)
+}
+
+export function countChangedLibraryArticles(nodes: LibraryNode[]): number {
+  return nodes.reduce((total, node) => total + (node.kind === 'article' ? Number(!!node.entry.changes?.changed) : node.changedCount), 0)
+}
+
+export function countLibraryChangeIssues(nodes: LibraryNode[]): number {
+  return nodes.reduce((total, node) => total + (node.kind === 'article' ? Number(!!node.entry.changes?.issue) : node.changeIssueCount), 0)
 }
 
 /** Exclude article bundles, assets and the moving directory's own subtree from folder choices. */

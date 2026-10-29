@@ -2,6 +2,7 @@ type StartupPhase = 'idle' | 'starting' | 'ready' | 'failed'
 
 /** Show the reader before loading its profile, credentials, or article library. */
 export function createStartup(options: {
+  registerProtocols?: () => void
   openWindow: () => void | Promise<unknown>
   initialize: () => Promise<void>
 }) {
@@ -21,6 +22,9 @@ export function createStartup(options: {
     phase = 'starting'
     running = (async () => {
       try {
+        // Chromium snapshots protocol handlers when a page navigates. Register
+        // before opening the first window, while slow profile loading stays later.
+        options.registerProtocols?.()
         await options.openWindow()
         await options.initialize()
         phase = 'ready'

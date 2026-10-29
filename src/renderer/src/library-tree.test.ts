@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { LibraryFolder } from '../../shared/library'
 import type { LibraryEntry } from '../../shared/types'
-import { buildLibraryTree, countLibraryArticles, filterLibraryTree, libraryDestinations, libraryErrorCopy, libraryName, libraryParent, libraryRelative, libraryWithin, parseArticleTitles, sameLibraryPath, type LibraryNode } from './library-tree'
+import { buildLibraryTree, countChangedLibraryArticles, countLibraryArticles, countLibraryChangeIssues, filterLibraryTree, libraryDestinations, libraryErrorCopy, libraryName, libraryParent, libraryRelative, libraryWithin, normalizeLibrarySort, parseArticleTitles, sameLibraryPath, type LibraryNode } from './library-tree'
 
 const entry = (path: string, title = path, archived = false): LibraryEntry => ({ path, title, folder: '.', zhPath: null, archived })
 const folder = (path: string, archived = false): LibraryFolder => ({ path, name: libraryName(path), parentPath: libraryParent(path), archived })
@@ -37,12 +37,59 @@ describe('real folder library tree', () => {
     expect(articles(nodes)).toEqual(['/library/images/readme.md'])
   })
 
-  it('separates archive view and keeps source order among article siblings', () => {
+  it('separates archive view and preserves source order when manual sorting is selected', () => {
     const entries = [entry('/library/series/b.md', 'B'), entry('/library/Archive/old/article.md', 'Old', true), entry('/library/series/a.md', 'A')]
     const folders = [folder('/library/series'), folder('/library/Archive', true), folder('/library/Archive/old', true)]
-    expect(articles(buildLibraryTree('/library', entries, folders))).toEqual(['/library/series/b.md', '/library/series/a.md'])
+    expect(articles(buildLibraryTree('/library', entries, folders, false, 'manual'))).toEqual(['/library/series/b.md', '/library/series/a.md'])
     expect(articles(buildLibraryTree('/library', entries, folders, true))).toEqual(['/library/Archive/old/article.md'])
     expect(buildLibraryTree('/library', entries, folders, true)[0]).toMatchObject({ kind: 'article', bundlePath: '/library/Archive/old' })
+  })
+
+  it('defaults to natural file and bundle names instead of H1 titles or stored manual order', () => {
+    const entries = [entry('/library/10-finish/article.md', 'A finish'), entry('/library/2-review/article.md', 'Z review'), entry('/library/1-start/article.md', 'M start')]
+    const folders = [folder('/library/10-finish'), folder('/library/2-review'), folder('/library/1-start')]
+    const original = structuredClone(entries)
+    expect(articles(buildLibraryTree('/library', entries, folders))).toEqual(['/library/1-start/article.md', '/library/2-review/article.md', '/library/10-finish/article.md'])
+    expect(entries).toEqual(original)
+    expect(articles(buildLibraryTree('/library', entries, folders, false, 'manual'))).toEqual(entries.map((item) => item.path))
+  })
+
+  it('sorts names descending while retaining folders before article rows at every depth', () => {
+    const entries = [entry('/library/2-series/part2.md'), entry('/library/2-series/part10.md'), entry('/library/1-series/intro.md'), entry('/library/9-loose.md'), entry('/library/10-loose.md')]
+    const folders = [folder('/library/1-series'), folder('/library/2-series')]
+    const nodes = buildLibraryTree('/library', entries, folders, false, 'name-desc')
+    expect(nodes.map((node) => node.kind === 'folder' ? node.name : libraryName(node.path))).toEqual(['2-series', '1-series', '10-loose.md', '9-loose.md'])
+    expect(articles(nodes).slice(0, 2)).toEqual(['/library/2-series/part10.md', '/library/2-series/part2.md'])
+  })
+
+  it('offers explicit title sorting without rewriting the file names or saved order', () => {
+    const entries = [entry('/library/first.md', 'Zebra'), entry('/library/last.md', 'Apple 10'), entry('/library/middle.md', 'Apple 2')]
+    const original = structuredClone(entries)
+    expect(articles(buildLibraryTree('/library', entries, [], false, 'title'))).toEqual(['/library/middle.md', '/library/last.md', '/library/first.md'])
+    expect(entries).toEqual(original)
+    expect(articles(buildLibraryTree('/library', entries, [], false, 'manual'))).toEqual(entries.map((item) => item.path))
+  })
+
+  it('keeps the selected natural order in filtered results and archived bundles', () => {
+    const entries = [entry('/library/Archive/10-chapter/article.md', 'Chapter 1', true), entry('/library/Archive/2-chapter/article.md', 'Chapter 2', true)]
+    const folders = [folder('/library/Archive', true), folder('/library/Archive/10-chapter', true), folder('/library/Archive/2-chapter', true)]
+    const nodes = buildLibraryTree('/library', entries, folders, true)
+    expect(articles(filterLibraryTree(nodes, 'chapter'))).toEqual(['/library/Archive/2-chapter/article.md', '/library/Archive/10-chapter/article.md'])
+    expect(articles(buildLibraryTree('/library', entries, folders, true, 'name-desc'))).toEqual(entries.map((item) => item.path))
+  })
+
+  it('uses the same natural bundle order for Windows paths', () => {
+    const entries = [entry('C:\\资料\\10-结束\\article.md', 'A'), entry('c:/资料/2-审阅/article.md', 'Z')]
+    const folders = [folder('C:\\资料\\10-结束'), folder('C:\\资料\\2-审阅')]
+    expect(articles(buildLibraryTree('C:\\资料', entries, folders))).toEqual([entries[1].path, entries[0].path])
+  })
+
+  it('falls back to name order for old or invalid saved preferences', () => {
+    expect(normalizeLibrarySort(undefined)).toBe('name-asc')
+    expect(normalizeLibrarySort('outdated-value')).toBe('name-asc')
+    expect(normalizeLibrarySort('name-desc')).toBe('name-desc')
+    expect(normalizeLibrarySort('title')).toBe('title')
+    expect(normalizeLibrarySort('manual')).toBe('manual')
   })
 
   it('rejects paths outside the opened folder and prefix lookalikes', () => {
@@ -71,6 +118,63 @@ describe('real folder library tree', () => {
     expect(sameLibraryPath('C:\\资料\\系列', 'c:/资料/系列/')).toBe(true)
     expect(sameLibraryPath('/Library', '/library')).toBe(false)
     expect(libraryRelative('\\\\server\\share', '\\\\SERVER\\share\\文章\\a.md')).toBe('文章/a.md')
+  })
+
+  it('counts changed articles through nested and collapsed bundle folders without changing name order', () => {
+    const changed = (path: string, translation = false): LibraryEntry => ({ ...entry(path), changes: { changed: true, source: !translation, translation } })
+    const entries = [changed('/library/series/10-last/article.md'), entry('/library/series/2-middle/article.md'), changed('/library/series/1-first/article.md', true)]
+    const folders = [folder('/library/series'), ...entries.map((item) => folder(libraryParent(item.path)))]
+    const nodes = buildLibraryTree('/library', entries, folders)
+    expect(nodes[0]).toMatchObject({ kind: 'folder', count: 3, changedCount: 2, changeIssueCount: 0 })
+    expect(countChangedLibraryArticles(nodes)).toBe(2)
+    expect(articles(nodes)).toEqual(['/library/series/1-first/article.md', '/library/series/2-middle/article.md', '/library/series/10-last/article.md'])
+    const filtered = filterLibraryTree(nodes, 'series', true)
+    expect(articles(filtered)).toEqual(['/library/series/1-first/article.md', '/library/series/10-last/article.md'])
+    expect(filtered[0]).toMatchObject({ count: 2, changedCount: 2 })
+    expect(articles(nodes)).toHaveLength(3)
+  })
+
+  it('combines the changed filter with title search and omits unchanged empty directories', () => {
+    const entries: LibraryEntry[] = [
+      { ...entry('/library/series/a.md', 'First draft'), changes: { changed: true, source: true, translation: false } },
+      { ...entry('/library/series/b.md', 'Second draft'), changes: { changed: true, source: false, translation: true } },
+      entry('/library/series/c.md', 'Third draft')
+    ]
+    const nodes = buildLibraryTree('/library', entries, [folder('/library/series'), folder('/library/empty')])
+    expect(articles(filterLibraryTree(nodes, 'second', true))).toEqual(['/library/series/b.md'])
+    expect(filterLibraryTree(nodes, 'second', true)[0]).toMatchObject({ count: 1, changedCount: 1 })
+    expect(filterLibraryTree(nodes, 'empty', true)).toEqual([])
+    expect(filterLibraryTree(nodes, 'third', true)).toEqual([])
+    expect(countLibraryArticles(filterLibraryTree(nodes, '', true))).toBe(2)
+  })
+
+  it('keeps changed counts scoped to active or archived articles and preserves manual order', () => {
+    const entries: LibraryEntry[] = [
+      { ...entry('/library/b.md'), changes: { changed: true, source: true, translation: false } },
+      { ...entry('/library/a.md'), changes: { changed: true, source: false, translation: true } },
+      { ...entry('/library/Archive/old/article.md', 'Old', true), changes: { changed: true, source: true, translation: true } }
+    ]
+    const folders = [folder('/library/Archive', true), folder('/library/Archive/old', true)]
+    const active = buildLibraryTree('/library', entries, folders, false, 'manual')
+    const archived = buildLibraryTree('/library', entries, folders, true)
+    expect(countChangedLibraryArticles(active)).toBe(2)
+    expect(countChangedLibraryArticles(archived)).toBe(1)
+    expect(articles(filterLibraryTree(active, '', true))).toEqual(['/library/b.md', '/library/a.md'])
+    expect(articles(filterLibraryTree(archived, '', true))).toEqual(['/library/Archive/old/article.md'])
+  })
+
+  it('preserves check failures separately from confirmed changes, including in collapsed folders', () => {
+    const entries: LibraryEntry[] = [
+      { ...entry('/library/series/unknown.md', 'Unknown'), changes: { changed: false, source: false, translation: false, issue: 'UNREADABLE_BASELINE' } },
+      { ...entry('/library/series/changed.md', 'Changed'), changes: { changed: true, source: true, translation: false } }
+    ]
+    const nodes = buildLibraryTree('/library', entries, [folder('/library/series')])
+    expect(nodes[0]).toMatchObject({ count: 2, changedCount: 1, changeIssueCount: 1 })
+    expect(countLibraryChangeIssues(nodes)).toBe(1)
+    const found = filterLibraryTree(nodes, 'unknown')
+    expect(countChangedLibraryArticles(found)).toBe(0)
+    expect(countLibraryChangeIssues(found)).toBe(1)
+    expect(articles(filterLibraryTree(nodes, '', true))).toEqual(['/library/series/changed.md'])
   })
 
   it('offers real destination folders excluding bundles, auxiliary directories, archives, and own descendants', () => {

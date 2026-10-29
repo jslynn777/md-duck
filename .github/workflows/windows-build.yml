@@ -109,6 +109,11 @@ jobs:
         run: |
           npm run verify:startup:win 2>&1 | Tee-Object release/validation/startup.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify packaged change review and offline edits
+        timeout-minutes: 4
+        run: |
+          node scripts/verify-change-review.cjs --app-root 'release/win-unpacked' --output 'release/validation/packaged-change-review' 2>&1 | Tee-Object release/validation/packaged-change-review.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install into a path with Chinese characters and spaces
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
@@ -130,6 +135,11 @@ jobs:
             & (Join-Path $env:MD_DUCK_TEST_INSTALL_DIR 'MD Duck.exe') scripts/verify-speech-offline.cjs (Join-Path $env:MD_DUCK_TEST_INSTALL_DIR 'resources/app.asar') $env:MD_DUCK_TEST_MODEL_CACHE 2>&1 | Tee-Object release/validation/installed-offline-speech.log
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
+      - name: Verify change review in the installed application
+        timeout-minutes: 4
+        run: |
+          node scripts/verify-change-review.cjs --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" --output 'release/validation/installed-change-review' 2>&1 | Tee-Object release/validation/installed-change-review.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Uninstall the test copy
         if: always() && env.MD_DUCK_TEST_INSTALL_DIR != ''
         run: |
@@ -146,6 +156,8 @@ jobs:
           This is a validation artifact, not a GitHub Release or a public download launch.
           Tests cover Windows execution, isolated profile persistence, NSIS silent install,
           archive payloads, packaged native dependencies and offline synthesis with all five voices.
+          Packaged and installed readers also verify source/translation change markers, filtering,
+          explicit review confirmation, offline edits and pending-review persistence after restart.
           Verification explicitly downloads the pinned model; ordinary startup does not download it.
           Portable payload integrity is checked; its interactive launcher has not been tested.
           Redistribution notices and corresponding-source records are verified separately.
@@ -155,7 +167,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-x64-validation-${{ github.run_id }}
-          path: release/validation/*.log
+          path: |
+            release/validation/*.log
+            release/validation/*-change-review/**/*.json
+            release/validation/*-change-review/**/*.png
+            release/validation/*-change-review/**/*.log
           if-no-files-found: ignore
           retention-days: 7
       - name: Keep successful test packages

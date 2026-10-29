@@ -475,7 +475,8 @@ export function blockConvention(lang: UiLang) {
   if (lang === 'zh') {
     return `请在发布稿 article.md 和中文稿 article.zh.md 里使用相同的块标记。
 标记写成 HTML 注释，单独放在段落、标题、列表项、图片、表格或代码块之前，前后各空一行：
-<!-- block:短名称 -->
+<!-- block:intro -->
+标记名只能使用英文字母、数字、下划线和连字符；同一文件内不重复，两份稿子使用相同顺序。
 修改已有段落时保留原标记。只有新段落才新增标记。不要删除、改名，也不要把标记写进代码块。`
   }
   return `Use the same block markers in article.md and article.zh.md.
