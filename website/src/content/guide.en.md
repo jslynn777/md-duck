@@ -30,11 +30,43 @@ Choose **Open folder** or **Open a file** in MD Duck, or drop a Markdown file in
 
 For a first look, choose **Open example**. You can also download the [bilingual sample article](/examples/a-slower-morning.zip), unzip it, and open `article.md`.
 
-Keep using your preferred editor to change the text. MD Duck refreshes the reading view when you save. Use **Typography** to adjust text size, and **Settings** to change the interface language.
+Keep using your preferred AI or editor to change the text. MD Duck refreshes the reading view when you save. Use **Typography** to adjust text size, and **Settings** to change the interface language.
+
+<h2 id="review-workflow">Let AI write. Read it yourself. Improve the passage.</h2>
+
+MD Duck presents your local article for reading. Write and revise with your usual AI or editor, and publish with your own CMS tools.
+
+1. **Save the first draft locally.** Give your AI the [file rules and writing prompt](#ai-workflow), with a specific library folder. If it cannot access your computer, ask for filenames and complete Markdown, then save the files yourself.
+2. **Open the article and read.** Check reasoning, wording, images and any Chinese companion in MD Duck. You do not need to create comments first.
+3. **Send the issue straight back.** Copy the passage or capture a screenshot and paste it into your AI chat. Include the article location and a concrete request: “This only says to use enough water and wait a moment. Give quantities and a way to judge the result; leave the rest unchanged.” A screenshot still needs the latest source, either through the AI's file access or text you provide.
+4. **Save, then reread.** Have the AI update the original file, or save its complete revised text yourself. Filter the sidebar by **Updated**, choose **View changes** to compare passages, then **Mark as viewed** after checking. Use **Check whole document** for bilingual structure. Use [comments](#notes) when you want to collect several issues for later.
+5. **Publish the final copy.** Use the [publishing handoff prompt](#ai-workflow) with an AI authorized to use your CMS. Check its preview and confirm publication before it goes live, or publish yourself. Check the public page and keep the final local text, translation and assets.
+
+Copy text with `⌘ C` on Mac or `Ctrl C` on Windows. On Mac, use `⇧ ⌘ 4` to capture a region and drag the saved image into your chat; hold `Control` while capturing to copy it to the clipboard. On Windows, use `Win Shift S`, then paste. If your AI does not support images, copy the text instead.
+
+This workflow needs no AI key in MD Duck. MD Duck does not edit article text, connect to a CMS or publish; you send excerpts or screenshots to your external AI yourself. Save copies before rewriting or use version control if you want to keep the first draft and every revision.
+
+<h2 id="changes">Find what your AI changed, then review it</h2>
+
+A saved file does not mean you have read its new contents. MD Duck compares the current original and translation separately against your last confirmed version. Saving the same contents again does not create an alert.
+
+1. **Find the article.** The sidebar marks it **Updated** and shows a count beside its folder. Select **Updated** to show unreviewed changes within **All** or **Archived**. Search and your selected sort order still apply.
+2. **Read the comparison.** The article banner tells you whether the original, translation or both have changed. Choose **View changes** for paragraph comparisons, move to the previous or next change, or locate it in the article. Deleted text stays visible in the comparison.
+3. **Confirm when ready.** Choose **Mark as viewed** after checking the revision. Opening, switching or closing an article does not clear its marker. Confirmation also leaves the article's review progress unchanged.
+
+**The first check creates a starting point.** When the updated app first encounters an article, it saves the current contents as its initial snapshot. It does not flag your entire existing library or recover revisions made before installation. Later edits made while MD Duck is closed can be detected when you reopen the library.
+
+Only the last confirmed version is kept locally for your next review; this is not a full version history. Save separate copies or use version control to keep every draft. Moving, archiving and restoring continue to use your existing folder workflow. Keep the hidden `.mdduck/` and `.review/` folders when organizing or backing up the library.
 
 <h2 id="library">Organize series and archives in local folders</h2>
 
 The directory tree shows real folders on disk. Add, edit, move or rename files in Finder or Windows File Explorer and MD Duck updates. Organizing in the app changes the local files too, so you do not need a second set of categories.
+
+### Keep a few files together; group a larger series
+
+MD Duck follows your local folders and does not classify articles automatically. To read one draft, choose **Open a file**. A few unrelated files such as `ideas.md` and `notes.md` can share a folder. For ten or more articles, create a series folder and use `01-`, `02-` and so on to show their reading order.
+
+An article with images or a translation benefits from its own folder: keep `article.md`, optional `article.zh.md` and `assets/` together for moving and storage. A single-language article needs no empty companion. To change one passage, send the screenshot or excerpt to your AI and save the same file before continuing. Archive a finished article or series and restore it when needed.
 
 ### Create a series of drafts
 
@@ -46,16 +78,18 @@ For example:
 
 ```text
 Articles/
-  Christmas ribbon guide/
-    How to choose ribbon/
+  01-home-coffee-guide/
+    01-first-brew/
       article.md
       article.zh.md
       assets/
-    Prepare artwork files/
+    02-find-your-flavor/
       article.md
 ```
 
-Existing files do not need to follow this layout. Search by title or path. Use an article’s **…** menu to **Move up** or **Move down**, or **Set progress** to Writing, To review or Final. Order and progress stay with the library without changing the article text or requiring numbered filenames.
+Existing files do not need to follow this layout. Search by title or path. Use an article’s **…** menu to **Set progress** to Writing, To review or Final. Order and progress stay with the library without changing the article text.
+
+**Sorting control:** the sidebar offers name ascending, name descending, article title and manual order. The default is natural folder/file name order, so `2` comes before `10`. An article in its own folder uses the folder name for sorting, even if every source is called `article.md`. To arrange an editorial sequence, select manual order before using **Move up / Move down**. Your choice is saved on this computer and also applies when filtering by **Updated**.
 
 ### Move, rename and archive
 
@@ -110,9 +144,9 @@ The check reports duplicate markers, markers without content or a matching marke
 
 The check only reads files and preserves your current reading view. It does not assign pairs, add markers or rewrite the original or translation. Save changes in your editor, then check again. **Matching structure does not establish translation accuracy**; compare meanings with the original yourself.
 
-<h2 id="notes">Leave a note where a change is needed</h2>
+<h2 id="notes">Use comments when you want to collect changes</h2>
 
-Select a sentence, choose **Note**, write your comment, and save. Open **Notes** in the toolbar to see the article’s comments together.
+You can send a screenshot or copied passage straight to your AI. To finish reading before revising, or keep track of several rounds, select a sentence, choose **Note**, write a comment and save. The shortcut is `Option + Enter` on Mac and `Alt + Enter` on Windows. Open **Notes** in the toolbar to see the article's comments together.
 
 - Click a quotation to return to its English or Chinese source.
 - Click the pencil to edit a comment. Unfinished changes are kept as local drafts.

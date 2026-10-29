@@ -1,0 +1,70 @@
+90-second captioned walkthrough, without audio. Arranged from actual Mac reader captures. External AI requests and publishing handoff are examples; no article was published to a real website.
+
+00:00:00  Write first. Then read closely.
+Use any AI to prepare local Markdown.
+
+An AI with file access can save it. With a chat-only tool, you save the files yourself.
+AI writes → MD Duck reads → AI revises → you approve publication
+
+00:00:09  A few drafts? Keep it simple.
+Put a few .md files in a folder.
+Open that folder in MD Duck.
+
+You do not need an elaborate filing system to start reading.
+Create a local folder, then choose Open Folder in MD Duck.
+
+00:00:18  Give a series its own folder.
+One folder per series.
+One subfolder per article.
+
+Use clear names and 01-, 02- prefixes for your intended order. You decide the categories.
+The same file organization works on Mac and Windows.
+
+00:00:27  Keep images with the article.
+article.md holds the source.
+article.zh.md is an optional translation.
+
+Keep images in assets/ with relative paths. Move and back up the whole folder.
+Example: ![Image description](assets/detail.svg)
+
+00:00:36  This paragraph needs detail.
+Copy the passage, or capture it.
+
+Mac: ⌘ C / ⇧ ⌘ 4
+Windows: Ctrl C / Win ⇧ S
+
+Tell your AI which article it belongs to.
+“Tell the supplier what you need and ask for a quote.”
+
+00:00:45  Ask for a specific change.
+EXAMPLE REVISION REQUEST
+
+“Explain which details to provide: product, size, quantity, delivery city and date. Do not invent facts. Update the Chinese version too.”
+A request for your external AI. MD Duck does not edit the text.
+
+00:00:54  Save. Return. Read again.
+Let an AI with file access save the changes, or save the complete files yourself.
+
+Return to MD Duck and reread the revised passage after it refreshes.
+Verified in the demo: saving both files refreshed the reader.
+
+00:01:03  Check both languages.
+Compare the meaning.
+Check the whole document for pairing issues.
+
+Matching structure is not proof of an accurate translation. Comments are optional.
+Both sample versions passed the 8 / 8 structure check.
+
+00:01:12  Approve before publishing.
+EXAMPLE PUBLISHING HANDOFF
+
+Give your approved files to an AI with backend access. Review the preview and explicitly authorize publication.
+
+MD Duck does not publish articles.
+No real backend was connected. No sample article was published.
+
+00:01:21  Keep a local source copy.
+Retain the article, translation and images.
+
+Archive finished work in MD Duck; restore it when it needs an update. Back up the complete library regularly.
+Download the sample library and try the workflow at your own pace.

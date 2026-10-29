@@ -34,8 +34,10 @@ npm run preview
 - `src/i18n.ts`：语言类型和页面路径转换。
 - `/404.html`、`/en/404/`：中文与英文错误页面；实际未知地址的回落行为见部署说明。
 - `src/data/release.ts`：唯一的版本号、仓库地址和安装包配置入口。
-- `public/examples/a-slower-morning.zip`：原创双语示例，供访客体验对照阅读；当前 JPG 截图展示的是程序内置 Christmas Ribbon 示例。
-- `ASSETS.md`：真实程序截图的来源、拍摄条件和限制。
+- `public/examples/md-duck-starter.zip`：包含两篇原创双语文章、图片和说明的练习文章库；当前 JPG 截图展示的是程序内置 Christmas Ribbon 示例。旧单篇示例地址继续保留。
+- `HomeWalkthrough.astro`：首页五步操作教程，包含 Mac / Windows 提示、练习文件与可复制的 AI 写作/修改规范。
+- `src/styles/global.css`、`home.css`、`pages.css`：米白纸张与红色批注的共用样式。
+- `ASSETS.md`：真实程序截图、原创装饰与自托管字体的来源和限制。
 
 页面右上角的语言入口会打开当前页面的另一语言版本，例如 `/guide/` 对应 `/en/guide/`。站点使用静态链接，不保证保留地址中的片段（如 `#ai-setup`）或当前滚动位置。指南图片和示例 ZIP 由两种语言共用。
 
@@ -54,3 +56,13 @@ npm run preview
 参见 [DEPLOYMENT.md](DEPLOYMENT.md)。当前产物可以上传到用户自有服务器；没有创建外部托管项目，也没有改动域名解析。
 
 构建检查覆盖 8 个 HTML 页面：6 个中英文正文页面和 2 个错误页面。验证范围包括文档语言、对应页面的语言切换、站内链接与锚点、静态资源、标题层级、描述和 canonical；6 个正文页面还检查 `zh-CN`、`en`、`x-default` 的 hreflang 与站点地图，错误页面检查 `noindex`。双语发布状态、安装包平台/版本/大小/校验值一致性、指南共享锚点和示例包也纳入检查。安装包可独立部署到服务器的 `downloads/` 目录，构建检查只验证其 URL 和元数据，实际 HTTP 响应、完整字节与哈希由发布步骤验收。这些检查不替代真实服务器上的 HTTPS、域名、404 HTTP 状态与下载验证。
+
+
+### Practical workflow examples
+
+The bilingual homepage includes six usage scenarios and seven actual beta.6 reader captures, plus a 90-second captioned video in each language. The downloadable workflow library contains eleven articles, per-article assets, before/after reference snapshots, and bilingual instructions/prompts. Open the extracted `library/`, not the package root.
+
+- Build both example ZIPs: included in `npm run build`.
+- Refresh videos manually: `python3 scripts/build-workflow-video.py` with Pillow and ffmpeg available. The site build itself does not need these tools.
+- Screenshots and media provenance: `ASSETS.md`.
+- Publication steps describe handing approved files to an external tool; MD Duck remains a reader and reviewer.

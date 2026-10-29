@@ -1,0 +1,161 @@
+---
+import type { Locale } from '../i18n';
+import { getAuthoringPrompt, getRevisionPrompt, getExcerptRevisionPrompt, getPublishingPrompt } from '../../../src/shared/authoring-guide';
+import { localizePath } from '../i18n';
+import '../styles/workflow.css';
+interface Props { lang: Locale }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const steps = en ? [
+  ['Write & open', 'Keep writing with your own AI.', 'Ask it to save Markdown into a local folder. If it cannot access files, save its answer yourself. Open your article library in MD Duck and choose an article. For this downloaded example, select the library folder inside the extracted files.'],
+  ['Read closely', 'Notice what the article leaves unclear.', 'Read at a comfortable size, with a translation if you have one. Our sample says “Tell the supplier what you need” without explaining which details to include. Select the passage or capture a screenshot.'],
+  ['Ask for a revision', 'Take that passage to your AI conversation.', 'Paste the text or attach the screenshot. Include the article filename and a concrete request: add the product, size, quantity, delivery city and required date, using placeholders for unknown facts. Ask it to update both languages and preserve the block IDs.'],
+  ['Check the revision', 'Save the files, then read them again.', 'Your AI can update files if it has access; otherwise save its revised text yourself. Keep the files in the same location. MD Duck refreshes after saving. Check the revised paragraph, translation and images. Repeat if anything still needs work.'],
+  ['Publish & retain', 'Hand off only the version you approve.', 'When you are happy, ask an external AI with backend access to prepare publication, or publish it yourself. Confirm the destination and final content. Keep the local article folder as your source, even after it goes live. MD Duck itself does not publish.'],
+] : [
+  ['写好并打开', '继续用你熟悉的 AI 写。', '让 AI 把 Markdown 保存到本地文章文件夹。AI 没有文件权限时，由你保存它返回的内容。在 MD Duck 中打开文章库，点一篇文章开始阅读。使用这套演示时，解压后选择里面的 library 文件夹。'],
+  ['认真阅读', '找到还没有说清楚的地方。', '调到舒服的字号，有译文时可以对照阅读。例如演示文章只说「告诉供应商你的需求」，却没有解释要写清哪些信息。选中这一段，或给它截一张图。'],
+  ['交给 AI 改', '在原来的 AI 对话里继续修改。', '粘贴原文或附上截图，补充文章文件名和具体要求：说明产品、规格、数量、收货城市和期望日期，未知信息用占位符，不要编造。让它同步更新中英文，并保留段落标记。'],
+  ['保存后复核', '保存到原位置，回来再读一遍。', '有文件权限的 AI 可以直接更新文件；否则由你保存它返回的修改。MD Duck 会在保存后更新。检查改后的段落、译文和图片，不满意就继续这轮来回。'],
+  ['发布与留存', '只把你确认好的版本交出去。', '文章满意后，让有后台权限的外部 AI 准备发布，或自己操作。确认目标位置和最终内容；发布后仍保留本地文章文件夹。MD Duck 本身只负责阅读，不会替你发布。'],
+];
+const platformNotes = en ? {
+  mac: ['Mac: unzip in Finder, then use File → Open Folder (⌘ O) to select library.', 'Mac: select and copy with ⌘ C, or capture with Shift ⌘ 4.', 'Mac: paste with ⌘ V, or attach the screenshot to your AI conversation.', 'Mac: save in your editor with ⌘ S, then return to MD Duck.', 'Mac: reveal the article in Finder from its ⋯ menu. Back up the complete folder.'],
+  windows: ['Windows: use Extract All, then File → Open Folder (Ctrl O) to select library.', 'Windows: select and copy with Ctrl C, or capture with Win Shift S.', 'Windows: paste with Ctrl V. Paste the screenshot too if the AI chat accepts images.', 'Windows: save with Ctrl S, then return to MD Duck.', 'Windows: reveal the article in File Explorer from its ⋯ menu. Back up the complete folder.'],
+} : {
+  mac: ['Mac：在 Finder 中解压，再按 ⌘ O 选择 library 文件夹。', 'Mac：选中原文按 ⌘ C，或用 Shift ⌘ 4 截取这一段。', 'Mac：按 ⌘ V 粘贴原文，或把截图文件附到 AI 对话里。', 'Mac：在编辑器按 ⌘ S 保存，再回到 MD Duck。', 'Mac：用文章的「⋯」菜单在 Finder 中显示；备份时保留整个文件夹。'],
+  windows: ['Windows：在文件资源管理器中「全部解压缩」，再按 Ctrl O 选择 library 文件夹。', 'Windows：选中原文按 Ctrl C，或用 Win Shift S 截取这一段。', 'Windows：按 Ctrl V 粘贴原文；AI 对话支持时也可以直接贴入截图。', 'Windows：在编辑器按 Ctrl S 保存，再回到 MD Duck。', 'Windows：用文章的「⋯」菜单在文件资源管理器中显示；备份时保留整个文件夹。'],
+};
+---
+<section class="guide-start" id="quickstart" aria-labelledby="quickstart-title">
+  <p class="eyebrow">{en ? 'Try the whole workflow' : '先走一遍完整流程'}</p>
+  <h2 id="quickstart-title">{en ? 'Write → read → revise → review → publish.' : '先读一遍，再放心发布。'}</h2>
+  <p>{en ? 'MD Duck reads the files on your computer. Write and revise with your own AI, use MD Duck to read and check, then publish through your own tools. No MD Duck account or AI key in the reader is needed.' : 'MD Duck 直接读取你电脑里的文件。你常用的 AI 负责写和改，你在这里阅读、判断，再用自己的工具发布。这套流程无需注册 MD Duck 账号，也不要求在阅读器里填 AI 密钥。'}</p>
+  <div class="guide-start-actions">
+    <a class="button button-dark" href="/examples/md-duck-workflow.zip" download>{en ? 'Download this workflow example' : '下载这套演示文件'} <span aria-hidden="true">↓</span></a>
+    <a class="text-link" href="#ai-workflow">{en ? 'Give the rules to your AI' : '把规则交给你的 AI'}</a>
+  </div>
+  <p class="guide-small">{en ? 'Includes the before-and-after sample article, revision instructions and a publishing handoff. Unzip first. Try these demo files before using your own drafts.' : '内含修改前后文章、修改要求和发布交接示例。先解压，用演示文件走一遍，再用于自己的草稿。'}</p>
+  <div class="guide-demo" data-guide-demo data-lang={lang}>
+    <div class="guide-demo-top">
+      <span>{en ? 'Five steps · real Mac captures · Windows instructions included' : '五步操作 · Mac 实际截图 · 附 Windows 用法'}</span>
+      <fieldset class="guide-platform">
+        <legend class="sr-only">{en ? 'Your operating system' : '你使用的系统'}</legend>
+        <label><input type="radio" name="guide-platform" value="mac" checked /><span>Mac</span></label>
+        <label><input type="radio" name="guide-platform" value="windows" /><span>Windows</span></label>
+      </fieldset>
+    </div>
+    <ol class="guide-step-list" aria-label={en ? 'Workflow steps' : '操作步骤'}>
+      {steps.map((step, i) => <li><button type="button" data-guide-step={i} aria-controls={`guide-step-${i}`} aria-current={i === 0 ? 'step' : undefined}><span>{String(i + 1).padStart(2, '0')}</span>{step[0]}</button></li>)}
+    </ol>
+    <div class="guide-scenes">
+      {steps.map((step, i) => <section id={`guide-step-${i}`} class="guide-scene" data-guide-panel={i} aria-labelledby={`guide-step-title-${i}`}>
+        {i === 0 ? <div class="guide-scene-visual"><div class="guide-file-preview">
+          <p class="guide-file-caption">{en ? 'Example folder structure' : '目录结构示例'}</p>
+          <div class="guide-folder-row">▾ library/</div>
+          <div class="guide-folder-nested"><div>▾ 01-clearer-product-inquiry/</div><div class="guide-file">article.md</div><div class="guide-file">article.zh.md</div></div>
+          <p class="guide-file-foot">{en ? 'Unzip the example, then open its library folder in MD Duck.' : '解压演示文件，再用 MD Duck 打开其中的 library 文件夹。'}</p>
+        </div></div> : i === 1 || i === 3 ? <figure class="guide-real-capture">
+          <a href={i === 1 ? '/images/workflow/selection.jpg' : '/images/workflow/read-after.jpg'} target="_blank" rel="noopener">
+            <img src={i === 1 ? '/images/workflow/selection.jpg' : '/images/workflow/read-after.jpg'} width="1440" height="940" loading="lazy" alt={i === 1 ? (en ? 'Selecting the original paragraph in MD Duck.' : '在 MD Duck 中选中原段落。') : (en ? 'The revised bilingual article in MD Duck.' : 'MD Duck 中保存后的双语文章。')} />
+          </a><figcaption>{en ? 'Actual Mac capture. Click for full size. Windows follows the same file workflow.' : 'Mac 实际截图，点击查看原图。Windows 使用同样的文件流程。'}</figcaption>
+        </figure> : <div class="guide-handoff-example">
+          <p class="workflow-label">{i === 2 ? (en ? 'Revision instruction example' : '修改要求示例') : (en ? 'Publishing handoff example · no backend connected' : '发布交接示例 · 未连接真实后台')}</p>
+          {i === 2 ? <blockquote>{en ? '“Explain which product, size, quantity, delivery city and date to include. Use placeholders for unknown facts. Update both language files.”' : '“请说明要写清产品、规格、数量、收货城市和日期。未知信息用占位符，不要编造；同步更新中英文文件。”'}</blockquote> : <blockquote>{en ? '“Use this approved article. Show me the target and final content. After I confirm, publish and return the live URL. Keep my local files.”' : '“以这份确认好的文章为准。先给我检查目标位置和最终内容；等我确认后再发布，返回线上链接。保留本地文件。”'}</blockquote>}
+          <p>{i === 2 ? (en ? 'Include the filename and original text or screenshot.' : '附上文件名，以及原文或截图。') : (en ? 'Your external AI needs backend permissions. MD Duck does not operate your CMS.' : '外部 AI 需要后台权限。MD Duck 不会操作你的 CMS。')}</p>
+        </div>}
+        <div class="guide-scene-copy">
+          <p class="guide-step-count">{en ? `Step ${i + 1} of 5` : `第 ${i + 1} 步 / 共 5 步`}</p>
+          <h3 id={`guide-step-title-${i}`}>{step[1]}</h3>
+          <p>{step[2]}</p>
+          <p class="guide-platform-note" data-platform-note="mac">{platformNotes.mac[i]}</p>
+          <p class="guide-platform-note" data-platform-note="windows">{platformNotes.windows[i]}</p>
+        </div>
+      </section>)}
+    </div>
+    <div class="guide-demo-controls" hidden>
+      <button type="button" data-guide-prev disabled>← {en ? 'Previous' : '上一步'}</button>
+      <p data-guide-status role="status" aria-live="polite"></p>
+      <button type="button" data-guide-next>{en ? 'Next' : '下一步'} →</button>
+    </div>
+  </div>
+  <p class="guide-small">{en ? 'For several comments at once, annotations and Copy open are still available. For one passage, a screenshot or copied text is enough.' : '一次审阅多处问题时，可以用批注和「复制未完成」集中交给 AI；只改一段，截图或复制原文就够了。'}</p>
+  <a class="text-link" href={`${localizePath('/', lang)}#workflow-video`}>{en ? 'Watch the 90-second walkthrough' : '查看 90 秒图文演示'}</a>
+</section>
+<section id="file-rules" class="guide-file-rules" aria-labelledby="file-rules-title">
+  <h2 id="file-rules-title">{en ? 'Four file rules to remember.' : '记住四条文件规则就够了。'}</h2>
+  <ol>
+    <li><strong>{en ? 'Number the folders for a series.' : '系列文件夹用数字编号。'}</strong> {en ? 'Use 01-introduction, 02-materials… so the intended sequence is visible in both MD Duck and your file manager. Titles inside the articles can stay natural.' : '例如 01-认识材料、02-如何选择，让预期顺序在程序和系统文件夹里都看得见。正文标题可以正常写。'}</li>
+    <li><strong>{en ? 'Pair names in the same folder.' : '原文和译文同目录、同名配对。'}</strong> <code>article.md</code> + <code>article.zh.md</code>{en ? '. A translation is optional; other matching names such as notes.md / notes.zh.md also work.' : '。没有译文也可以读；notes.md / notes.zh.md 这样的同名组合也适用。'}</li>
+    <li><strong>{en ? 'Keep images local and markers stable.' : '图片用相对路径，段落标记保持稳定。'}</strong> {en ? 'Use assets/image.svg (forward slashes on either system). Give corresponding blocks the same unique marker, such as ' : '图片可写 assets/image.svg（两种系统都用正斜杠）。对应内容使用相同且唯一的标记，例如 '}<code>&lt;!-- block:intro --&gt;</code>{en ? '. Preserve existing IDs when revising.' : '；修改时保留已有标记名。'}</li>
+    <li><strong>{en ? 'Move and back up complete folders.' : '移动和备份时，保留整个文件夹。'}</strong> {en ? 'Include hidden .review and .mdduck data. Prefer the app’s Move or Archive actions; never ask an AI to rewrite these metadata folders. Unsaved comment drafts and app settings stay on the current computer.' : '包括隐藏的 .review 和 .mdduck 数据。整理优先用程序里的移动或归档；不要让 AI 改写这些管理目录。未保存的批注草稿和程序设置仍留在当前电脑。'}</li>
+  </ol>
+  <p class="guide-small">{en ? 'A few drafts can share one folder; use an individual article folder when it has images or a translation. For comfortable reading, adjust the font size and open only the side panel you need. Switch to a single language in a narrow window.' : '几篇草稿可以直接放在一起，有图片或译文时再给文章独立目录。阅读时调好字号，只打开当前需要的侧面板；窗口较窄时可切成单语言阅读。'}</p>
+</section>
+<section id="ai-workflow" class="guide-prompts" aria-labelledby="ai-workflow-title">
+  <h2 id="ai-workflow-title">{en ? 'Let your AI follow the same workflow.' : '让你的 AI 也懂这套流程。'}</h2>
+  <p>{en ? 'Choose a prompt, copy it and fill in your topic and requirements. An AI with file access can save the files directly; a chat-only AI should return each filename and its complete Markdown content for you to save.' : '复制对应提示词，填上你的主题和要求。有文件权限的 AI 可以直接落盘；只能聊天的 AI 会按文件名输出完整 Markdown，由你保存。'}</p>
+  {[
+    {id:'authoring', title:en?'Create an article or series':'创建文章或系列', desc:en?'Folder names, bilingual structure, local images and a final checklist.':'目录命名、双语结构、本地图片和完成检查。', text:getAuthoringPrompt(lang)},
+    {id:'excerpt', title:en?'Revise a screenshot or passage':'根据截图或原文修改', desc:en?'Attach the passage, give its filename, and say what needs changing.':'附原文或截图、文件名，再说清楚怎么改。', text:getExcerptRevisionPrompt(lang)},
+    {id:'publishing', title:en?'Hand off an approved article for publication':'把确认好的文章交接发布', desc:en?'Confirm the destination and final version; keep the local source and request the live URL.':'确认目标和最终版本，保留本地原稿，发布后返回线上链接。', text:getPublishingPrompt(lang)},
+    {id:'revision', title:en?'Optional: revise a batch of annotations':'可选：根据多条批注集中修改', desc:en?'Paste copied comments when several passages need revising together.':'需要一起改多处内容时，附上复制出的批注。', text:getRevisionPrompt(lang)},
+  ].map(item=><details class="guide-prompt" data-prompt>
+    <summary><strong>{item.title}</strong><span>{item.desc}</span></summary>
+    <label class="sr-only" for={`prompt-${item.id}`}>{item.title}</label>
+    <textarea id={`prompt-${item.id}`} readonly rows="12" spellcheck="false">{item.text}</textarea>
+    <div class="guide-copy-row"><button class="button button-light" type="button" data-copy-prompt>{en?'Copy prompt':'复制提示词'}</button><span role="status" aria-live="polite" data-copy-status></span></div>
+  </details>)}
+  <p class="guide-small">{en ? 'These prompts work with your own AI workflow. They do not connect an account, grant file permissions or send any article from this page.' : '提示词可用于你自己的 AI 工作流；这个页面不会连接账号、授予文件权限，也不会发送文章。'}</p>
+</section>
+<script>
+  const revealLinkedPrompt = () => {
+    const target = document.getElementById(window.location.hash.slice(1));
+    const details = target?.closest<HTMLDetailsElement>('[data-prompt]');
+    if (details) { details.open = true; details.scrollIntoView({ block: 'start' }); }
+  };
+  revealLinkedPrompt();
+  window.addEventListener('hashchange', revealLinkedPrompt);
+  for (const demo of document.querySelectorAll<HTMLElement>('[data-guide-demo]')) {
+    const buttons = Array.from(demo.querySelectorAll<HTMLButtonElement>('[data-guide-step]'));
+    const panels = Array.from(demo.querySelectorAll<HTMLElement>('[data-guide-panel]'));
+    const previous = demo.querySelector<HTMLButtonElement>('[data-guide-prev]')!;
+    const next = demo.querySelector<HTMLButtonElement>('[data-guide-next]')!;
+    const status = demo.querySelector<HTMLElement>('[data-guide-status]')!;
+    const en = demo.dataset.lang === 'en';
+    let step = 0;
+    const render = (index: number) => {
+      step = Math.max(0, Math.min(panels.length - 1, index));
+      panels.forEach((panel, i) => { panel.hidden = i !== step; });
+      buttons.forEach((button, i) => { if (i === step) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current'); });
+      previous.disabled = step === 0;
+      next.disabled = step === panels.length - 1;
+      status.textContent = en ? `Step ${step + 1} of ${panels.length}` : `第 ${step + 1} 步 / 共 ${panels.length} 步`;
+    };
+    const platform = () => {
+      const selected = demo.querySelector<HTMLInputElement>('input[name="guide-platform"]:checked')!.value;
+      demo.querySelectorAll<HTMLElement>('[data-platform-note]').forEach(note => { note.hidden = note.dataset.platformNote !== selected; });
+    };
+    buttons.forEach((button, index) => button.addEventListener('click', () => render(index)));
+    previous.addEventListener('click', () => render(step - 1));
+    next.addEventListener('click', () => render(step + 1));
+    demo.querySelectorAll('input[name="guide-platform"]').forEach(input => input.addEventListener('change', platform));
+    demo.querySelector<HTMLElement>('.guide-demo-controls')!.hidden = false;
+    render(0); platform();
+  }
+  for (const prompt of document.querySelectorAll<HTMLElement>('[data-prompt]')) {
+    const button = prompt.querySelector<HTMLButtonElement>('[data-copy-prompt]')!;
+    const value = prompt.querySelector<HTMLTextAreaElement>('textarea')!;
+    const status = prompt.querySelector<HTMLElement>('[data-copy-status]')!;
+    const en = document.documentElement.lang === 'en';
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(value.value);
+        status.textContent = en ? 'Copied. Paste it into your AI and fill in your requirements.' : '已复制。粘贴给你的 AI，再填上你的要求。';
+      } catch {
+        value.focus(); value.select();
+        status.textContent = en ? 'Text selected. Press ⌘ C on Mac or Ctrl C on Windows to copy.' : '已选中文字，请按 Mac 的 ⌘ C 或 Windows 的 Ctrl C 复制。';
+      }
+    });
+  }
+</script>

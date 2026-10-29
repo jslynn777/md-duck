@@ -1,0 +1,41 @@
+---
+import type { Locale } from '../i18n';
+import { localizePath } from '../i18n';
+import '../styles/usage-scenarios.css';
+interface Props { lang: Locale }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const items = en ? [
+  { title: 'A few drafts? Just open the folder.', image: 'flat-library', alt: 'Real MD Duck sidebar with several independent Markdown drafts in one folder.', situation: 'For quick notes, early drafts or articles from different AI conversations.', detail: 'Keep a few .md files together and open that folder. There is no import step and no need to design a filing system first.', path: 'My articles / inquiry.md · brief.md', link: 'open', action: 'Opening a folder' },
+  { title: 'A series deserves its own shelf.', image: 'series-library', alt: 'Real MD Duck sidebar showing article folders inside a writing series.', situation: 'For a guide, a ten-part series or several projects at once.', detail: 'Create a folder for each series, then a folder for each article. Use clear names and 01-, 02- prefixes for the order you intend. You choose the structure; MD Duck displays it.', path: 'My articles / 01-buyer-guides / 01-first-inquiry /', link: 'library', action: 'Organizing a series' },
+  { title: 'Keep the pictures with the words.', image: 'article-assets', alt: 'A local illustration rendered inside a real MD Duck article.', situation: 'For illustrated articles that you will revise, move or publish later.', detail: 'Put article.md, its optional article.zh.md and an assets folder together. Use relative image paths. Move or back up the complete article folder, including its hidden review data.', path: '01-first-inquiry / article.md + article.zh.md + assets/', link: 'file-rules', action: 'File and image rules' },
+  { title: 'One weak paragraph. One clear request.', image: 'selection', alt: 'A passage selected in the actual MD Duck reader, ready to copy or capture.', situation: 'When the article is mostly right, but one explanation needs work.', detail: 'Copy the passage or take a screenshot. Send it with the article location and your request to your AI. Save the revision, then come back to read it. Comments are useful when you want to collect several changes.', path: 'Read → copy or capture → ask for a change → reread', link: 'ai-workflow', action: 'Copy a revision prompt' },
+  { title: 'Read both versions, side by side.', image: 'read-after', alt: 'English and Chinese versions of the revised sample article in MD Duck.', situation: 'For checking a translation or understanding an English article.', detail: 'Keep the source and its companion together. Compare meaning as you read, and use the pairing check to locate structural problems. A matching structure still needs your judgment on the wording.', path: 'article.md ↔ article.zh.md', link: 'bilingual', action: 'Bilingual reading' },
+  { title: 'Finish the work. Keep the source.', image: 'archive-library', alt: 'The real MD Duck archive view showing a completed sample article.', situation: 'For separating completed articles from work in progress.', detail: 'After review, hand the approved file to your publishing tool or an authorized AI. Keep a local copy. Archive finished articles in MD Duck, and bring them back when a later revision is needed.', path: 'Review → confirm publication → retain locally → archive', link: 'library', action: 'Moving and archiving' },
+] : [
+  { title: '只有几篇？放进文件夹就能读。', image: 'flat-library', alt: 'MD Duck 真实侧栏，同一个文件夹中放着几篇独立 Markdown 草稿。', situation: '随手写的草稿、临时笔记，或不同 AI 对话里写出的文章。', detail: '先把几份 .md 文件放在一起，打开这个文件夹就能读。不必先规划复杂分类，也没有导入数据库这一步。', path: '我的文章 / inquiry.md · brief.md', link: 'open', action: '如何打开文件夹' },
+  { title: '要写一个系列，就给它一个位置。', image: 'series-library', alt: 'MD Duck 真实侧栏，系列文件夹展开后显示各篇文章。', situation: '一套十几篇的指南，或者同时进行的几个内容项目。', detail: '一个系列一个文件夹，每篇文章再单独放。用看得懂的名称和 01-、02- 序号表达顺序。分类由你决定，MD Duck 展示本地的组织方式。', path: '我的文章 / 01-采购指南 / 01-首次询价 /', link: 'library', action: '如何管理一个系列' },
+  { title: '文章和配图，放在一起才省心。', image: 'article-assets', alt: 'MD Duck 实际打开文章并显示从本地相对路径读取的插图。', situation: '带素材图、需要反复修改，之后还要发布或搬动的文章。', detail: 'article.md、可选的 article.zh.md 和 assets 图片目录放在同一个文章文件夹。图片使用相对路径，移动或备份时带走整个文件夹，也保留其中隐藏的审阅数据。', path: '01-首次询价 / article.md + article.zh.md + assets/', link: 'file-rules', action: '查看文件和图片规则' },
+  { title: '只有一段不好，就具体改这一段。', image: 'selection', alt: 'MD Duck 真实阅读界面中选中的段落，可以复制或截图交给 AI。', situation: '整篇方向没问题，但某段太空泛，或缺少一个具体例子。', detail: '直接复制原段或截图，连同文章位置和修改要求交给 AI。保存后回来读一遍。需要一次整理多处问题时，再用批注集中记录。', path: '阅读 → 复制或截图 → 提出要求 → 回来复核', link: 'ai-workflow', action: '复制局部修改提示词' },
+  { title: '两种语言，放在一起读明白。', image: 'read-after', alt: 'MD Duck 中并排显示修改后的英文文章和中文译文。', situation: '审查翻译是否准确，或者读英文文章时想看懂上下文。', detail: '原稿与译文放在一起，对照检查意思，结构不齐时用配对检查定位。结构配对正确，也仍然需要你判断措辞和内容。', path: 'article.md ↔ article.zh.md', link: 'bilingual', action: '如何双语阅读' },
+  { title: '完成的收好，原稿一直在。', image: 'archive-library', alt: 'MD Duck 真实已归档视图，展示完成的演示文章。', situation: '区分正在写的文章和已完成内容，以后还可以回来更新。', detail: '审阅通过后，把文件交给发布工具或获得授权的 AI 操作后台，本地保留原稿。完成的文章在 MD Duck 中归档，需要更新时再恢复。', path: '审阅 → 确认发布 → 本地留存 → 归档', link: 'library', action: '了解移动与归档' },
+];
+---
+<section class="usage-scenarios" id="scenarios" aria-labelledby="scenarios-title">
+  <header class="usage-scenarios-heading">
+    <p class="editorial-folio" aria-hidden="true">04</p>
+    <h2 id="scenarios-title">{en ? 'Start simply. Find your own rhythm.' : '从随手读几篇，到有条理地写一个系列。'}</h2>
+    <p>{en ? 'You do not need one rigid workflow. Start with the files you have; add structure when it helps.' : '不用一开始就搭好一套复杂流程。先用现有文件读起来，文章多了，再按自己的习惯整理。'}</p>
+  </header>
+  <div class="usage-scenarios-grid">
+    {items.map((item, index) => <article class="usage-scenario" data-usage-scenario>
+      <header><span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><h3>{item.title}</h3></header>
+      <p class="usage-scenario-situation">{item.situation}</p>
+      <figure><a href={`/images/workflow/${item.image}.jpg`} target="_blank" rel="noopener" aria-label={en ? `Enlarge: ${item.title}` : `放大截图：${item.title}`}><img src={`/images/workflow/${item.image}.jpg`} width="1440" height="940" loading="lazy" alt={item.alt} /></a><figcaption>{en ? 'Actual MD Duck capture · click to enlarge' : 'MD Duck 实际界面 · 点击放大'}</figcaption></figure>
+      <p class="usage-scenario-detail">{item.detail}</p>
+      <p class="usage-scenario-path">{item.path}</p>
+      <a class="text-link" href={`${localizePath('/guide/', lang)}#${item.link}`}>{item.action}<span aria-hidden="true"> ↗</span></a>
+    </article>)}
+  </div>
+  <p class="usage-scenarios-footnote">{en ? 'Captured on Mac with an independent sample library, using the published beta.6 reader. Windows uses the same file workflow; its window appearance and shortcuts differ. This demonstration did not publish an article to a real website.' : '截图来自 Mac 上已发布的 beta.6 版本，使用独立演示文章库。Windows 的文件流程相同，窗口外观和快捷键有所不同。本演示没有向真实网站发布文章。'}</p>
+</section>

@@ -1,0 +1,59 @@
+---
+import type { Locale } from '../i18n';
+import { localizePath } from '../i18n';
+import '../styles/workflow.css';
+interface Props { lang: Locale }
+const { lang } = Astro.props;
+const en = lang === 'en';
+---
+<section class="workflow-case" id="workflow-case" aria-labelledby="workflow-case-title">
+  <header class="workflow-case-heading">
+    <p class="editorial-folio" aria-hidden="true">03</p>
+    <h2 id="workflow-case-title">{en ? '“This part needs more detail.”' : '“这一段，写得还不够具体。”'}</h2>
+    <p>{en ? 'Follow one small change in our sample article, A clearer product inquiry. The point is simple: you notice what is missing, and your AI does the rewriting.' : '用《写一封信息清楚的产品询价》走一遍。你在阅读中发现问题，把要求说清楚，再让你的 AI 去改。'}</p>
+  </header>
+  <div class="workflow-proof">
+    <article class="workflow-proof-column">
+      <p class="workflow-label">{en ? '01 / The original' : '01 / 读到的原句'}</p>
+      <blockquote lang="en">Tell the supplier what you need and ask for a quote.</blockquote>
+      <p>{en ? 'What exactly should the reader include? The advice stops before it becomes useful.' : '告诉供应商什么？这句话看似没错，却没有帮读者迈出下一步。'}</p>
+    </article>
+    <article class="workflow-proof-column workflow-feedback">
+      <p class="workflow-label">{en ? '02 / Your instruction' : '02 / 你给 AI 的要求'}</p>
+      <blockquote>{en ? 'Explain the product, size, quantity, delivery city and date. Use placeholders for unknown facts. Keep both languages consistent.' : '补充产品、规格、数量、收货城市和日期。未知信息用占位符，不要编造；中英文一起改。'}</blockquote>
+      <p>{en ? 'Attach the screenshot or paste the passage with its filename. Your usual AI conversation is enough.' : '附上这一段的截图或原文，再注明文件名。在你原来的 AI 对话里继续就好。'}</p>
+    </article>
+    <article class="workflow-proof-column">
+      <p class="workflow-label">{en ? '03 / The revised passage' : '03 / 改后的段落'}</p>
+      <blockquote>{en ? 'Name the product you want, its size and the quantity you need. Include the delivery city and your preferred arrival date so the supplier can quote against a clear request.' : '写明需要的产品、尺寸和数量，并注明收货城市与期望到货日期，让供应商能针对明确的要求报价。'}</blockquote>
+      <p>{en ? 'An excerpt from the revised article. Now check that the advice is specific, unknown facts remain placeholders, and the translation agrees.' : '节选自修改后的文章。回来检查：要求是否具体，未知信息是否保留为占位符，译文是否一致。'}</p>
+    </article>
+  </div>
+  <figure class="workflow-after">
+    <a href="/images/workflow/read-after.jpg" target="_blank" rel="noopener" aria-label={en ? 'Open the complete revised-article screenshot' : '打开完整的修改后文章截图'}><img src="/images/workflow/read-after.jpg" width="1440" height="940" loading="lazy" alt={en ? 'The revised product-inquiry article and its Chinese translation in the actual MD Duck reader.' : '真实 MD Duck 阅读器中，改后的产品询价文章与对应中文译文。'} /></a>
+    <figcaption>{en ? 'Back in MD Duck: review the saved revision. Actual Mac capture; the same file workflow works on Windows.' : '回到 MD Duck，复核保存后的修改。Mac 实际截图，Windows 使用相同的文件流程。'}</figcaption>
+  </figure>
+  <div class="workflow-film" id="workflow-video">
+    <div class="workflow-film-copy">
+      <p class="workflow-label">{en ? 'A 90-second captioned walkthrough' : '90 秒图文演示'}</p>
+      <h3>{en ? 'From a local draft to a publishing handoff.' : '从本地草稿，到交接发布。'}</h3>
+      <p>{en ? 'A silent, captioned walkthrough assembled from real reader captures. The AI revision request and publishing handoff are examples; no live backend is connected.' : '用真实阅读器截图编排的无声字幕演示。AI 修改要求和发布交接为示例，没有连接或发布到真实后台。'}</p>
+      <a class="text-link" href="/examples/md-duck-workflow.zip" download>{en ? 'Download the example files' : '下载演示文件，自己试一遍'} <span aria-hidden="true">↓</span></a>
+      <a class="text-link" href={`${localizePath('/guide/', lang)}#ai-workflow`}>{en ? 'Copy the prompts for your own AI' : '复制给你的 AI 的提示词'}</a>
+    </div>
+    <div class="workflow-film-player">
+      <video controls playsinline preload="none" poster="/images/workflow/video-poster.jpg" width="1920" height="1080" aria-label={en ? 'Captioned MD Duck workflow demonstration' : 'MD Duck 使用流程字幕演示'} data-workflow-video>
+        <source src={`/media/md-duck-workflow-${lang}.mp4`} type="video/mp4" />
+        <p>{en ? 'Your browser cannot play this video.' : '你的浏览器无法播放这个视频。'} <a href={`/media/md-duck-workflow-${lang}.mp4`}>{en ? 'Download the video' : '下载视频'}</a></p>
+      </video>
+      <p class="workflow-media-links"><a href={`/media/md-duck-workflow-${lang}.txt`}>{en ? 'Full transcript' : '完整文字稿'}</a><a href={`/media/md-duck-workflow-${lang}.mp4`} download>{en ? 'Download video' : '下载视频'}</a></p>
+      <details class="workflow-transcript"><summary>{en ? 'Read the text version' : '阅读文字版流程'}</summary><ol>
+        <li>{en ? 'Ask your AI to save an article as local Markdown. If it cannot access files, save the returned text yourself.' : '让 AI 把文章保存为本地 Markdown；AI 没有文件权限时，由你保存它返回的内容。'}</li>
+        <li>{en ? 'Open the article folder in MD Duck and read the original, with its translation if available.' : '在 MD Duck 打开文章文件夹，阅读原文；有译文时可以并排对照。'}</li>
+        <li>{en ? 'Copy or capture the unclear paragraph. Send it to your AI with the filename and a specific revision request.' : '把不清楚的段落复制或截图，连同文件名和具体修改要求交给你的 AI。'}</li>
+        <li>{en ? 'Save the revised files in the same location. Return to MD Duck and check the change and the translation.' : '把修改保存到原位置，回到 MD Duck 检查改后的段落和译文。'}</li>
+        <li>{en ? 'After approving the article, give an external AI access and a confirmed publishing task, or publish it yourself. Keep the local source folder.' : '确认文章后，给外部 AI 授权并确认发布任务，或自己发布。本地原文章文件夹继续留存。'}</li>
+      </ol></details>
+    </div>
+  </div>
+</section>

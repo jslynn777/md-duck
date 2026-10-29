@@ -1,130 +1,67 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import HomeWalkthrough from './HomeWalkthrough.astro';
+import WorkflowCase from './WorkflowCase.astro';
+import UsageScenarios from './UsageScenarios.astro';
 import { localizePath, type Locale } from '../i18n';
 import { release } from '../data/release';
+import '../styles/home.css';
 interface Props { lang?: Locale }
 const { lang = 'zh' } = Astro.props;
-const zh = lang === 'zh';
+const en = lang === 'en';
 const route = (path: string) => localizePath(path, lang);
 const available = release.status === 'published' && release.artifacts.length > 0;
-const copy = zh ? {
-  title: 'MD Duck — 本地 Markdown 精读与审阅',
-  description: '打开本地 Markdown，对照中英译文，把意见留在原句旁。查词、听读帮助理解，配合熟悉的编辑器修改与复核。',
-  eyebrow: '本地 Markdown 精读与审阅',
-  headline: ['读懂文章，', '把意见留在原句旁。'],
-  intro: '打开本地 Markdown，对照中英译文，查词、听读，在原句旁记录修改意见。继续用熟悉的编辑器，保存后回来复核。',
-  audience: '适合英文稿件审阅、技术文档阅读，以及边读边理解英文。',
-  how: '看看怎么用', guide: '查看使用指南', download: available ? '免费下载' : '版本与下载',
-  release: available ? `v${release.version} · Mac 苹果芯片 / Windows x64 · 免费测试版` : `v${release.version} · Mac / Windows 公开安装包准备中`,
-  previewLabel: '实际阅读与批注界面', choose: '选择界面预览', reading: '双语阅读', notes: '原文批注', zoom: '查看完整界面',
-  readingAlt: 'MD Duck 将英文文章与中文译文并排展示，保留文章的段落结构。',
-  notesAlt: 'MD Duck 的原文高亮与右侧批注关联，批注保留引用、意见和处理状态。',
-  readingCaption: '原文和译文放在同一页，保留文章结构。',
-  notesCaption: '引用、意见和处理状态一起保留，之后可以回到原句复核。',
-  workflowEyebrow: '从阅读到审阅', workflowTitle: '打开、理解、批注，再回来复核。',
-  workflow: [
-    ['按文件夹整理文章', '打开本地文章文件夹，直接按目录阅读。批量建立系列草稿，移动或归档时保留批注和译文；文件管理器中的变化也会同步。', 'library', '了解文章库管理'],
-    ['对照着理解', '有中文稿就并排阅读；读到生词，点单词看音标或听读。语境释义和生成译文按需连接 AI。', 'bilingual', '了解对照与翻译'],
-    ['把意见留在原句旁', '选中文字写批注，引用和意见一起保存。把未完成意见复制给编辑器或 AI 工具，继续修改。', 'notes', '了解原文批注'],
-    ['修改后回来复核', '在熟悉的编辑器中修改，保存后阅读界面自动更新。打开批注检查改动，解决后标记完成。', 'notes', '了解修改与复核'],
-  ],
-  sample: '下载双语示例', sampleNote: '解压后打开 article.md，试着对照阅读，并留下一条批注。',
-  localEyebrow: '阅读为主，帮助按需', localTitle: ['用自己的文件，', '配合熟悉的编辑器。'],
-  localText: '文章保存在真实文件夹里，在程序或文件管理器中整理都能同步。批注与正文分开保存；查词、听读和翻译需要时再使用。',
-  localLink: '了解数据保存与联网方式',
-  basicLabel: '无需连接 AI', basicTitle: '先读文章，写下意见',
-  basicText: '阅读、批注、已有译文对照和可用音标都能直接使用。朗读首次下载语音模型，准备好后在本机合成。',
-  aiLabel: '连接自己的 AI 服务', aiTitle: '需要时，解释与翻译',
-  aiText: '解释单词在句子里的意思，翻译选中的词句，或为文章生成中文稿。请求使用你自己的服务账户额度。',
-  aiProviders: 'OpenRouter · DeepSeek · 其他兼容服务', aiLink: '查看连接方法',
-  faqEyebrow: '开始之前', faqTitle: '把几件事说清楚。',
-  faqs: [
-    ['没有 AI 密钥，也能用吗？', '可以阅读、写批注、对照已有译文和查看可用音标。语境释义与生成译文需要连接自己的服务；OpenRouter 支持浏览器登录授权，也可以填写 API 密钥。', '/guide/#ai-setup', '查看连接方式'],
-    ['没有中文译文怎么办？', '可以先读原文，或选择已有译文。连接 AI 服务后，切换到中文或对照模式，可以确认生成中文稿；译文另存为文件，原文保留。', '/guide/#bilingual', '了解译文的准备方式'],
-    ['两份稿子会自动逐段对齐吗？', '已有的对应标记或有效翻译记录用于逐段展示；没有对应关系时仍可并排阅读。「检查整篇」只检查结构并定位问题，不会自动配对或改写文件。', '/guide/#pairing-check', '了解整篇配对检查'],
-    ['批注会写进我的原文吗？', '批注、草稿和词义记录单独保存。修改正文时继续使用自己的编辑器；MD Duck 在文件保存后更新阅读界面。', '/guide/#privacy', '查看数据与联网说明'],
-    ['能管理一个系列的文章吗？', '可以用本地文件夹作为系列，一次按标题建立多篇草稿，再调整顺序、标记进度。移动、改名和归档直接作用于本地文件，关联数据随文章保留。', '/guide/#library', '了解文件夹与归档'],
-    ['现在可以下载吗？', available ? '可以，下载页提供苹果芯片 Mac 和 Windows x64 的免费测试版、安装步骤与校验值。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。' : 'Mac 和 Windows 的公开安装包仍在准备。安装包、平台要求和源码状态，以版本页为准。', '/download/', available ? '选择安装包' : '查看发布状态'],
-  ],
-  closingTitle: '从第一篇文章开始。', closingText: '先用示例熟悉对照阅读与批注，再打开自己的材料。',
+const copy = en ? {
+  title: 'MD Duck — Write anywhere. Read closely here.',
+  description: 'Write with any AI, read the local files in MD Duck, and send a screenshot or passage back for revision. Review before publishing; keep your own source files.',
+  headline: ['Write anywhere.', 'Read closely here.'],
+  intro: 'Let your AI write. Open the local files here and read them carefully. A paragraph feels thin? Send a screenshot or the text back to your AI, then come back to check the revision.',
+  download: available ? 'Download for free' : 'See release status', try: 'Follow the walkthrough',
+  platforms: available ? 'Apple Silicon Mac · Windows x64 · Free & open source' : 'Public Mac and Windows installers in preparation',
+  label: 'Local Markdown', purpose: 'Reading & review',
+  aside: 'Your AI handles the writing. You decide what is ready. MD Duck is the quiet place in between, for reading and review.',
+  readingAlt: 'An actual MD Duck window with the sample product-inquiry article and its Chinese translation.',
+  previewLabel: 'Actual Mac capture · sample article · same workflow on Windows', full: 'View the full screenshot',
+  note: 'Read it closely.\nWhat is still\ntoo vague?', guide: 'See the complete workflow',
 } : {
-  title: 'MD Duck — A local Markdown reader for close reading and review',
-  description: 'Read local Markdown in English and Chinese, leave feedback beside the text, and review changes made in your favorite editor. Word help and speech support your reading.',
-  eyebrow: 'Local Markdown reading & review',
-  headline: ['Read closely.', 'Leave feedback in context.'],
-  intro: 'Open local Markdown, read English alongside Chinese, look up words and listen as you read. Leave comments beside the text, then review changes made in your favorite editor.',
-  audience: 'For reviewing English drafts, reading technical docs, and understanding English as you read.',
-  how: 'See how it works', guide: 'Read the guide', download: available ? 'Download for free' : 'Releases & downloads',
-  release: available ? `v${release.version} · Apple Silicon Mac / Windows x64 · Free beta` : `v${release.version} · Mac / Windows public installers in preparation`,
-  previewLabel: 'Inside the reader', choose: 'Choose an interface preview', reading: 'Side by side', notes: 'Review comments', zoom: 'Open the full screenshot',
-  readingAlt: 'MD Duck displaying an English article beside its Chinese translation, with the article structure preserved.',
-  notesAlt: 'MD Duck connecting a highlighted passage to its review comment, with the quotation and review status in the side panel.',
-  readingCaption: 'Read the original and its translation on the same page, with the article structure preserved.',
-  notesCaption: 'Keep the quote, feedback and review status together. Return to the passage when you need it.',
-  workflowEyebrow: 'From reading to review', workflowTitle: 'Open, understand, comment, then review.',
-  workflow: [
-    ['Organize articles in folders', 'Open a local folder and browse its directory tree. Create a series of drafts, move or archive articles with their comments and translations, and see changes from your file manager.', 'library', 'About library management'],
-    ['Understand the text', 'Read an existing Chinese translation alongside the original. Click words for pronunciation or listen as you read. Connect AI for contextual meanings and new translations.', 'bilingual', 'About parallel reading'],
-    ['Leave feedback in context', 'Select text and add a comment. The quote stays with your feedback. Copy open comments to your editor or an AI tool to make changes.', 'notes', 'About review comments'],
-    ['Return to review changes', 'Edit in your preferred tool. MD Duck refreshes when you save. Open the comments, check the changes and mark resolved comments complete.', 'notes', 'About reviewing changes'],
-  ],
-  sample: 'Download the bilingual sample', sampleNote: 'Unzip it, open article.md, read the two versions and leave a comment.',
-  localEyebrow: 'Help when you need it', localTitle: ['Your own files.', 'Your familiar editor.'],
-  localText: 'Articles stay in real folders. Organize them in the app or your file manager and see the changes in both. Comments stay separate from the text; word help, speech and translation are there when needed.',
-  localLink: 'See what stays local and what goes online',
-  basicLabel: 'No AI connection needed', basicTitle: 'Read and leave comments',
-  basicText: 'Read articles, add comments, view existing translations and look up available pronunciations. Speech needs an initial model download, then runs locally.',
-  aiLabel: 'Connect your own AI service', aiTitle: 'Explanations and translation',
-  aiText: 'Get Chinese explanations of words in context, translate selected text, or generate a Chinese version of an article. Requests use your service account credit.',
-  aiProviders: 'OpenRouter · DeepSeek · Other compatible services', aiLink: 'How to connect',
-  faqEyebrow: 'Before you start', faqTitle: 'A few things to know.',
-  faqs: [
-    ['Can I use it without an AI key?', 'Yes. Read, annotate, view existing translations and look up available pronunciations. Contextual explanations and new translations need your own service connection. OpenRouter supports browser sign-in and authorization; you can also enter an API key.', '/guide/#ai-setup', 'See connection options'],
-    ['What if I have no Chinese translation?', 'Read the original or choose an existing translation. With AI connected, switch to Chinese or Side by side and confirm generation of a Chinese version. The translation gets its own file; the original stays intact.', '/guide/#bilingual', 'About preparing a translation'],
-    ['Will any two drafts align automatically?', 'Existing matching markers or a valid translation record provide paragraph alignment. Files without those can still be read in two columns. Check whole document inspects structure and locates problems; it does not assign pairs or rewrite files.', '/guide/#pairing-check', 'About the article pairing check'],
-    ['Are comments written into my article?', 'Comments, drafts and word explanations are saved separately. Keep using your editor to change the article; MD Duck refreshes the reading view when you save.', '/guide/#privacy', 'See data and network use'],
-    ['Can I organize a series of articles?', 'Use a local folder for each series, create drafts from a list of titles, set their order and mark progress. Moving, renaming and archiving change the real files while keeping associated article data.', '/guide/#library', 'About folders and archiving'],
-    ['Can I download it now?', available ? 'Yes. Downloads provides free betas for Apple Silicon Macs and Windows x64, with installation steps and checksums. There are no Intel Mac, Windows ARM or Linux installers yet.' : 'Public Mac and Windows installers are still being prepared. Check Downloads for files, platform requirements and source availability.', '/download/', available ? 'Choose an installer' : 'See release status'],
-  ],
-  closingTitle: 'Start with one article.', closingText: 'Try parallel reading and a review comment with the sample, then open your own material.',
+  title: 'MD Duck — 写在哪里都可以，认真读一遍在这里。',
+  description: '用任何 AI 写文章，在 MD Duck 阅读本地文件，把不满意的段落截图或复制给 AI 修改。审阅后再发布，本地留下原稿。',
+  headline: ['写在哪里都可以，', '认真读一遍在这里。'],
+  intro: '让你熟悉的 AI 写，把本地文章放到这里认真读。哪一段不够好，就截图或复制给 AI 修改，再回来检查。满意后再发布，原稿留在自己手里。',
+  download: available ? '免费下载' : '查看发布状态', try: '跟着做一遍',
+  platforms: available ? 'Mac 苹果芯片 · Windows x64 · 免费开源' : 'Mac / Windows 公开安装包准备中',
+  label: '本地 Markdown', purpose: '精读与审阅',
+  aside: 'AI 负责写，你负责判断。MD Duck 留出一个安静的位置，让你看清内容，再决定是否发布。',
+  readingAlt: 'MD Duck 真实窗口中，产品询价演示文章与中文译文并排展示。',
+  previewLabel: 'Mac 实际截图 · 演示文章 · Windows 流程相同', full: '查看完整截图',
+  note: '认真读一遍，\n哪里还说得\n不够具体？', guide: '查看完整使用流程',
 };
 ---
 <Layout lang={lang} title={copy.title} description={copy.description}>
-  <section class="hero wrap" aria-labelledby="hero-title">
-    <div class="hero-copy">
-      <div class="hero-heading">
-        <p class="eyebrow">{copy.eyebrow}</p>
-        <h1 id="hero-title">{copy.headline[0]}<br /><span>{copy.headline[1]}</span></h1>
+  <div class="editorial-home wrap">
+    <section class="editorial-hero" aria-labelledby="home-title">
+      <div class="editorial-hero-copy">
+        <h1 id="home-title"><span>{copy.headline[0]}</span><span class="editorial-marked-title">{copy.headline[1]}<img class="editorial-underline" src="/images/editorial/underline.png" alt="" width="2172" height="724" aria-hidden="true" /></span></h1>
+        <p class="editorial-intro">{copy.intro}</p>
+        <div class="editorial-actions"><a class="button button-dark" href={route('/download/')}>{copy.download}</a><a class="text-link" href="#features">{copy.try}</a></div>
+        <p class="editorial-platforms">{copy.platforms}</p>
+        <a class="editorial-scenario-link" href="#scenarios">{en ? 'Explore ways to use it' : '看看不同用法'} <span aria-hidden="true">↗</span></a>
       </div>
-      <div class="hero-summary">
-        <p class="hero-description">{copy.intro}</p>
-        <p class="hero-audience">{copy.audience}</p>
-        <div class="hero-actions"><a class="button button-dark" href="#features">{copy.how}</a><a class="text-link" href={route('/download/')}>{copy.download}</a></div>
-        <p class="release-caption">{copy.release}</p>
-      </div>
-    </div>
-    <div class="product-preview" id="preview">
-      <div class="preview-toolbar">
-        <p>{copy.previewLabel}</p>
-        <fieldset class="preview-options">
-          <legend class="sr-only">{copy.choose}</legend>
-          <label><input type="radio" name="preview-view" id="view-reading" value="reading" checked /><span>{copy.reading}</span></label>
-          <label><input type="radio" name="preview-view" id="view-notes" value="notes" /><span>{copy.notes}</span></label>
-        </fieldset>
-      </div>
-      <figure class="preview-reading"><a href="/images/reading.jpg" target="_blank" rel="noopener" aria-label={zh ? '查看完整双语阅读截图' : 'View the full bilingual reading screenshot'}><img src="/images/reading.jpg" width="1320" height="860" alt={copy.readingAlt} fetchpriority="high" /></a><figcaption>{copy.readingCaption}<a class="text-link" href="/images/reading.jpg" target="_blank" rel="noopener">{copy.zoom}</a></figcaption></figure>
-      <figure class="preview-notes"><a href="/images/notes.jpg" target="_blank" rel="noopener" aria-label={zh ? '查看完整批注截图' : 'View the full annotation screenshot'}><img src="/images/notes.jpg" width="1320" height="860" alt={copy.notesAlt} loading="lazy" /></a><figcaption>{copy.notesCaption}<a class="text-link" href="/images/notes.jpg" target="_blank" rel="noopener">{copy.zoom}</a></figcaption></figure>
-    </div>
-  </section>
-  <section class="workflow-section wrap section" id="features" aria-labelledby="workflow-title">
-    <div class="section-heading"><p class="eyebrow">{copy.workflowEyebrow}</p><h2 id="workflow-title">{copy.workflowTitle}</h2></div>
-    <ol class="workflow" role="list">{copy.workflow.map(([title, text, anchor, link], i) => <li><span class="workflow-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{text}</p><a class="text-link" href={`${route('/guide/')}#${anchor}`}>{link}</a></li>)}</ol>
-    <div class="sample-row"><a class="button button-light" href="/examples/a-slower-morning.zip" download>{copy.sample}</a><p>{copy.sampleNote}</p></div>
-  </section>
-  <section class="local-section" aria-labelledby="local-title"><div class="wrap local-grid">
-    <div class="local-copy"><p class="eyebrow">{copy.localEyebrow}</p><h2 id="local-title">{copy.localTitle[0]}<br />{copy.localTitle[1]}</h2><p>{copy.localText}</p><a class="text-link" href={`${route('/guide/')}#privacy`}>{copy.localLink}</a></div>
-    <div class="capability-panel"><div><p class="capability-label">{copy.basicLabel}</p><h3>{copy.basicTitle}</h3><p>{copy.basicText}</p></div><div><p class="capability-label">{copy.aiLabel}</p><h3>{copy.aiTitle}</h3><p>{copy.aiText}</p><p class="providers">{copy.aiProviders}</p><a class="text-link" href={`${route('/guide/')}#ai-setup`}>{copy.aiLink}</a></div></div>
-  </div></section>
-  <section class="faq-section wrap section" aria-labelledby="faq-title"><div class="section-heading"><p class="eyebrow">{copy.faqEyebrow}</p><h2 id="faq-title">{copy.faqTitle}</h2></div><div class="faq-list">{copy.faqs.map(([question, answer, path, link]) => <details><summary>{question}</summary><p>{answer}</p><a class="text-link" href={route(path)}>{link}</a></details>)}</div></section>
-  <section class="closing wrap"><div><h2>{copy.closingTitle}</h2><p>{copy.closingText}</p></div><a class="button button-dark" href={route('/guide/')}>{copy.guide}</a></section>
+      <aside class="editorial-margin">
+        <p class="editorial-folio" aria-hidden="true">01</p>
+        <h2>{copy.label}<br />{copy.purpose}</h2>
+        <p>{copy.aside}</p>
+        <p class="editorial-signature" lang="en">The<br />Editor’s Proof</p>
+        <img class="editorial-decoration" src="/images/editorial/decoration.png" alt="" width="1122" height="1402" aria-hidden="true" />
+      </aside>
+    </section>
+    <figure class="editorial-product" id="preview">
+      <a class="editorial-product-image" href="/images/workflow/read-before.jpg" target="_blank" rel="noopener" aria-label={copy.full}><img src="/images/workflow/read-before.jpg" width="1440" height="940" alt={copy.readingAlt} fetchpriority="high" /></a>
+      <div class="editorial-proof-note" aria-hidden="true"><img src="/images/editorial/proof-arrow.png" alt="" width="2172" height="724" /><p>{copy.note}</p></div>
+      <figcaption><span>{copy.previewLabel}</span><a href={route('/guide/#quickstart')}>{copy.guide}</a></figcaption>
+    </figure>
+    <HomeWalkthrough lang={lang} />
+    <WorkflowCase lang={lang} />
+    <UsageScenarios lang={lang} />
+  </div>
 </Layout>

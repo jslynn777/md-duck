@@ -1,0 +1,19 @@
+.usage-scenarios { border-top: 1px solid var(--line); margin-top: 30px; padding-block: 40px 55px; }
+.usage-scenarios-heading h2 { font: 600 clamp(30px, 3.8vw, 52px)/1.5 var(--serif); max-width: 1040px; letter-spacing: -.045em; margin-top: 16px; }
+.usage-scenarios-heading > p:last-child { color: var(--muted); font-size: 18px; line-height: 1.9; margin-top: 18px; max-width: 850px; }
+.usage-scenarios-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 45px; margin-top: 42px; }
+.usage-scenario { min-width: 0; border-top: 1px solid var(--line); padding-top: 20px; }
+.usage-scenario > header { display: flex; align-items: baseline; gap: 14px; }
+.usage-scenario > header > span { font: 16px/1.5 var(--serif); color: var(--accent); }
+.usage-scenario h3 { font: 600 25px/1.65 var(--serif); letter-spacing: -.03em; }
+.usage-scenario-situation { color: var(--muted); font-size: 14px; line-height: 1.8; margin-block: 12px 20px; min-height: 3.6em; }
+.usage-scenario figure { margin: 0; }
+.usage-scenario figure a { display: block; }
+.usage-scenario img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; }
+.usage-scenario figcaption { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.usage-scenario-detail { font-size: 15px; line-height: 1.95; margin-top: 18px; }
+.usage-scenario-path { overflow-wrap: anywhere; font: 12px/1.9 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--muted); border-left: 2px solid var(--accent); padding-left: 12px; margin-block: 17px; }
+.usage-scenario > .text-link { color: var(--accent); font-size: 13px; }
+.usage-scenarios-footnote { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 17px; font-size: 12px; line-height: 1.9; color: var(--muted); }
+@media(max-width: 900px) { .usage-scenarios-grid { column-gap: 25px; } .usage-scenario h3 { font-size: 21px; } }
+@media(max-width: 620px) { .usage-scenarios { padding-block: 28px 32px; margin-top: 10px; } .usage-scenarios-heading h2 { font-size: 29px; } .usage-scenarios-heading > p:last-child { font-size: 14px; } .usage-scenarios-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 28px; } .usage-scenario h3 { font-size: 22px; } .usage-scenario-situation { min-height: 0; font-size: 13px; } .usage-scenario-detail { font-size: 14px; } }

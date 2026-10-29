@@ -1,0 +1,58 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:09.000
+Write first. Then read closely.
+Use any AI to prepare local Markdown.
+An AI with file access can save it. With a chat-only tool, you save the files yourself.
+
+00:00:09.000 --> 00:00:18.000
+A few drafts? Keep it simple.
+Put a few .md files in a folder.
+Open that folder in MD Duck.
+You do not need an elaborate filing system to start reading.
+
+00:00:18.000 --> 00:00:27.000
+Give a series its own folder.
+One folder per series.
+One subfolder per article.
+Use clear names and 01-, 02- prefixes for your intended order. You decide the categories.
+
+00:00:27.000 --> 00:00:36.000
+Keep images with the article.
+article.md holds the source.
+article.zh.md is an optional translation.
+Keep images in assets/ with relative paths. Move and back up the whole folder.
+
+00:00:36.000 --> 00:00:45.000
+This paragraph needs detail.
+Copy the passage, or capture it.
+Mac: ⌘ C / ⇧ ⌘ 4
+Windows: Ctrl C / Win ⇧ S
+Tell your AI which article it belongs to.
+
+00:00:45.000 --> 00:00:54.000
+Ask for a specific change.
+EXAMPLE REVISION REQUEST
+“Explain which details to provide: product, size, quantity, delivery city and date. Do not invent facts. Update the Chinese version too.”
+
+00:00:54.000 --> 00:01:03.000
+Save. Return. Read again.
+Let an AI with file access save the changes, or save the complete files yourself.
+Return to MD Duck and reread the revised passage after it refreshes.
+
+00:01:03.000 --> 00:01:12.000
+Check both languages.
+Compare the meaning.
+Check the whole document for pairing issues.
+Matching structure is not proof of an accurate translation. Comments are optional.
+
+00:01:12.000 --> 00:01:21.000
+Approve before publishing.
+EXAMPLE PUBLISHING HANDOFF
+Give your approved files to an AI with backend access. Review the preview and explicitly authorize publication.
+MD Duck does not publish articles.
+
+00:01:21.000 --> 00:01:30.000
+Keep a local source copy.
+Retain the article, translation and images.
+Archive finished work in MD Duck; restore it when it needs an update. Back up the complete library regularly.

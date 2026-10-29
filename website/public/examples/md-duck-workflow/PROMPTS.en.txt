@@ -1,0 +1,24 @@
+MD Duck: local writing, review and publication handoffs
+
+1. Ask your AI to write local files
+Write [number] articles about [topic] for [audience], helping them [specific action].
+Propose a series outline first. After confirmation, save to [my chosen absolute library path]. Use one article folder with article.md, article.zh.md and its own assets/ folder. Reference images relatively. Match bilingual headings, paragraphs, list items and image structure using the same unique ASCII block IDs. Keep existing IDs. Do not invent facts or asset sources. Do not change .review, .mdduck or unrelated articles.
+Without filesystem access, return each relative path and its complete file content for me to save. Do not claim files were written.
+Full file rules: https://mdduck.com/en/guide/
+
+2. Send a screenshot or excerpt back to your AI
+Article: [local path]
+Excerpt: Tell the supplier what you need and ask for a quote.
+Problem: It does not explain which details to provide.
+Request: Read the latest source and Chinese companion. Revise only request-details. Explain how the product, size, quantity, delivery city and preferred arrival date help a supplier quote. Do not invent specifications, quantities, promises or dates. Update both languages, keep the block ID and save to the same files. Without local access, return replacement text. If only a screenshot is available and context is unclear, ask for the full article.
+Report what changed and which details remain unconfirmed. I will review the saved files in MD Duck. Do not publish.
+
+3. Organize a series in local folders
+List the articles in my chosen library and suggest a structure first; do not move them immediately. When applying the structure I approve, keep each article's source, translation and assets together. Do not change article content or discard hidden review data. To preserve comments and reading position, prefer having me move the article through MD Duck's management menu. Do not guess or rewrite its association metadata.
+
+4. Hand off to an external publishing AI (example only, not authorization)
+Reviewed source: [approved article.md path]
+Destination: [website and backend I specify]
+Confirm that you have the necessary backend access, then prepare the destination draft, images and links. Preserve the local source, translation and images. Do not change .review or .mdduck.
+Show me the destination draft. Publish only after I explicitly confirm this publication. Then open the public URL, compare its title, text and images, and report the actual URL and any remaining issues. Without backend access, provide handoff materials instead of claiming publication.
+MD Duck only reads and reviews local articles; it does not connect to the publishing backend.
