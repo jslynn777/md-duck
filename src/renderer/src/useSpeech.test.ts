@@ -86,6 +86,25 @@ beforeEach(() => {
 })
 
 describe('speech lifecycle', () => {
+  it('stops queued audio when another space takes over speech, without cancelling a newer request', () => {
+    const note = vi.fn()
+    const speech = mount(note)
+    speech.speak('first', 'First space.')
+    const previous = latestRequest()
+    part(); part()
+    emit({ type: 'cancelled', id: previous })
+    expect(audio.paused).toBe(true)
+    expect(audio.src).toBe('')
+    expect(playing()).toBeNull()
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2)
+    expect(note).toHaveBeenLastCalledWith('')
+    speech.speak('next', 'A newer request.')
+    part()
+    emit({ type: 'cancelled', id: previous })
+    expect(playing()?.key).toBe('next')
+    expect(audio.paused).toBe(false)
+  })
+
   it('keeps a pause requested before the first part and resumes only on explicit action', () => {
     const speech = mount()
     speech.speak('paragraph', 'A paragraph.')

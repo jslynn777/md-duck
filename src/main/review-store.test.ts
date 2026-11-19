@@ -44,10 +44,11 @@ async function article(name: string, sourceText = `# ${name}`, zhText?: string) 
   articles.set(source, { name: basename(source), sourceText, zhText })
   return source
 }
-function store() {
+function store(backupAliases?: (source: string) => string[]) {
   return createReviewStore({
     isAllowed: (path) => isPathInsideRoot(path, library),
     userData,
+    backupAliases,
     candidates: async (source) => [...articles.entries()].filter(([path]) => dirname(path) === dirname(source)).map(([, value]) => value)
   })
 }
@@ -462,6 +463,99 @@ describe('review store corruption and recovery', () => {
     expect(await fs.readFile(backup(source), 'utf8')).toBe(damaged)
     expect(await fs.stat(primary(source)).catch(() => null)).toBeNull()
     expect(await fs.stat(await reviews.legacyFile(source)).catch(() => null)).toBeNull()
+  })
+})
+
+describe('review backups after a space root moves', () => {
+  it.each(['missing', 'corrupt'])('offers an old private backup for explicit recovery of a %s primary without accessing the old root', async condition => {
+    const source = await article('series/article.md')
+    const oldSource = join(fixture, 'offline-root', 'series', 'article.md')
+    const saved = note('retained'), learned = word('retained-word')
+    const original = JSON.stringify(snapshot(oldSource, [saved], [learned]))
+    await fs.mkdir(dirname(backup(oldSource)), { recursive: true })
+    await fs.writeFile(backup(oldSource), original)
+    if (condition === 'corrupt') {
+      await fs.mkdir(dirname(primary(source)), { recursive: true })
+      await fs.writeFile(primary(source), '{broken current primary')
+    }
+    const reviews = store(() => [oldSource])
+    expect(await reviews.load(source)).toMatchObject({ notes: [saved], words: [learned], notesMissing: true, reviewIssue: condition })
+    await expect(reviews.saveNote(source, note('new'))).rejects.toThrow('REVIEW_RECOVERY_REQUIRED')
+    expect(await fs.stat(backup(source)).catch(() => null)).toBeNull()
+    expect(await reviews.restore(source)).toMatchObject({ notes: [saved], words: [learned], notesMissing: false })
+    expect(JSON.parse(await fs.readFile(primary(source), 'utf8'))).toEqual(snapshot(source, [saved], [learned]))
+    expect(await fs.readFile(backup(oldSource), 'utf8')).toBe(original)
+    expect(await fs.stat(join(fixture, 'offline-root')).catch(() => null)).toBeNull()
+  })
+
+  it.each([false, true])('prefers the current backup, including an intentionally empty one (%s)', async emptyCurrent => {
+    const source = await article('article.md'), oldSource = join(fixture, 'old-root', 'article.md')
+    await fs.mkdir(dirname(backup(source)), { recursive: true })
+    const old = JSON.stringify(snapshot(oldSource, [note('old')]))
+    const current = emptyCurrent ? [] : [note('current')]
+    await fs.writeFile(backup(oldSource), old)
+    await fs.writeFile(backup(source), JSON.stringify(snapshot(source, current)))
+    const reviews = store(() => [oldSource])
+    expect(await reviews.load(source)).toMatchObject({ notes: current, notesMissing: true })
+    expect(await reviews.restore(source)).toMatchObject({ notes: current, notesMissing: false })
+    expect(await fs.readFile(backup(oldSource), 'utf8')).toBe(old)
+  })
+
+  it('keeps a valid current primary ahead of historical backups', async () => {
+    const source = await article('article.md'), oldSource = join(fixture, 'old-root', 'article.md')
+    await store().saveNote(source, note('current'))
+    const original = await fs.readFile(primary(source), 'utf8')
+    await fs.unlink(backup(source))
+    const old = JSON.stringify(snapshot(oldSource, [note('old')]))
+    await fs.writeFile(backup(oldSource), old)
+    const reviews = store(() => [oldSource])
+    expect(await reviews.load(source)).toMatchObject({ notes: [note('current')], notesMissing: false })
+    expect(await reviews.restore(source)).toMatchObject({ notes: [note('current')], notesMissing: false })
+    expect(await fs.readFile(primary(source), 'utf8')).toBe(original)
+    expect(await fs.readFile(backup(oldSource), 'utf8')).toBe(old)
+  })
+
+  it.each(['current', 'recent-alias'])('does not bypass a corrupt %s backup for an older valid snapshot', async damagedLocation => {
+    const source = await article('article.md'), recent = join(fixture, 'recent-root', 'article.md'), oldest = join(fixture, 'oldest-root', 'article.md')
+    await fs.mkdir(dirname(backup(source)), { recursive: true })
+    const damaged = '{corrupt backup'
+    const damagedPath = backup(damagedLocation === 'current' ? source : recent)
+    await fs.writeFile(damagedPath, damaged)
+    const old = JSON.stringify(snapshot(oldest, [note('old')]))
+    await fs.writeFile(backup(oldest), old)
+    const reviews = store(() => [recent, oldest])
+    expect(await reviews.load(source)).toMatchObject({ notes: [], notesMissing: false, reviewIssue: 'corrupt' })
+    await expect(reviews.restore(source)).rejects.toThrow('REVIEW_NO_BACKUP')
+    expect(await fs.readFile(damagedPath, 'utf8')).toBe(damaged)
+    expect(await fs.readFile(backup(oldest), 'utf8')).toBe(old)
+    expect(await fs.stat(primary(source)).catch(() => null)).toBeNull()
+  })
+
+  it('migrates a legacy note-backup alias without modifying that backup or accessing the previous folder', async () => {
+    const source = await article('article.md'), oldSource = join(fixture, 'offline-root', 'article.md')
+    const oldFile = join(userData, 'note-backups', hash(oldSource), 'notes.json')
+    await fs.mkdir(dirname(oldFile), { recursive: true })
+    const saved = note('legacy'), original = JSON.stringify({ notes: [saved] })
+    await fs.writeFile(oldFile, original)
+    expect(await store(() => [oldSource]).load(source)).toMatchObject({ notes: [saved], notesMissing: false })
+    expect(await fs.readFile(oldFile, 'utf8')).toBe(original)
+    expect(await fs.stat(join(fixture, 'offline-root')).catch(() => null)).toBeNull()
+  })
+
+  it.each(['valid', 'corrupt'])('keeps a %s current legacy backup ahead of an older alias', async condition => {
+    const source = await article('article.md'), oldSource = join(fixture, 'old-root', 'article.md')
+    const oldFile = join(userData, 'note-backups', hash(oldSource), 'notes.json')
+    const currentFile = join(userData, 'note-backups', hash(source), 'notes.json')
+    await Promise.all([oldFile, currentFile].map(file => fs.mkdir(dirname(file), { recursive: true })))
+    const old = JSON.stringify({ notes: [note('old')] })
+    const current = condition === 'valid' ? JSON.stringify({ notes: [] }) : '{corrupt legacy backup'
+    await fs.writeFile(oldFile, old)
+    await fs.writeFile(currentFile, current)
+    const loaded = await store(() => [oldSource]).load(source)
+    expect(loaded.notes).toEqual([])
+    expect(loaded.reviewIssue).toBe(condition === 'corrupt' ? 'legacy-corrupt' : undefined)
+    expect(await fs.readFile(currentFile, 'utf8')).toBe(current)
+    expect(await fs.readFile(oldFile, 'utf8')).toBe(old)
   })
 })
 

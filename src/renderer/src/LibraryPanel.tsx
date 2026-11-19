@@ -5,8 +5,10 @@ import type { ArticleStage, LibraryChange, LibraryCommand, LibraryFolder } from 
 import type { LibraryEntry, LibrarySort, UiLang } from '../../shared/types'
 import { buildLibraryTree, countChangedLibraryArticles, countLibraryChangeIssues, filterLibraryTree, libraryDestinations, libraryErrorCopy, libraryName, libraryParent, libraryRelative, normalizeLibrarySort, parseArticleTitles, sameLibraryPath, type LibraryNode } from './library-tree'
 import './library-panel.css'
+import { emptyLibraryView, readLibraryView, writeLibraryView } from './library-view'
 
 type Props = {
+  spaceId?: string | null
   root: string | null
   entries: LibraryEntry[]
   folders: LibraryFolder[]
@@ -71,13 +73,16 @@ const words = {
   }
 }
 
-export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, sort, onSortChange, onOpen, onFileMenu, onChange, onError }: Props) {
+export function LibraryPanel({ spaceId, root, entries, folders, issue, ui, currentPath, sort, onSortChange, onOpen, onFileMenu, onChange, onError }: Props) {
   const copy = words[ui]
   const sortMode = normalizeLibrarySort(sort)
-  const [query, setQuery] = useState('')
-  const [archived, setArchived] = useState(false)
-  const [changedOnly, setChangedOnly] = useState(false)
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const [initialView] = useState(() => {
+    try { return root ? readLibraryView(window.localStorage, spaceId ?? root, root) : emptyLibraryView() } catch { return emptyLibraryView() }
+  })
+  const [query, setQuery] = useState(initialView.query)
+  const [archived, setArchived] = useState(initialView.archived)
+  const [changedOnly, setChangedOnly] = useState(initialView.changedOnly)
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(initialView.collapsed))
   const [menu, setMenu] = useState<Menu | null>(null)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [error, setError] = useState('')
@@ -92,8 +97,13 @@ export function LibraryPanel({ root, entries, folders, issue, ui, currentPath, s
   const changeIssueCount = countLibraryChangeIssues(scopedNodes)
 
   useEffect(() => {
-    setQuery(''); setArchived(false); setChangedOnly(false); setCollapsed(new Set()); setMenu(null); setEditor(null); setError('')
+    setMenu(null); setEditor(null); setError('')
   }, [root])
+
+  useEffect(() => {
+    if (!root) return
+    try { writeLibraryView(window.localStorage, spaceId ?? root, root, { query, archived, changedOnly, collapsed: [...collapsed] }) } catch { /* Reading remains available when view preferences cannot be saved. */ }
+  }, [spaceId, root, query, archived, changedOnly, collapsed])
 
   async function run(command: LibraryCommand) {
     if (busyRef.current) return false

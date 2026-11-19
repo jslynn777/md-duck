@@ -4,7 +4,7 @@
 
 Write with the AI you already use, save the article locally and read it in MD Duck. If a passage feels vague, send a screenshot or copied text to your AI with a specific request. Save the revision and return to read it again. When you are satisfied, publish with your usual tools or an AI authorized to use your CMS, while keeping the article locally.
 
-MD Duck handles reading and review. It does not edit article text or publish to a website. Use bilingual comparison, comments, word lookup and speech when useful. This writing workflow needs no AI key in MD Duck and does not require a particular AI provider.
+MD Duck handles reading and review. Your editor or AI changes the text, and your own publishing tools handle publication. Use bilingual comparison, comments, word lookup and speech when useful. This writing workflow needs no AI key in MD Duck and does not require a particular AI provider. Beta.10 also offers optional local Codex tasks in the current space, as described below.
 
 ## Start with one article
 
@@ -16,6 +16,27 @@ MD Duck handles reading and review. It does not edit article text or publish to 
 6. When the article is ready, prepare a CMS draft yourself or use an authorized AI. Check the preview before publishing. Keep the local article and images.
 
 You can also open one ordinary Markdown file. Series folders, translations and block markers are optional. To collect several issues before revising, select text, choose **Note** and save it. Copy comments from the **Notes** panel to your AI, then review the changes and mark addressed comments as done yourself.
+
+## Switch article spaces by local folder
+
+Each independent local folder is one space. Adding it does not copy or classify its articles. Click the space name at the top right and choose **Add folder…** for everyday drafts, series guides or other folders. Related articles can share one space with subfolders. Do not register overlapping parent and child folders.
+
+Each space keeps its last article, reading position, font size, reading mode and sidebar preferences; AI service configuration is shared by the app. **Manage spaces** lets you change the display name, open a separate window, locate a moved folder or remove its shortcut. A display-name change does not rename the folder. Removing a shortcut preserves articles, translations, annotations and reading records; re-adding the same folder restores its space.
+
+Download the [three-space example](https://mdduck.com/examples/md-duck-spaces.zip), extract it and add `Daily Drafts`, `Series Guides` and `Bilingual Review` separately. Do not also add the outer folder. Space identities and reading records belong to this computer: sync or copy files yourself, then add the folders on another computer. Do not reuse another computer’s opening links.
+
+## Give AI the current space
+
+Enter the target space, open an article and choose **Give to AI → Instructions for other AI**. Copy this into your AI conversation. It contains the actual folder, relative article path, local space ID and a link back to the article. Add a specific change request. An AI with local access can save the original file; otherwise, it should return complete content for you to save. Preserve existing block markers, translations and image paths; leave `.review/`, `.mdduck/` and app settings alone.
+
+To start a task directly from MD Duck, first install and sign in to Codex CLI. Windows also needs Codex’s sandbox setup completed. Tasks use your local Codex login and allowance, separately from the reader’s translation API key.
+
+1. Choose **Give to AI**, check the working folder, optionally include the current article and submit a specific request. The app starts an independent task without taking over an existing conversation.
+2. Answer questions and approve or reject operations in the panel. You can keep reading, annotating or switching spaces; the task’s folder stays fixed. In-app moves, archiving and translation pause during execution.
+3. When finished, check **Files updated during this task**. Files saved by another editor during the same period may also be included. Review the original and companion translation before marking the changes as viewed.
+4. **Take over** and **Stop task** wait for Codex to confirm interruption; saved changes are not undone. Closing the app interrupts its tasks, and restarting does not resume them automatically. External editors can still write files.
+
+Ordinary file updates do not establish that an AI task is running. A completed task does not approve or publish the article. The [spaces and AI reference](SPACE-AI.md) explains local permissions, opening links and cross-device behavior.
 
 ## Organize only as much as you need
 

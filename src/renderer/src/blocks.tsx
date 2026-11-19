@@ -1,13 +1,14 @@
-import { Fragment, useEffect, useId, useRef } from 'react'
+import { createContext, Fragment, useContext, useEffect, useId, useRef } from 'react'
 import { Volume2, Pause, MessageSquarePlus, Languages } from 'lucide-react'
 import type { Block, Inline, Note } from '@shared/types'
 import { splitWords, wordKey } from '@shared/words'
-import { useT } from './i18n'
+import { useT, useUi } from './i18n'
 import { sentenceForElement } from './sentence-context'
 import { makeQuoteAnchor, normalizeQuoteText, resolveQuoteRange, type QuoteAnchor } from '@shared/quote-anchor'
 import { assetSrc } from './asset-path'
 
 export { assetSrc } from './asset-path'
+export const AssetScope = createContext<string | undefined>(undefined)
 
 export type LearnProps = {
   known: Set<string>
@@ -24,6 +25,7 @@ type InlineProps = {
 }
 
 export function Inlines({ nodes, dir, version, onImage, learn }: InlineProps) {
+  const assetScope = useContext(AssetScope)
   return (
     <>
       {nodes.map((node, index) => {
@@ -63,7 +65,7 @@ export function Inlines({ nodes, dir, version, onImage, learn }: InlineProps) {
             </a>
           )
         if (node.type === 'image') {
-          const src = assetSrc(dir, node.url, version)
+          const src = assetSrc(dir, node.url, version, assetScope)
           if (!src) return null
           return <img key={index} src={src} alt={node.alt} onClick={() => onImage(src)} />
         }
@@ -91,7 +93,9 @@ type BlockProps = {
 }
 
 export function BlockView(props: BlockProps) {
+  const assetScope = useContext(AssetScope)
   const tr = useT()
+  const ui = useUi()
   const { block, dir, version, lang, notes, flash, speaking, onImage } = props
   const openNotes = notes.filter(
     (note) => note.blockKey === block.key && note.quoteLang === lang && note.status !== 'resolved'
@@ -102,7 +106,7 @@ export function BlockView(props: BlockProps) {
   const speakLabel = speaking ? props.paused ? tr('resume') : props.preparing ? `${tr('preparing')} · ${tr('pause')}` : tr('pause') : tr('speakBlock')
 
   const tools = hasText && (
-    <div className="tools">
+    <div className="tools" lang={ui}>
       {props.onSpeak && canSpeak(block) && (
         <button
           title={speakLabel}
@@ -149,16 +153,16 @@ export function BlockView(props: BlockProps) {
       style={block.kind === 'listItem' ? { marginLeft: `${block.depth * 1.4}em` } : undefined}
     >
       {dot}
-      {renderBody(block, dir, version, onImage, props.learn)}
+      {renderBody(block, dir, version, onImage, props.learn, false, assetScope)}
       {tools}
     </div>
   )
 }
 
-function renderBody(block: Block, dir: string, version: number, onImage: (src: string) => void, learn?: LearnProps, nested = false) {
+function renderBody(block: Block, dir: string, version: number, onImage: (src: string) => void, learn?: LearnProps, nested = false, assetScope?: string) {
   const contentAttrs = nested ? { 'data-note-part': true } : { 'data-note-text': true }
   const children = () => (block.items ?? []).map((item) => (
-    <Fragment key={item.key}>{renderBody(item, dir, version, onImage, learn, true)}</Fragment>
+    <Fragment key={item.key}>{renderBody(item, dir, version, onImage, learn, true, assetScope)}</Fragment>
   ))
   switch (block.kind) {
     case 'heading': {
@@ -168,7 +172,7 @@ function renderBody(block: Block, dir: string, version: number, onImage: (src: s
     case 'image': {
       const image = block.inlines?.[0]
       if (image?.type !== 'image') return null
-      const src = assetSrc(dir, image.url, version)
+      const src = assetSrc(dir, image.url, version, assetScope)
       if (!src) return null
       return (
         <figure className="text md-part" {...contentAttrs}>

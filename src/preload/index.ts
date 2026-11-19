@@ -5,6 +5,8 @@ import type { AIConfigInput, AISettings } from '../shared/ai'
 import type { TranslationInfo, TranslationState } from '../shared/translation'
 import type { LibraryChange, LibraryCommand } from '../shared/library'
 import type { DocumentChangeState } from '../shared/document-changes'
+import type { SpaceSummary } from '../shared/spaces'
+import type { CodexApprovalResponse, CodexTaskInput, CodexTaskSnapshot } from '../shared/codex-task'
 
 type Opened = { state: AppState; openPath: string | null }
 
@@ -12,6 +14,24 @@ export type DuckApi = {
   platform: NodeJS.Platform
   restartStartup: () => Promise<void>
   getState: () => Promise<AppState>
+  listSpaces: () => Promise<SpaceSummary[]>
+  switchSpace: (id: string) => Promise<Opened>
+  openSpaceWindow: (id: string) => Promise<void>
+  addSpace: () => Promise<Opened>
+  renameSpace: (id: string, name: string) => Promise<SpaceSummary[]>
+  removeSpace: (id: string) => Promise<Opened>
+  relocateSpace: (id: string) => Promise<Opened>
+  getSpaceContext: (id: string, path?: string) => Promise<{ text: string; url: string }>
+  onSpaces: (callback: (spaces: SpaceSummary[]) => void) => () => void
+  onSpaceOverview: (callback: () => void) => () => void
+  getCodexTask: (spaceId: string) => Promise<CodexTaskSnapshot>
+  checkCodex: (spaceId: string) => Promise<CodexTaskSnapshot>
+  startCodexTask: (spaceId: string, input: CodexTaskInput) => Promise<CodexTaskSnapshot>
+  resumeCodexTask: (spaceId: string, input: CodexTaskInput) => Promise<CodexTaskSnapshot>
+  stopCodexTask: (spaceId: string) => Promise<CodexTaskSnapshot>
+  takeoverCodexTask: (spaceId: string) => Promise<CodexTaskSnapshot>
+  respondCodexApproval: (spaceId: string, response: CodexApprovalResponse) => Promise<CodexTaskSnapshot>
+  onCodexTask: (callback: (snapshot: CodexTaskSnapshot) => void) => () => void
   pickRoot: () => Promise<Opened>
   pickFile: () => Promise<Opened>
   openPath: (path: string) => Promise<Opened>
@@ -69,6 +89,24 @@ const api: DuckApi = {
   platform: process.platform,
   restartStartup: () => ipcRenderer.invoke('startup:restart'),
   getState: () => ipcRenderer.invoke('state:get'),
+  listSpaces: () => ipcRenderer.invoke('spaces:list'),
+  switchSpace: (id) => ipcRenderer.invoke('spaces:switch', id),
+  openSpaceWindow: (id) => ipcRenderer.invoke('spaces:window', id),
+  addSpace: () => ipcRenderer.invoke('spaces:add'),
+  renameSpace: (id, name) => ipcRenderer.invoke('spaces:rename', id, name),
+  removeSpace: (id) => ipcRenderer.invoke('spaces:remove', id),
+  relocateSpace: (id) => ipcRenderer.invoke('spaces:relocate', id),
+  getSpaceContext: (id, path) => ipcRenderer.invoke('spaces:context', id, path),
+  onSpaces: (callback) => subscribe('spaces:changed', callback),
+  onSpaceOverview: (callback) => subscribe('spaces:overview', callback),
+  getCodexTask: (id) => ipcRenderer.invoke('codex:status', id),
+  checkCodex: (id) => ipcRenderer.invoke('codex:check', id),
+  startCodexTask: (id, input) => ipcRenderer.invoke('codex:start', id, input),
+  resumeCodexTask: (id, input) => ipcRenderer.invoke('codex:resume', id, input),
+  stopCodexTask: (id) => ipcRenderer.invoke('codex:stop', id),
+  takeoverCodexTask: (id) => ipcRenderer.invoke('codex:takeover', id),
+  respondCodexApproval: (id, response) => ipcRenderer.invoke('codex:respond', id, response),
+  onCodexTask: (callback) => subscribe('codex:changed', callback),
   pickRoot: () => ipcRenderer.invoke('root:pick'),
   pickFile: () => ipcRenderer.invoke('file:pick'),
   openPath: (path) => ipcRenderer.invoke('path:open', path),

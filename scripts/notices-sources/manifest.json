@@ -1,5 +1,15 @@
 [
   {
+    "file": "franc-6.2.0-LICENSE",
+    "source": "https://raw.githubusercontent.com/wooorm/franc/4b17eaccaa256bb57c46d02414925eb272c3b565/license",
+    "appliesTo": [
+      "franc@6.2.0"
+    ],
+    "kind": "license",
+    "sha256": "f5e0c5c44706ddda7ac2f9096f848222f1e0e90f88643955041c2735be84592b",
+    "comment": "The published npm package links to the monorepo license but omits its text. This verbatim copy is from the registry's gitHead; the installed index.js, data.js and expressions.js match that revision."
+  },
+  {
     "file": "espeak-ng-reference-1.52.0-COPYING",
     "source": "https://raw.githubusercontent.com/espeak-ng/espeak-ng/1.52.0/COPYING",
     "appliesTo": [],
@@ -743,7 +753,7 @@
     "source": "https://github.com/jslynn777/md-duck",
     "kind": "reference",
     "referenceOnly": true,
-    "sha256": "a290cf555eb2d4dfe4a5249f89ec1587807190f5e457f0301999e873cc026424",
+    "sha256": "a3cf131be94ec756ddbbbaa108e1ce485c1384cf84f0ba09ed82ad0b9db6fe05",
     "appliesTo": [],
     "comment": "MD Duck audit decisions and public upstream evidence; a generated review record, not upstream license text."
   },

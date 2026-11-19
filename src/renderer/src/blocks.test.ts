@@ -3,17 +3,17 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { parseDocument } from '../../shared/markdown'
 import { makeQuoteAnchor } from '../../shared/quote-anchor'
-import { BlockView, findRange, quoteSelectionForRange } from './blocks'
+import { AssetScope, BlockView, findRange, quoteSelectionForRange } from './blocks'
 
 vi.mock('@shared/words', async () => import('../../shared/words'))
 vi.mock('@shared/quote-anchor', async () => import('../../shared/quote-anchor'))
-vi.mock('./i18n', () => ({ useT: () => (key: string) => key }))
+vi.mock('./i18n', () => ({ useT: () => (key: string) => key, useUi: () => 'en' }))
 
-function render(markdown: string, dir = '/library') {
-  return parseDocument(markdown, 'test').blocks.map((block) => renderToStaticMarkup(createElement(BlockView, {
+function render(markdown: string, dir = '/library', scope?: string) {
+  return parseDocument(markdown, 'test').blocks.map((block) => renderToStaticMarkup(createElement(AssetScope.Provider, { value: scope }, createElement(BlockView, {
     block, dir, version: 0, lang: 'source', notes: [], flash: false,
     speaking: false, paused: false, onImage: () => undefined, onAnnotate: () => undefined, onTranslate: () => undefined
-  }))).join('')
+  })))).join('')
 }
 
 describe('Markdown content rendering', () => {
@@ -49,6 +49,15 @@ describe('Markdown content rendering', () => {
       expect(html).toContain(encodeURIComponent(destination))
     }
     expect(html).not.toContain('src="file:')
+  })
+
+  it('keeps block, nested, inline and table images in the current document asset scope', () => {
+    const markdown = '![Block](assets/block.png)\n\nInline **![Inline](assets/inline.png)**.\n\n> ![Nested](assets/nested.png)\n\n| Photo |\n| --- |\n| ![Table](assets/table.png) |'
+    const html = render(markdown, '/library', 'space-a')
+    const sources = [...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(match => new URL(match[1].replaceAll('&amp;', '&')))
+    expect(sources).toHaveLength(4)
+    expect(sources.every(source => source.searchParams.get('scope') === 'space-a')).toBe(true)
+    expect(render(markdown, '/other-library', 'space-b')).not.toContain('scope=space-a')
   })
 
   it('omits unsupported image schemes without changing ordinary text', () => {

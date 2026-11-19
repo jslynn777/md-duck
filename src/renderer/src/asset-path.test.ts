@@ -10,6 +10,18 @@ function localPath(dir: string, destination: string) {
 }
 
 describe('local Markdown image paths', () => {
+  it('encodes the document space scope separately from paths and keeps remote images unchanged', () => {
+    const scope = 'space token&scope=another#fragment'
+    const source = new URL(assetSrc('/library/article', '../images/a.png', 2, scope))
+    expect(source.searchParams.get('scope')).toBe(scope)
+    expect(source.searchParams.getAll('scope')).toEqual([scope])
+    expect(source.searchParams.get('path')).toBe('/library/images/a.png')
+    expect(source.searchParams.get('v')).toBe('2')
+    expect(new URL(assetSrc('/library', 'a.png', 2)).searchParams.has('scope')).toBe(false)
+    const remote = 'https://example.com/photo.png?scope=external'
+    expect(assetSrc('/library', remote, 2, scope)).toBe(remote)
+  })
+
   it('resolves relative images beside the article on Windows', () => {
     expect(localPath('C:\\Users\\阅读资料\\文章', 'assets/配图%20一.png')).toBe('C:/Users/阅读资料/文章/assets/配图 一.png')
     expect(localPath('C:\\Users\\阅读资料\\文章', '..\\assets\\photo.png')).toBe('C:/Users/阅读资料/assets/photo.png')

@@ -176,7 +176,10 @@ export function useSpeech(onNote: (message: string) => void) {
       if (disposed || !id) return
       if (event.type === 'status') onNoteRef.current(event.message)
       else if (event.id !== id) return
-      else if (event.type === 'part') {
+      else if (event.type === 'cancelled') {
+        clear()
+        onNoteRef.current('')
+      } else if (event.type === 'part') {
         queue.push(URL.createObjectURL(toWav(event.samples, event.sampleRate)))
         if (current?.paused) update({ ...current, preparing: false })
         playNext()

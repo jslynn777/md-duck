@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
-  BookOpen,
   CircleHelp,
   Check,
-  Copy,
   FileText,
   FolderOpen,
+  Hand,
   Languages,
   LoaderCircle as Loader2,
   MessageSquarePlus,
@@ -17,6 +16,7 @@ import {
   RotateCcw,
   Settings,
   Sparkles,
+  Square,
   Trash,
   Undo2,
   Volume2,
@@ -37,11 +37,13 @@ import {
   type UiLang
 } from '@shared/types'
 import { wordKey } from '@shared/words'
-import { BlockView, canSpeak, isLatin, paintNoteHighlights, quoteSelectionForRange } from './blocks'
+import { AssetScope, BlockView, canSpeak, isLatin, paintNoteHighlights, quoteSelectionForRange } from './blocks'
 import { UiProvider, useT, useUi } from './i18n'
+import { detectDocumentLanguage } from './document-language'
+import { ReadingLanguages, supportsEnglishTools, useReadingLanguage } from './reading-languages'
 import { useSpeech } from './useSpeech'
 import logoMark from './assets/logo-mark.png'
-import { editNoteDraftKey, listNoteDrafts, noteDraftKey, readNoteDrafts, writeNoteDrafts, relocateNoteDraftKey, relocateNoteDrafts, type NoteDraftEntry, type NoteDrafts } from './note-drafts'
+import { editNoteDraftKey, listNoteDrafts, noteDraftKey, readNoteDrafts, writeNoteDraftChanges, mergeNoteDraftChanges, isNoteDraftStorageKey, relocateNoteDraftKey, relocateNoteDrafts, relocateSpaceNoteDrafts, type NoteDraftEntry, type NoteDrafts } from './note-drafts'
 import { NotesPanel } from './NotesPanel'
 import { NoteEditor, type NoteEditorTarget } from './NoteEditor'
 import { noteReadMode, resolveNoteBlock } from './note-location'
@@ -66,6 +68,13 @@ import type { LibraryChange } from '@shared/library'
 import { relocatePath, relocateScroll } from '@shared/library-relocation'
 import { ChangeReview } from './ChangeReview'
 import type { DocumentChange } from '@shared/document-changes'
+import type { SpaceSummary } from '@shared/spaces'
+import { SpaceContext, SpaceOverview, spaceError } from './Spaces'
+import { SpaceCover, SpaceSwitcher } from './SpaceSwitcher'
+import { reducedSpaceMotion } from './space-motion'
+import { CodexTaskPanel, codexErrorCopy, codexPhaseLabel } from './CodexTaskPanel'
+import { useCodexTasks } from './useCodexTasks'
+import type { CodexTaskSnapshot } from '@shared/codex-task'
 
 type Selection = { block: Block; quote: string; lang: 'source' | 'zh'; x: number; y: number; anchor?: SelectionRect; sentence?: string; quoteAnchor?: QuoteAnchor; keyboard?: boolean }
 type Popover = Selection & {
@@ -89,11 +98,22 @@ export function App() {
   const pendingJumpRef = useRef(pendingJump)
   pendingJumpRef.current = pendingJump
   const documentRequest = useRef(0)
+  const readingRestoreRef = useRef<{ request: number; path: string; key?: string; loaded: boolean } | null>(null)
   const wordRequests = useRef(new Map<string, string>())
   const [lightbox, setLightbox] = useState('')
   const [toast, setToast] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [spacesOpen, setSpacesOpen] = useState(false)
+  const [codexOpen, setCodexOpen] = useState(false)
+  const codex = useCodexTasks(state?.activeSpaceId, state?.root)
+  const [spaceTransition, setSpaceTransition] = useState<{ id: string; name: string; phase: 'opening' | 'ready' } | null>(null)
+  const spaceTransitionRef = useRef(spaceTransition)
+  spaceTransitionRef.current = spaceTransition
+  const spaceSwitchPending = useRef(false)
+  const [spaceContext, setSpaceContext] = useState<{ space: SpaceSummary; path?: string } | null>(null)
+  const spaceOverviewRef = useRef<() => void>(() => undefined)
+  spaceOverviewRef.current = () => { void showSpaces() }
   const [pairingOpen, setPairingOpen] = useState(false)
   const [aiSettings, setAISettings] = useState<AISettings | null>(null)
   const [translationRequested, setTranslationRequested] = useState<string | null>(null)
@@ -108,6 +128,8 @@ export function App() {
   const [draftPersisted, setDraftPersisted] = useState(true)
   const draftPersistedRef = useRef(true)
   const draftsRef = useRef(drafts)
+  const storedDraftsRef = useRef(drafts)
+  const knownSpaceRoots = useRef(new Map<string, string>())
   const [noteSaving, setNoteSaving] = useState(false)
   const [restoringReview, setRestoringReview] = useState(false)
   const [noteError, setNoteError] = useState('')
@@ -118,10 +140,10 @@ export function App() {
   activeContextRef.current = { sourcePath: doc?.sourcePath, pop, noteEditor }
 
   useEffect(() => {
-    if (settingsOpen || guideOpen || pairingOpen || noteEditor || lightbox) {
+    if (settingsOpen || guideOpen || spacesOpen || spaceContext || pairingOpen || noteEditor || lightbox || codexOpen) {
       setPop((current) => current?.mode === 'learn' ? null : current)
     }
-  }, [settingsOpen, guideOpen, pairingOpen, noteEditor, lightbox])
+  }, [settingsOpen, guideOpen, spacesOpen, spaceContext, pairingOpen, noteEditor, lightbox, codexOpen])
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 1499px)')
@@ -131,6 +153,23 @@ export function App() {
   }, [])
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (spaceTransition?.phase !== 'ready') return
+    const finished = spaceTransition
+    let live = true
+    const clear = () => { if (live) setSpaceTransition(current => current === finished ? null : current) }
+    if (reducedSpaceMotion()) { clear(); return }
+    // Animate opacity only: reading restoration measures block positions during this frame.
+    // A fresh animation also replays when a cached space opens in the same React batch.
+    const animation = scrollRef.current?.animate([{ opacity: .12 }, { opacity: 1 }], { duration: 320, easing: 'cubic-bezier(.2,.7,.2,1)' })
+    // The animation timeline starts on a rendered frame, which may lag the wall clock.
+    // Do not cancel it just because the overlay's minimum reveal time has elapsed.
+    let revealTimer = 0
+    const overlayReady = new Promise<void>(resolve => { revealTimer = window.setTimeout(resolve, 340) })
+    void Promise.all([animation?.finished, overlayReady]).then(clear, () => {})
+    const fallback = window.setTimeout(clear, 1500)
+    return () => { live = false; window.clearTimeout(revealTimer); window.clearTimeout(fallback); animation?.cancel() }
+  }, [spaceTransition])
   const restoreRef = useRef<{ key: string; top: number } | null>(null)
   const editingRef = useRef(false)
   const pendingRef = useRef<DocUpdate[]>([])
@@ -149,6 +188,7 @@ export function App() {
   const openDoc = useCallback(
     async (path: string, keepOnFailure = false) => {
       const request = ++documentRequest.current
+      readingRestoreRef.current = { request, path, key: latestStateRef.current?.scroll[path], loaded: false }
       stopSpeech()
       setPop(null)
       setNoteEditor(null)
@@ -161,10 +201,16 @@ export function App() {
         if (request !== documentRequest.current) return null
         prevText.current = new Map()
         const next = hydrate(opened)
+        if (readingRestoreRef.current?.request === request) readingRestoreRef.current.loaded = true
         setDoc(next)
+        setSpaceTransition(current => current && current.id === latestStateRef.current?.activeSpaceId ? { ...current, phase: 'ready' } : current)
         return next
       } catch {
-        if (request === documentRequest.current && !keepOnFailure) setDoc(null)
+        if (request === documentRequest.current) {
+          readingRestoreRef.current = null
+          setSpaceTransition(null)
+          if (!keepOnFailure) setDoc(null)
+        }
         return null
       }
     },
@@ -174,18 +220,41 @@ export function App() {
 
   const applyState = useCallback(
     (next: AppState, openPath: string | null) => {
+      const previous = latestStateRef.current
+      const changedSpace = previous?.activeSpaceId !== next.activeSpaceId || previous?.root !== next.root
+      if (changedSpace) {
+        const nextSpace = next.spaces?.find(space => space.id === next.activeSpaceId)
+        setSpaceTransition(current => nextSpace ? current?.id === nextSpace.id && current.phase === 'opening' ? current : { id: nextSpace.id, name: nextSpace.name, phase: 'opening' } : null)
+        lastLibraryRevision.current = 0
+        lastSavedPosition.current = null
+        relocatedOpenRef.current = null
+        restoreRef.current = null
+        pendingRef.current = []
+        wordRequests.current.clear()
+        setSpacesOpen(!next.root)
+        setSpaceContext(null)
+        setNotesOpen(false)
+        setWordsOpen(false)
+        setStatus('')
+        setDoc(null)
+      }
       latestStateRef.current = next
+      rememberSpaceRoots(next.spaces ?? [])
+      restoreSpaceDraftAliases(next)
       setState(next)
       if (next.libraryChange) libraryChangeRef.current(next.libraryChange)
       const target = openPath ?? (next.root ? next.library.find((entry) => !entry.archived)?.path ?? null : null)
-      if (target) void openDoc(target)
+      if (target && (changedSpace || activeContextRef.current.sourcePath !== target)) void openDoc(target)
+      else if (target) return
       else {
         ++documentRequest.current
+        readingRestoreRef.current = null
         setDoc(null)
         setPop(null)
         setNoteEditor(null)
         setPendingJump(null)
         setActiveNote(null)
+        setSpaceTransition(current => current && current.id === next.activeSpaceId ? { ...current, phase: 'ready' } : current)
       }
     },
     [openDoc]
@@ -194,7 +263,10 @@ export function App() {
   useEffect(() => {
     void window.api.getState().then((next) => {
       latestStateRef.current = next
+      rememberSpaceRoots(next.spaces ?? [])
+      restoreSpaceDraftAliases(next)
       setState(next)
+      if (!next.root && (next.spaces?.length ?? 0) > 0) setSpacesOpen(true)
       if (next.libraryChange) libraryChangeRef.current(next.libraryChange)
       const target = next.openPath ?? (next.root ? next.library.find((entry) => !entry.archived)?.path ?? null : null)
       if (target) void openDoc(target)
@@ -294,12 +366,19 @@ export function App() {
     const offManaged = window.api.onLibraryChange((change) => libraryChangeRef.current(change))
     const offStatus = window.api.onDocStatus(() => setStatus('updating'))
     const offDoc = window.api.onDoc((update) => updateRef.current(update))
+    const offSpaces = window.api.onSpaces((spaces) => {
+      rememberSpaceRoots(spaces)
+      setState(current => current ? { ...current, spaces } : current)
+    })
+    const offOverview = window.api.onSpaceOverview(() => spaceOverviewRef.current())
     return () => {
       offState()
       offLibrary()
       offManaged()
       offStatus()
       offDoc()
+      offSpaces()
+      offOverview()
     }
   }, [applyState])
 
@@ -323,8 +402,16 @@ export function App() {
   const prefs = state?.prefs
   const ui: UiLang = prefs?.ui ?? 'en'
   const mode: ReadMode = doc?.zh ? prefs?.mode ?? 'source' : 'source'
+  const sourceLanguage = useMemo(() => doc ? detectDocumentLanguage(doc.sourcePath, doc.sourceText) : undefined, [doc?.sourcePath, doc?.sourceText])
+  const translationLanguage = useMemo(() => doc?.zhText
+    ? detectDocumentLanguage(doc.zhPath ?? '', doc.zhText)
+    : 'zh', [doc?.zhPath, doc?.zhText])
+  const readingLanguages = useMemo(() => ({ source: sourceLanguage, zh: translationLanguage }), [sourceLanguage, translationLanguage])
   const reviewing = notesOpen || wordsOpen
-  const sidebarVisible = !!prefs?.sidebar && !(reviewing && compactWindow)
+  const sidebarVisible = !!prefs?.sidebar && !(reviewing && compactWindow) && !(codexOpen && compactWindow)
+  useLayoutEffect(() => {
+    if (codexOpen && (notesOpen || wordsOpen)) { captureAnchor(); setCodexOpen(false) }
+  }, [notesOpen, wordsOpen])
   const readingHighlights = useMemo(() => {
     if (!changeFocus || changeFocus.sourcePath !== doc?.sourcePath) return flash
     return new Set([...flash, `${changeFocus.lang}:${changeFocus.key}`])
@@ -354,7 +441,7 @@ export function App() {
     if (!saved || !root) return
     const el = root.querySelector<HTMLElement>(`[data-key="${cssEscape(saved.key)}"]`)
     if (el) root.scrollTop += el.getBoundingClientRect().top - root.getBoundingClientRect().top - saved.top
-  }, [doc?.sourcePath, doc?.sourceText, doc?.zhText, doc?.assetVersion, mode])
+  }, [doc?.sourcePath, doc?.sourceText, doc?.zhText, doc?.assetVersion, mode, codexOpen, sidebarVisible])
 
   useLayoutEffect(
     () => paintNoteHighlights(scrollRef.current, doc?.notes ?? [], activeNote),
@@ -370,23 +457,23 @@ export function App() {
   }, [changeFocus, doc?.sourcePath, doc?.sourceText, doc?.zhText, mode])
 
   // Restore last read position when a document first opens.
-  const openedKey = doc?.sourcePath
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = scrollRef.current
-    if (!doc || !root || !state || pendingJumpRef.current) return
-    if (relocatedOpenRef.current === doc.sourcePath) { relocatedOpenRef.current = null; return }
-    const key = state.scroll[doc.sourcePath]
-    requestAnimationFrame(() => {
-      if (pendingJumpRef.current) return
-      if (!key) {
-        root.scrollTop = 0
-        return
+    const restore = readingRestoreRef.current
+    if (!doc || !root || !restore?.loaded || restore.path !== doc.sourcePath || restore.request !== documentRequest.current) return
+    if (!pendingJumpRef.current && relocatedOpenRef.current !== doc.sourcePath) {
+      if (!restore.key) root.scrollTop = 0
+      else {
+        const el = root.querySelector<HTMLElement>(`[data-key="${cssEscape(restore.key)}"]`)
+        if (el) root.scrollTop += el.getBoundingClientRect().top - root.getBoundingClientRect().top - 12
       }
-      const el = root.querySelector<HTMLElement>(`[data-key="${cssEscape(key)}"]`)
-      if (el) root.scrollTop += el.getBoundingClientRect().top - root.getBoundingClientRect().top - 12
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openedKey])
+    }
+    relocatedOpenRef.current = null
+    // Layout resets and the restoration itself may emit scroll events. Only resume saves
+    // after the browser has settled this document; an older callback cannot release a newer open.
+    const frame = requestAnimationFrame(() => { if (readingRestoreRef.current === restore) readingRestoreRef.current = null })
+    return () => cancelAnimationFrame(frame)
+  }, [doc])
 
   useEffect(() => {
     if (!pop && !noteEditor) {
@@ -417,7 +504,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       // The native dialog handles Escape and keeps reader shortcuts inactive.
-      if (pairingOpen || guideOpen) return
+      if (pairingOpen || guideOpen || spacesOpen || spaceContext) return
       if (event.key === 'Escape') {
         if (settingsOpen) return
         else if (noteEditor) setNoteEditor(null)
@@ -446,7 +533,22 @@ export function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, guideOpen, doc, state?.hasKey, ui])
+  }, [pop, noteEditor, lightbox, speech.playing, hasZh, stopSpeech, settingsOpen, pairingOpen, guideOpen, spacesOpen, spaceContext, doc, state?.hasKey, ui])
+
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (!isNoteDraftStorageKey(event.key)) return
+      try {
+        const incoming = readNoteDrafts(window.localStorage)
+        const merged = mergeNoteDraftChanges(storedDraftsRef.current, draftsRef.current, incoming)
+        storedDraftsRef.current = incoming
+        draftsRef.current = merged
+        setDrafts(merged)
+      } catch { /* This window retains its in-memory drafts when storage is unavailable. */ }
+    }
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [])
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => {
@@ -479,13 +581,39 @@ export function App() {
     onClose={() => setSettingsOpen(false)}
   />
   const guideDialog = guideOpen && <UsageGuide ui={ui} onClose={() => setGuideOpen(false)} />
+  const activeSpace = state.spaces?.find(space => space.id === state.activeSpaceId)
+  const spacesDialog = <SpaceOverview open={spacesOpen} ui={ui} spaces={state.spaces ?? []} activeSpaceId={state.activeSpaceId ?? null}
+    onOpen={switchToSpace}
+    onAdd={addSpace}
+    onRemove={async id => { if (await prepareSpaceChange()) { const opened = await window.api.removeSpace(id); applyState(opened.state, opened.openPath) } }}
+    onRelocate={async id => { if (await prepareSpaceChange()) { const opened = await window.api.relocateSpace(id); applyState(opened.state, opened.openPath) } }}
+    onContext={space => setSpaceContext({ space, path: space.id === state.activeSpaceId && !doc?.missing ? doc?.sourcePath : undefined })}
+    onClose={() => setSpacesOpen(false)} />
+  const spaceContextDialog = spaceContext && <SpaceContext ui={ui} space={spaceContext.space} path={spaceContext.path} onClose={() => setSpaceContext(null)} />
+  const codexPanel = activeSpace && <CodexTaskPanel open={codexOpen} ui={ui} space={activeSpace}
+    relativePath={doc && pathInSpace(doc.sourcePath, activeSpace.root) ? doc.sourcePath.replaceAll('\\', '/').slice(activeSpace.root.replaceAll('\\', '/').replace(/\/$/, '').length + 1) : undefined}
+    snapshot={codex.snapshot} loading={codex.loading || codex.checking} busy={codex.busy} controlBusy={codex.controlBusy} replyBusy={codex.replyBusy} error={codex.error}
+    onClose={() => { captureAnchor(); setCodexOpen(false); document.querySelector<HTMLButtonElement>('.space-ai-entry')?.focus() }}
+    onRefresh={() => void codex.check().catch(() => {})} onStart={codex.start} onStop={codex.stop} onTakeover={codex.takeover} onRespond={codex.respond}
+    onReview={path => {
+      const normalized = path.replaceAll('\\', '/')
+      if (normalized.split('/').some(part => part === '..' || part === '.')) return
+      const absolute = normalized.startsWith('/') || /^[a-z]:\//i.test(normalized) ? path : activeSpace.root.replace(/[/\\]$/, '') + '/' + normalized
+      if (!pathInSpace(absolute, activeSpace.root)) { flashToast(ui === 'zh' ? '这个文件不在当前空间中。' : 'This file is outside the current space.'); return }
+      if (/\.(md|markdown)$/i.test(absolute)) void openDoc(absolute, true)
+      else void window.api.reveal(absolute).catch(() => flashToast(ui === 'zh' ? '暂时无法定位这个文件。' : 'This file could not be located.'))
+    }} onContext={() => setSpaceContext({ space: activeSpace, path: doc && !doc.missing ? doc.sourcePath : undefined })} />
 
   if (!state.root && listNoteDrafts(drafts).length === 0) {
     return (
       <UiProvider value={ui}>
         <Welcome dragOver={dragOver} setDragOver={setDragOver} onDrop={onDropPath} noRoot onPrefs={savePrefs} onSettings={() => setSettingsOpen(true)} onGuide={() => setGuideOpen(true)} />
+        <div className="welcome-spaces"><SpaceSwitcher ui={ui} spaces={state.spaces ?? []} activeSpaceId={state.activeSpaceId ?? null}
+          onSwitch={id => switchToSpace(id, false)} onAdd={addSpace} onManage={() => void showSpaces()} /></div>
         {settingsDialog}
         {guideDialog}
+        {spacesDialog}
+        {spaceContextDialog}
       </UiProvider>
     )
   }
@@ -494,24 +622,33 @@ export function App() {
   const openNotes = notes.filter((note) => note.status !== 'resolved')
   const activeDraftKey = doc && pop ? noteDraftKey(doc.sourcePath, pop.lang, pop.block) : ''
   const activeDraft = drafts[activeDraftKey]
-  const draftEntries = listNoteDrafts(drafts)
+  const draftEntries = listNoteDrafts(drafts).filter(entry => !state.root || pathInSpace(draftPathInCurrentSpace(entry), state.root))
   const panelDrafts = draftEntries.map((entry) => {
-    const isCurrent = entry.sourcePath === doc?.sourcePath
+    const targetPath = draftPathInCurrentSpace(entry)
+    const isCurrent = targetPath === doc?.sourcePath
     const saved = isCurrent && entry.kind === 'note' ? notes.find((note) => note.id === entry.target) : undefined
     const target = saved ?? draftLocation(entry)
     const unavailable = isCurrent && (entry.kind === 'note' && !saved || !resolveNoteBlock(target, doc!.source.blocks, doc!.zh?.blocks ?? null).block)
     return {
       ...entry, isCurrent, isEdit: entry.kind === 'note', unavailable,
-      documentLabel: state.library.find((item) => item.path === entry.sourcePath)?.title ?? entry.sourcePath.split(/[/\\]/).slice(-2).join('/')
+      documentLabel: (state.library.find((item) => item.path === targetPath)?.title ?? entry.sourcePath.split(/[/\\]/).slice(-2).join('/')) + (targetPath !== entry.sourcePath ? (ui === 'zh' ? ' · 旧位置草稿' : ' · Draft from previous location') : '')
     }
   }).sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent))
   const editorComment = noteEditor ? drafts[noteEditor.draftKey]?.comment ?? noteEditor.originalComment : ''
 
   return (
     <UiProvider value={ui}>
+    <ReadingLanguages.Provider value={readingLanguages}>
+    <AssetScope.Provider value={doc?.assetScope}>
     <div
-      className={`app${reviewing ? ' reviewing' : ''}`}
+      className={`app${reviewing ? ' reviewing' : ''}${codexOpen && activeSpace ? ' codex-open' : ''}${spaceTransition?.phase === 'ready' ? ' space-enter' : ''}`}
       style={{ ['--fs' as string]: `${state.prefs.fontSize}px` }}
+      onClickCapture={event => {
+        if (spaceTransition?.phase === 'opening' && !(event.target as HTMLElement).closest('.space-switcher')) { event.preventDefault(); event.stopPropagation() }
+      }}
+      onKeyDownCapture={event => {
+        if (spaceTransition?.phase === 'opening' && !(event.target as HTMLElement).closest('.space-switcher')) { event.preventDefault(); event.stopPropagation() }
+      }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault()
@@ -524,6 +661,7 @@ export function App() {
       onDrop={(e) => {
         e.preventDefault()
         setDragOver(false)
+        if (spaceTransition?.phase === 'opening') return
         const file = e.dataTransfer.files[0]
         if (file) void onDropPath(window.api.pathForFile(file))
       }}
@@ -535,7 +673,7 @@ export function App() {
         onOpen={(path) => void openDoc(path)}
         onPrefs={savePrefs}
         onJump={jumpToHeading}
-        onPickRoot={() => void window.api.pickRoot().catch((error) => flashToast(libraryErrorCopy(error, ui)))}
+        onPickRoot={() => void showSpaces()}
         onFileMenu={(path, position) => void showFileMenu(path, position)}
         onLibraryChange={(change) => libraryChangeRef.current(change)}
         onError={flashToast}
@@ -548,6 +686,7 @@ export function App() {
           prefs={{ ...prefs!, mode }}
           sidebarVisible={sidebarVisible}
           onToggleSidebar={() => {
+            if (codexOpen && compactWindow) { captureAnchor(); setCodexOpen(false); if (!prefs!.sidebar) void savePrefs({ sidebar: true }); return }
             if (!sidebarVisible && reviewing && compactWindow) {
               setNotesOpen(false)
               setWordsOpen(false)
@@ -555,7 +694,18 @@ export function App() {
             } else void savePrefs({ sidebar: !sidebarVisible })
           }}
           onSettings={() => setSettingsOpen(true)}
-          hasZh={hasZh}
+          space={activeSpace}
+          spaces={state.spaces ?? []}
+          pendingSpaceId={spaceTransition?.phase === 'opening' ? spaceTransition.id : undefined}
+          onSwitchSpace={id => switchToSpace(id, false)}
+          onAddSpace={addSpace}
+          codexSnapshot={codex.snapshot}
+          codexControlBusy={codex.controlBusy}
+          codexOpen={codexOpen}
+          onCodex={() => { captureAnchor(); setCodexOpen(value => !value); if (!codexOpen) { setNotesOpen(false); setWordsOpen(false); void codex.check().catch(() => {}) } }}
+          onCodexStop={() => void codex.stop().catch(reason => flashToast(codexErrorCopy(String(reason), ui)))}
+          onCodexTakeover={() => void codex.takeover().catch(reason => flashToast(codexErrorCopy(String(reason), ui)))}
+          onSpaces={() => void showSpaces()}
           openCount={openNotes.length}
           notesOpen={notesOpen}
           wordCount={doc?.words.length ?? 0}
@@ -564,15 +714,21 @@ export function App() {
           speechNote={speechNote}
           onPrefs={savePrefs}
           onToggleNotes={() => {
+            if (codexOpen) { captureAnchor(); setCodexOpen(false) }
             setNotesOpen((v) => !v)
             setWordsOpen(false)
           }}
           onReadMode={requestReadMode}
           onToggleWords={() => {
+            if (codexOpen) { captureAnchor(); setCodexOpen(false) }
             setWordsOpen((v) => !v)
             setNotesOpen(false)
           }}
         />
+
+        {spaceTransition && <div key={spaceTransition.id} className="space-opening" data-phase={spaceTransition.phase} role="status" aria-live="polite">
+          <div className="space-opening-label"><SpaceCover space={state.spaces?.find(space => space.id === spaceTransition.id)} /><span>{spaceTransition.phase === 'opening' ? <Loader2 className="spin" size={14} /> : <Check size={14} />}{spaceTransition.phase === 'opening' ? (ui === 'zh' ? `正在打开 ${spaceTransition.name}…` : `Opening ${spaceTransition.name}…`) : spaceTransition.name}</span></div>
+        </div>}
 
         {doc && !doc.missing && <ChangeReview key={doc.documentId ?? doc.sourcePath}
           sourcePath={doc.sourcePath} documentId={doc.documentId} sourceText={doc.sourceText} zhText={doc.zhText}
@@ -702,6 +858,7 @@ export function App() {
       )}
 
       {guideDialog}
+      {codexPanel}
       {pairingOpen && pairing && doc && (
         <PairingCheckDialog
           report={pairing} ui={ui} sourcePath={doc.sourcePath} zhPath={doc.zhPath}
@@ -797,6 +954,8 @@ export function App() {
       )}
 
       {settingsDialog}
+      {spacesDialog}
+      {spaceContextDialog}
 
       {lightbox && (
         <div className="lightbox" onClick={() => setLightbox('')}>
@@ -817,6 +976,8 @@ export function App() {
         </div>
       )}
     </div>
+    </AssetScope.Provider>
+    </ReadingLanguages.Provider>
     </UiProvider>
   )
 
@@ -857,6 +1018,7 @@ export function App() {
       if (!current || current.sourcePath !== update.sourcePath) return current
       captureAnchor()
       const next: Doc = { ...current, assetVersion: update.assetVersion,
+        assetScope: update.assetScope ?? current.assetScope,
         translationAlignment: update.translationAlignment === undefined ? current.translationAlignment : update.translationAlignment,
         translationAlignmentState: update.translationAlignmentState === undefined ? current.translationAlignmentState : update.translationAlignmentState }
       if (update.side === 'source') {
@@ -899,7 +1061,7 @@ export function App() {
 
   function onScroll() {
     const root = scrollRef.current
-    if (!root || !doc) return
+    if (!root || !doc || readingRestoreRef.current || spaceSwitchPending.current) return
     const top = root.getBoundingClientRect().top
     for (const element of root.querySelectorAll<HTMLElement>('[data-key]')) {
       if (element.getBoundingClientRect().bottom <= top + 4) continue
@@ -912,9 +1074,68 @@ export function App() {
     }
   }
 
+  async function flushReadingPosition() {
+    const root = scrollRef.current
+    if (!root || !doc || readingRestoreRef.current) return
+    const top = root.getBoundingClientRect().top
+    for (const element of root.querySelectorAll<HTMLElement>('[data-key]')) {
+      if (element.getBoundingClientRect().bottom <= top + 4) continue
+      const key = element.dataset.key ?? ''
+      await window.api.saveScroll(doc.sourcePath, key)
+      lastSavedPosition.current = { path: doc.sourcePath, key }
+      setState(current => current ? { ...current, scroll: { ...current.scroll, [doc.sourcePath]: key } } : current)
+      break
+    }
+  }
+
+  async function prepareSpaceChange() {
+    if (savingNoteRef.current) throw new Error('SPACE_NOTE_BUSY')
+    if (!draftPersistedRef.current && !persistDrafts(draftsRef.current)) {
+      throw new Error('SPACE_DRAFT_UNSAVED')
+    }
+    await flushReadingPosition()
+    stopSpeech()
+    return true
+  }
+
+  async function showSpaces() {
+    try { if (await prepareSpaceChange()) { setPop(null); setSpacesOpen(true) } } catch (reason) { flashToast(spaceError(reason, ui)) }
+  }
+
+  async function switchToSpace(id: string, separateWindow = false) {
+    if (spaceSwitchPending.current || spaceTransitionRef.current?.phase === 'opening') throw new Error('SPACE_SWITCH_BUSY')
+    if (!separateWindow && id === latestStateRef.current?.activeSpaceId) { setSpacesOpen(false); return }
+    spaceSwitchPending.current = true
+    const target = latestStateRef.current?.spaces?.find(space => space.id === id)
+    if (!separateWindow && target) setSpaceTransition({ id, name: target.name, phase: 'opening' })
+    try {
+      await prepareSpaceChange()
+      if (separateWindow) await window.api.openSpaceWindow(id)
+      else {
+        const opened = await window.api.switchSpace(id)
+        if (opened.state.activeSpaceId !== latestStateRef.current?.activeSpaceId || opened.state.root !== latestStateRef.current?.root) applyState(opened.state, opened.openPath)
+        // An already-open space is focused in its own window; this window stays put.
+        if (opened.state.activeSpaceId !== id) setSpaceTransition(null)
+        setSpacesOpen(false)
+      }
+    } catch (reason) { setSpaceTransition(null); throw reason }
+    finally { spaceSwitchPending.current = false }
+  }
+
+  async function addSpace() {
+    if (spaceSwitchPending.current || spaceTransitionRef.current?.phase === 'opening') throw new Error('SPACE_SWITCH_BUSY')
+    spaceSwitchPending.current = true
+    try {
+      await prepareSpaceChange()
+      const opened = await window.api.addSpace()
+      applyState(opened.state, opened.openPath)
+    } finally { spaceSwitchPending.current = false }
+  }
+
   async function savePrefs(patch: Partial<Preferences>) {
+    const target = latestStateRef.current?.activeSpaceId
     const next = await window.api.setPrefs(patch)
-    setState((s) => (s ? { ...s, prefs: next } : s))
+    setState((s) => (s && s.activeSpaceId === target ? { ...s, prefs: next } : s))
   }
 
   function requestReadMode(next: ReadMode) {
@@ -1002,7 +1223,7 @@ export function App() {
     const quote = target?.quote ?? selection.toString().trim()
     if (!quote) return
     const rect = range.getBoundingClientRect()
-    if (lang === 'source' && /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(quote)) {
+    if (lang === 'source' && supportsEnglishTools(sourceLanguage) && /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(quote)) {
       openWordCard(block, quote, rect.left + rect.width / 2, rect.bottom + 8, false, sentenceForRange(range), undefined, true)
     } else {
       editingRef.current = true
@@ -1068,9 +1289,44 @@ export function App() {
     draftsRef.current = next
     setDrafts(next)
     let persisted = false
-    try { persisted = writeNoteDrafts(window.localStorage, next) } catch { /* Exit guard keeps unsaved drafts safe. */ }
+    try { persisted = writeNoteDraftChanges(window.localStorage, storedDraftsRef.current, next) } catch { /* Exit guard keeps unsaved drafts safe. */ }
+    if (persisted) storedDraftsRef.current = next
     draftPersistedRef.current = persisted
     setDraftPersisted(persisted)
+    return persisted
+  }
+
+  function rememberSpaceRoots(spaces: SpaceSummary[]) {
+    for (const space of spaces) {
+      const from = knownSpaceRoots.current.get(space.id)
+      knownSpaceRoots.current.set(space.id, space.root)
+      if (from && from !== space.root) migrateSpaceDraftRoots(space.id, space.root, [from], spaces.filter(other => other.id !== space.id).map(other => other.root))
+    }
+  }
+
+  function restoreSpaceDraftAliases(next: AppState) {
+    if (!next.root || !next.activeSpaceId) return
+    migrateSpaceDraftRoots(next.activeSpaceId, next.root, next.spaceRootAliases ?? [], (next.spaces ?? []).filter(space => space.id !== next.activeSpaceId).map(space => space.root))
+  }
+
+  function draftPathInCurrentSpace(entry: NoteDraftEntry) {
+    const current = latestStateRef.current
+    if (!current?.root) return entry.sourcePath
+    const mapped = relocateSpaceNoteDrafts({ [entry.key]: entry }, current.root, current.spaceRootAliases ?? [], (current.spaces ?? []).filter(space => space.id !== current.activeSpaceId).map(space => space.root))
+    return listNoteDrafts(mapped)[0]?.sourcePath ?? entry.sourcePath
+  }
+
+  function migrateSpaceDraftRoots(id: string, root: string, aliases: string[], excluded: string[]) {
+    const marker = (alias: string) => `md-duck:space-draft-roots:v1:${JSON.stringify([id, alias, root])}`
+    const pending = aliases.filter(alias => {
+      try { return window.localStorage.getItem(marker(alias)) !== 'done' } catch { return true }
+    })
+    const previous = draftsRef.current
+    const next = relocateSpaceNoteDrafts(previous, root, pending, excluded)
+    if ((JSON.stringify(previous) !== JSON.stringify(next) || !draftPersistedRef.current) && !persistDrafts(next)) return
+    for (const alias of pending) {
+      try { window.localStorage.setItem(marker(alias), 'done') } catch { /* The old source remains intact; normalization can be retried next time. */ }
+    }
   }
 
   function updateDraft(comment: string) {
@@ -1118,10 +1374,11 @@ export function App() {
   async function resumeDraft(key: string) {
     const entry = listNoteDrafts(draftsRef.current).find((draft) => draft.key === key)
     if (!entry) return
+    const sourcePath = draftPathInCurrentSpace(entry)
     let current = doc
     let request = documentRequest.current
-    if (current?.sourcePath !== entry.sourcePath) {
-      const opening = openDoc(entry.sourcePath, true)
+    if (current?.sourcePath !== sourcePath) {
+      const opening = openDoc(sourcePath, true)
       request = documentRequest.current
       current = await opening
     }
@@ -1133,7 +1390,7 @@ export function App() {
     setPop(null)
     setNoteError('')
     setNoteEditor({
-      sourcePath: entry.sourcePath, documentId: current?.documentId, draftKey: key, quote: entry.quote, lang: entry.lang, quoteAnchor: saved?.quoteAnchor ?? entry.quoteAnchor,
+      sourcePath, documentId: current?.documentId, draftKey: key, quote: entry.quote, lang: entry.lang, quoteAnchor: saved?.quoteAnchor ?? entry.quoteAnchor,
       noteId: entry.kind === 'note' ? entry.target : undefined,
       blockId: entry.kind !== 'note' && location.block ? location.block.id : target.blockId, blockKey: location.block?.key ?? target.blockKey,
       originalComment: saved?.comment ?? '',
@@ -1262,7 +1519,7 @@ export function App() {
   async function runGloss(detail: boolean, block?: Block, quote?: string, lang?: 'source' | 'zh') {
     const target = block && quote && lang ? { block, quote, lang } : pop
     if (!target) return
-    if (!detail && !block && pop && target.lang === 'source' && /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(target.quote.trim())) {
+    if (!detail && !block && pop && target.lang === 'source' && supportsEnglishTools(sourceLanguage) && /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/.test(target.quote.trim())) {
       openWordCard(target.block, target.quote.trim(), pop.x, pop.y, false, pop.sentence)
       return
     }
@@ -1368,10 +1625,11 @@ export function App() {
 
   async function onDropPath(path: string) {
     try {
+      await prepareSpaceChange()
       const { state: next, openPath } = await window.api.openPath(path)
       applyState(next, openPath)
     } catch (error) {
-      flashToast(errorText(ui, error instanceof Error ? error.message : '', 'cannotOpen'))
+      flashToast(error instanceof Error && /SPACE_/.test(error.message) ? spaceError(error, ui) : errorText(ui, error instanceof Error ? error.message : '', 'cannotOpen'))
     }
   }
 
@@ -1410,7 +1668,7 @@ function Sidebar({
 }) {
   const tr = useT()
   const tab = state.prefs.sidebarTab
-  const folderName = state.root?.split(/[/\\]/).filter(Boolean).pop() ?? tr('folderFallback')
+  const folderName = state.spaces?.find(space => space.id === state.activeSpaceId)?.name ?? state.root?.split(/[/\\]/).filter(Boolean).pop() ?? tr('folderFallback')
   return (
     <aside className="sidebar" style={{ display: visible ? undefined : 'none' }}>
       <div className="sidebar-drag" />
@@ -1424,7 +1682,7 @@ function Sidebar({
       </div>
       <div className="sidebar-scroll">
         {tab === 'files' ? (
-          <LibraryPanel root={state.root} entries={state.library} folders={state.folders ?? []}
+          <LibraryPanel key={`${state.activeSpaceId ?? ''}:${state.root ?? ''}`} spaceId={state.activeSpaceId} root={state.root} entries={state.library} folders={state.folders ?? []}
             issue={state.libraryIssue} ui={state.prefs.ui} currentPath={doc?.sourcePath ?? null}
             sort={state.prefs.librarySort} onSortChange={(librarySort) => onPrefs({ librarySort })}
             onOpen={onOpen} onFileMenu={onFileMenu} onChange={onLibraryChange} onError={onError} />
@@ -1435,7 +1693,7 @@ function Sidebar({
         )}
       </div>
       <div className="sidebar-foot">
-        <button className="btn ghost small" onClick={onPickRoot} title={`${state.root ?? ''}\n${tr('openOtherFolder')}`}>
+        <button className="btn ghost small" onClick={onPickRoot} title={`${state.root ?? ''}\n${state.prefs.ui === 'zh' ? '切换文章空间' : 'Switch article space'}`}>
           <FolderOpen size={15} /> <span className="folder-name">{folderName}</span>
         </button>
         <button className="btn ghost icon guide-entry" onClick={onGuide} title={state.prefs.ui === 'zh' ? '使用指南' : 'Using MD Duck'} aria-label={state.prefs.ui === 'zh' ? '使用指南' : 'Using MD Duck'}><CircleHelp size={16} /></button>
@@ -1472,7 +1730,6 @@ function Topbar({
   sidebarVisible,
   onToggleSidebar,
   onSettings,
-  hasZh,
   openCount,
   notesOpen,
   wordCount,
@@ -1482,14 +1739,25 @@ function Topbar({
   onPrefs,
   onToggleNotes,
   onToggleWords,
-  onReadMode
+  onReadMode,
+  space,
+  spaces,
+  pendingSpaceId,
+  onSwitchSpace,
+  onAddSpace,
+  codexSnapshot,
+  codexControlBusy,
+  codexOpen,
+  onCodex,
+  onCodexStop,
+  onCodexTakeover,
+  onSpaces
 }: {
   doc: Doc | null
   prefs: Preferences
   sidebarVisible: boolean
   onToggleSidebar: () => void
   onSettings: () => void
-  hasZh: boolean
   openCount: number
   notesOpen: boolean
   wordCount: number
@@ -1500,45 +1768,77 @@ function Topbar({
   onToggleNotes: () => void
   onToggleWords: () => void
   onReadMode: (mode: ReadMode) => void
+  space?: SpaceSummary
+  spaces: SpaceSummary[]
+  pendingSpaceId?: string
+  onSwitchSpace: (id: string) => Promise<void>
+  onAddSpace: () => Promise<void>
+  codexSnapshot: CodexTaskSnapshot | null
+  codexControlBusy: boolean
+  codexOpen: boolean
+  onCodex: () => void
+  onCodexStop: () => void
+  onCodexTakeover: () => void
+  onSpaces: () => void
 }) {
   const tr = useT()
+  const source = useReadingLanguage('source')
+  const translation = useReadingLanguage('zh')
+  const modes: {mode: ReadMode; label: string; title: string}[] = [
+    { mode: 'source', label: source.label, title: tr('readLanguageTitle', { language: source.label, key: 1 }) },
+    { mode: 'zh', label: translation.label, title: tr('readLanguageTitle', { language: translation.label, key: 2 }) },
+    { mode: 'bilingual', label: tr('readBoth'), title: tr('readBothTitle') }
+  ]
   const busy = status || speechNote
   const preparing = status === 'updating' || speechNote === 'preparing' || speechNote === 'prepare' || speechNote.startsWith('download:')
   const busyLabel = status === 'updating' ? tr('updating') : speechText(prefs.ui ?? 'en', speechNote)
+  const taskPhase = codexSnapshot?.task?.phase ?? space?.codexTask?.phase
+  const taskActive = !!taskPhase && ['starting', 'running', 'waiting-approval', 'waiting-input', 'stopping'].includes(taskPhase)
+  const taskLabel = taskPhase ? codexPhaseLabel(taskPhase, prefs.ui ?? 'en') : ''
   return (
     <div className="topbar">
-      {!sidebarVisible && <span className="pad" />}
+      <div className="topbar-heading">
+        {!sidebarVisible && <span className="pad" />}
+        <span className="title" title={doc?.source.title}>{doc?.source.title ?? (prefs.ui === 'zh' ? '选择一篇文章开始阅读' : 'Choose an article to read')}</span>
+        <SpaceSwitcher ui={prefs.ui ?? 'en'} spaces={spaces} activeSpaceId={space?.id ?? null} pendingId={pendingSpaceId}
+          onSwitch={onSwitchSpace} onAdd={onAddSpace} onManage={onSpaces} />
+      </div>
+      <div className={`topbar-actions${taskActive ? ' has-codex-task' : ''}`} inert={!!pendingSpaceId}>
       <button className="btn icon ghost" title={sidebarVisible ? tr('collapseSidebar') : tr('expandSidebar')} aria-label={sidebarVisible ? tr('collapseSidebar') : tr('expandSidebar')} onClick={onToggleSidebar}>
         {sidebarVisible ? <PanelLeft size={16} /> : <PanelRight size={16} />}
       </button>
-      <span className="title" title={doc?.source.title}>{doc?.source.title ?? ''}</span>
-      {busy ? (
-        <span className="status-pill" role="status" title={busyLabel}>
-          {preparing && <Loader2 className="spin" size={13} />} {busyLabel}
-        </span>
-      ) : null}
-      <div className="seg read-modes" role="group" aria-label={tr('readingMode')}>
-        <button className={prefs.mode === 'source' ? 'on' : ''} aria-pressed={prefs.mode === 'source'} onClick={() => onReadMode('source')} title={tr('readEnglishTitle')}>
-          {tr('readEnglish')}
-        </button>
-        <button className={prefs.mode === 'zh' ? 'on' : ''} aria-pressed={prefs.mode === 'zh'} disabled={!doc} onClick={() => onReadMode('zh')} title={tr('readChineseTitle')}>
-          {tr('readChinese')}
-        </button>
-        <button
-          className={prefs.mode === 'bilingual' ? 'on' : ''}
-          aria-pressed={prefs.mode === 'bilingual'}
-          disabled={!doc}
-          onClick={() => onReadMode('bilingual')}
-          title={tr('readBothTitle')}
-        >
-          <BookOpen size={14} /> {tr('readBoth')}
-        </button>
+      <div className="read-modes" role="group" aria-label={tr('readingMode')}>
+        {modes.map(({ mode, label, title }, index) => {
+          const selected = prefs.mode === mode
+          return (
+            <button type="button" key={mode} aria-pressed={selected} aria-keyshortcuts={String(index + 1)}
+              disabled={!doc && mode !== 'source'} onClick={() => onReadMode(mode)} title={title}>
+              <span className="mode-name">{label}</span>
+            </button>
+          )
+        })}
       </div>
       <button className={`btn ghost panel-toggle ${notesOpen ? 'active' : ''}`} onClick={onToggleNotes} title={tr('notes')} aria-label={tr('notes')} aria-expanded={notesOpen}>
         {openCount > 0 ? <MessageSquareText size={16} /> : <MessageSquarePlus size={16} />}
         <span className="control-label">{tr('notes')}</span>
         {openCount > 0 && <span className="control-count">{openCount}</span>}
       </button>
+      <span className="spacer" />
+      {busy ? (
+        <span className="status-pill" role="status" title={busyLabel}>
+          {preparing && <Loader2 className="spin" size={13} />} {busyLabel}
+        </span>
+      ) : null}
+      <div className="codex-toolbar" data-phase={taskPhase}>
+        <button className={`btn ghost space-ai-entry${codexOpen ? ' active' : ''}`} disabled={!space || !!pendingSpaceId} onClick={onCodex}
+          aria-expanded={codexOpen} aria-label={`Codex${taskLabel ? ` · ${taskLabel}` : ''}`} title={taskLabel ? `Codex · ${taskLabel}` : prefs.ui === 'zh' ? '给 Codex 一个本地任务，或查看其他 AI 的空间说明' : 'Give Codex a local task, or view space instructions for another AI'}>
+          {taskActive ? <Loader2 size={14} className={taskPhase === 'running' || taskPhase === 'starting' || taskPhase === 'stopping' ? 'spin' : ''} /> : <Sparkles size={15} />}<span>{taskLabel || (prefs.ui === 'zh' ? '交给 AI' : 'Give to AI')}</span>
+        </button>
+        {taskActive && <>
+          <button className="btn icon ghost codex-takeover" disabled={codexControlBusy || taskPhase === 'stopping'} onClick={onCodexTakeover} title={prefs.ui === 'zh' ? '我来接管：先停止任务，再由我操作' : 'Take over: stop the task, then make your own changes'} aria-label={prefs.ui === 'zh' ? '我来接管' : 'Take over'}><Hand size={15} /></button>
+          <button className="btn icon ghost codex-stop" disabled={codexControlBusy || taskPhase === 'stopping'} onClick={onCodexStop} title={prefs.ui === 'zh' ? '停止任务' : 'Stop task'} aria-label={prefs.ui === 'zh' ? '停止任务' : 'Stop task'}><Square size={13} /></button>
+        </>}
+      </div>
       <div className="reader-tools">
         <ReadingOptions fontSize={prefs.fontSize} onChange={(fontSize) => onPrefs({ fontSize })} />
         <button className={`btn icon ghost ${wordsOpen ? 'active' : ''}`} onClick={onToggleWords} title={`${tr('words')}${wordCount > 0 ? ` · ${wordCount}` : ''}`} aria-label={tr('words')} aria-expanded={wordsOpen}>
@@ -1547,6 +1847,7 @@ function Topbar({
         <button className="btn icon ghost" title={tr('settings')} aria-label={tr('settings')} onClick={onSettings}>
           <Settings size={16} />
         </button>
+      </div>
       </div>
     </div>
   )
@@ -1614,6 +1915,9 @@ function Reader({
 }) {
   const tr = useT()
   const ui = useUi()
+  const source = useReadingLanguage('source')
+  const translation = useReadingLanguage('zh')
+  const englishTools = supportsEnglishTools(source.tag)
   const wide = mode === 'bilingual'
   const readerRef = useRef<HTMLDivElement>(null)
   const [hasTextSelection, setHasTextSelection] = useState(false)
@@ -1641,7 +1945,7 @@ function Reader({
   }
 
   const render = (block: Block, lang: 'source' | 'zh') => (
-    <div key={`${lang}:${block.key}`} onMouseUp={() => onMouseUp(block, lang)}>
+    <div key={`${lang}:${block.key}`} lang={lang === 'source' ? source.tag ?? 'und' : translation.tag ?? 'und'} onMouseUp={() => onMouseUp(block, lang)}>
       <BlockView
         block={block}
         dir={lang === 'zh' ? doc.zhDir ?? doc.dir : doc.dir}
@@ -1653,11 +1957,11 @@ function Reader({
         paused={speaking?.paused ?? false}
         preparing={speaking?.preparing ?? false}
         onImage={onImage}
-        onSpeak={lang === 'source' ? (b) => onSpeak(b, lang) : undefined}
+        onSpeak={lang === 'source' && englishTools ? (b) => onSpeak(b, lang) : undefined}
         onAnnotate={(b) => onAnnotate(b, lang)}
         onTranslate={(b) => onTranslate(b, lang)}
         learn={
-          lang === 'source'
+          lang === 'source' && englishTools
             ? { known: knownWords, active: activeWord, onWord: (word, rect, sentence, occurrence) => onWord(block, word, rect, sentence, occurrence) }
             : undefined
         }
@@ -1701,8 +2005,8 @@ function Reader({
         <div className="pairs prose">
           {aligned.rows.map((row) => (
             <div className="pair" key={row.key}>
-              {row.source ? render(row.source, 'source') : <div className="blk missing">{tr('missingEnglish')}</div>}
-              {row.zh ? render(row.zh, 'zh') : <div className="blk missing">{tr('missingChinese')}</div>}
+              {row.source ? render(row.source, 'source') : <div className="blk missing">{tr('missingLanguage', { language: source.label })}</div>}
+              {row.zh ? render(row.zh, 'zh') : <div className="blk missing">{tr('missingLanguage', { language: translation.label })}</div>}
             </div>
           ))}
         </div>
@@ -1710,11 +2014,11 @@ function Reader({
         <>
           <div className="cols">
             <div className="col prose">
-              <span className="lang-badge">{tr('columnEnglish')}</span>
+              <span className="lang-badge">{source.label}</span>
               {doc.source.blocks.map((block) => render(block, 'source'))}
             </div>
             <div className="col prose">
-              <span className="lang-badge">{tr('columnChinese')}</span>
+              <span className="lang-badge">{translation.label}</span>
               {doc.zh.blocks.map((block) => render(block, 'zh'))}
             </div>
           </div>
@@ -1841,6 +2145,7 @@ function SelectionPopover({
   restoring?: boolean
 }) {
   const tr = useT()
+  const { tag } = useReadingLanguage(pop.lang)
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ left: 12, top: 64 })
   const closeRef = useRef(onClose)
@@ -1904,7 +2209,7 @@ function SelectionPopover({
               <Languages size={14} /> {tr('translate')}
             </button>
           )}
-          {isLatin(pop.quote) && (
+          {supportsEnglishTools(tag) && isLatin(pop.quote) && (
             <button className="btn small ghost" onMouseDown={(e) => e.preventDefault()} onClick={onSpeak}>
               <Volume2 size={14} /> {tr('speak')}
             </button>
@@ -2082,6 +2387,15 @@ function Welcome({
 }
 
 /* ---------- helpers ---------- */
+
+function pathInSpace(path: string, root: string) {
+  const windows = /^[a-z]:[/\\]/i.test(root) || root.startsWith('\\\\')
+  const normalize = (value: string) => {
+    const slashes = value.replace(/\\/g, '/').replace(/\/$/, '')
+    return windows ? slashes.toLowerCase() : slashes
+  }
+  return normalize(path).startsWith(normalize(root) + '/')
+}
 
 function nodeEl(node: Node | null): HTMLElement | null {
   if (!node) return null

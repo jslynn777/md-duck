@@ -1,5 +1,8 @@
 appId: com.mdduck.desktop
 productName: MD Duck
+protocols:
+  - name: MD Duck space
+    schemes: [mdduck]
 artifactName: MD-Duck-${version}-${os}-${arch}.${ext}
 directories:
   output: release

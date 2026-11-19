@@ -1,122 +1,27 @@
-import {
-  app,
-  BrowserWindow,
-  clipboard,
-  dialog,
-  ipcMain,
-  Menu,
-  nativeImage,
-  nativeTheme,
-  protocol,
-  safeStorage,
-  shell,
-  utilityProcess,
-  type UtilityProcess
-} from 'electron'
-import { mkdirSync, promises as fs } from 'node:fs'
-import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import chokidar, { type FSWatcher } from 'chokidar'
-import speechWorkerPath from './speech-worker?modulePath'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, protocol, safeStorage, shell } from 'electron'
+import { appendFileSync, mkdirSync, promises as fs } from 'node:fs'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import iconPath from './icon.png?asset'
 import { t } from '../shared/i18n'
-import { createReviewStore } from './review-store'
-import { assertReviewSource } from './review-files'
-import { prepareExampleLibrary } from './example-library'
-import { isPathInsideRoot } from './allowed-path'
-import { createFileActionService, presentFileMenu, revealTarget } from './file-menu'
-import { createWordHelpService } from './word-help'
-import { createAIService, requestChat } from './ai-service'
-import { createDocumentTranslator, translationPath, resolveSourcePath } from './document-translation'
+import { DEFAULT_MODEL, type AppState, type Preferences } from '../shared/types'
+import { spaceContextPrompt, spaceOpenUrl, type SpaceRecord, type SpaceSummary, type SpaceTarget } from '../shared/spaces'
+import { createSpacesStore, spaceRootKey, spaceRootsOverlap } from './spaces-store'
+import { createSpaceAssetRegistry } from './space-assets'
+import { createSpaceLaunchData, parseSpaceLaunchData, parseSpaceOpenUrl, parseSpaceTargetArgs, resolveSpaceArticle } from './space-target'
+import { createReaderSession, READER_CHANNELS, type ReaderSession } from './reader-session'
+import { readReaderSettings, type ReaderSettings } from './space-settings'
 import { createSettingsWriter, defaultUiLanguage } from './settings-store'
+import { createAIService } from './ai-service'
 import { createStartup } from './startup'
-import { windowChrome } from './window-options'
 import { createStartupProbe } from './startup-probe'
-import { assertLibraryDocument } from './library-write-guard'
-import { createLibraryManager } from './library-manager'
-import { createDocumentChangeStore } from './document-change-store'
-import type { LibraryChange, LibraryCommand, LibraryFolder } from '../shared/library'
-import { relocateScroll } from '../shared/library-relocation'
-import type { AIConfigInput } from '../shared/ai'
-import { buildCatalog, fallbackCatalog } from '../shared/models'
-import {
-  DEFAULT_MODEL,
-  type AppState,
-  type FileMenuResult,
-  type LibraryEntry,
-  type ModelCatalog,
-  type LearnedWord,
-  type Note,
-  type OpenedDocument,
-  type Preferences,
-  type SpeechEvent
-} from '../shared/types'
-
-const IMAGE_TYPES: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-  '.svg': 'image/svg+xml'
-}
-
-const IGNORED_DIRS = new Set(['node_modules', 'dist', 'out', 'build'])
-const MAX_FILES = 2000
-
-const DEFAULT_PREFS: Preferences = {
-  fontSize: 18,
-  mode: 'source',
-  sidebar: true,
-  sidebarTab: 'files',
-  voice: 'af_heart',
-  speed: 1,
-  model: DEFAULT_MODEL,
-  ui: 'en'
-}
-
-type Settings = {
-  root: string | null
-  prefs: Preferences
-  openPath: string | null
-  scroll: Record<string, string>
-  openRouterKey: string | null
-}
-
-let window: BrowserWindow | null = null
-let watcher: FSWatcher | null = null
-let settings: Settings
-let library: LibraryEntry[] = []
-let libraryFolders: LibraryFolder[] = []
-let libraryIssue: string | undefined
-let managingLibrary = false
-let libraryChangeRevision = 0
-let latestLibraryChange: LibraryChange | undefined
-const activeTranslations = new Set<string>()
-let fileActionRevision = 0
-let fileMenuRequest = 0
-let cancelFileMenu: (() => void) | null = null
-let openPath = ''
-let documentOpenRequest = 0
-let assetVersion = 1
-let saveTimer: NodeJS.Timeout | null = null
-let settingsWriter: ReturnType<typeof createSettingsWriter> | null = null
-let quitSaved = false
-let quitSaving = false
-let settingsRevision = 0
-let libraryTimer: NodeJS.Timeout | null = null
-let speech: UtilityProcess | null = null
-let ai: ReturnType<typeof createAIService>
-let translator: ReturnType<typeof createDocumentTranslator>
-const fileTimers = new Map<string, NodeJS.Timeout>()
-
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'md-duck', privileges: { standard: true, secure: true, supportFetchAPI: true } }
-])
+import { windowChrome } from './window-options'
+import { prepareExampleLibrary } from './example-library'
+import { resolveSourcePath } from './document-translation'
+import { createCodexRunner, type CodexRunner } from './codex-runner'
+import { snapshotCodexFiles } from './codex-file-snapshot'
+import type { CodexTaskInput, CodexApprovalResponse } from '../shared/codex-task'
 
 app.setName('MD Duck')
-
-// An explicit profile allows first-run verification without touching normal data.
 const testProfile = process.env.MD_DUCK_PROFILE_DIR
 if (testProfile) {
   if (!isAbsolute(testProfile) || dirname(testProfile) === testProfile) throw new Error('MD_DUCK_PROFILE_DIR must be an absolute directory below the filesystem root')
@@ -124,935 +29,597 @@ if (testProfile) {
   app.setPath('userData', testProfile)
   app.setPath('sessionData', join(testProfile, 'session'))
 }
+const userData = app.getPath('userData')
+// Isolated runtime checks only. Normal installations never create these traces.
+function traceSpaceRuntime(event: string, detail?: unknown) {
+  if (!testProfile) return
+  try { appendFileSync(join(testProfile, `spaces-runtime-trace-${process.pid}.jsonl`), `${JSON.stringify({ event, detail, at: Date.now(), pid: process.pid })}\n`) } catch { /* diagnostics must not affect startup */ }
+}
+traceSpaceRuntime('main-loaded')
 const startupProbe = createStartupProbe(testProfile, process.env.MD_DUCK_STARTUP_CHECK_REPORT, app.getVersion())
+const store = createSpacesStore({ userData })
+const assets = createSpaceAssetRegistry()
+const assetScopes = new Map<string, string>()
+const sessions = new Map<string, Promise<ReaderSession>>()
+const readySessions = new Map<string, ReaderSession>()
+const codexRunners = new Map<string, CodexRunner>()
+const startingTasks = new Set<string>()
+const mutatingSpaces = new Set<string>()
+const failedSessions = new Set<string>()
+const bindings = new Map<number, ReaderSession>()
+const windows = new Set<BrowserWindow>()
+const registered = new Set<string>()
+const homeDefaultsWriter = createSettingsWriter(join(userData, 'home-settings.json'))
+let lastActiveSession: ReaderSession | undefined
+let initialWindow: BrowserWindow | null = null
+let ai: ReturnType<typeof createAIService> | undefined
+let aiReady: Promise<void> | undefined
+let aiStorageReady = true
+let defaults: Preferences = { fontSize: 18, mode: 'source', sidebar: true, sidebarTab: 'files', voice: 'af_heart', speed: 1, model: DEFAULT_MODEL, ui: 'en' }
+let quitting = false
+let quitSaved = false
+let summaryTimer: NodeJS.Timeout | undefined
+let operationTail: Promise<unknown> = Promise.resolve()
+const pendingTargets: SpaceTarget[] = []
+let invalidTarget = false
 
-const firstInstance = app.requestSingleInstanceLock()
-if (!firstInstance) app.quit()
-app.on('second-instance', activateWindow)
+protocol.registerSchemesAsPrivileged([{ scheme: 'md-duck', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 
-const reviews = createReviewStore({
-  isAllowed,
-  userData: app.getPath('userData'),
-  candidates: async (source) => {
-    const entries = await listLibrary(dirname(source))
-    const candidates = []
-    const seen = new Set<string>()
-    for (const entry of entries) {
-      const canonical = await assertReviewSource(entry.path, isAllowed).catch(() => null)
-      if (!canonical || dirname(canonical) !== dirname(source) || seen.has(canonical)) continue
-      seen.add(canonical)
-      candidates.push({
-        name: basename(canonical),
-        sourceText: await fs.readFile(canonical, 'utf8'),
-        zhText: entry.zhPath && await isAllowed(entry.zhPath) ? await fs.readFile(entry.zhPath, 'utf8') : null
-      })
-    }
-    return candidates
+function queueOperation<T>(task: () => Promise<T>): Promise<T> {
+  const next = operationTail.catch(() => undefined).then(task)
+  operationTail = next
+  return next
+}
+function currentWindow() { return BrowserWindow.getFocusedWindow() ?? [...windows].find(win => !win.isDestroyed()) ?? null }
+function sessionFor(win: BrowserWindow) {
+  const session = bindings.get(win.id)
+  if (!session) throw new Error('ERR_SPACE_NOT_READY')
+  return session
+}
+function recordFor(id: string) {
+  const record = store.snapshot().spaces.find(space => space.id === id)
+  if (!record) throw new Error('ERR_SPACE_NOT_FOUND')
+  return record
+}
+function taskActive(id: string | null) {
+  return !!id && (startingTasks.has(id) || !!codexRunners.get(id)?.busy())
+}
+async function codexFor(win: BrowserWindow, id: string) {
+  if (quitting) throw new Error('ERR_CODEX_CLOSED')
+  if (mutatingSpaces.has(id)) throw new Error('ERR_CODEX_BUSY')
+  const record = recordFor(id)
+  // A late click from the old reader must never start work in a different space.
+  if (sessionFor(win).id !== id) throw new Error('ERR_SPACE_NOT_READY')
+  let runner = codexRunners.get(id)
+  if (runner?.isDisposed() && !runner.busy()) { codexRunners.delete(id); runner = undefined }
+  if (runner && spaceRootKey(runner.status().root) !== spaceRootKey(record.root)) throw new Error('ERR_CODEX_ROOT_CHANGED')
+  if (!runner) {
+    runner = createCodexRunner({ spaceId: id, root: record.root, appVersion: app.getVersion(),
+      storePath: join(userData, 'codex-tasks', `${id}.json`),
+      snapshotFiles: () => snapshotCodexFiles(record.root),
+      onDiagnostic: testProfile ? event => traceSpaceRuntime('codex-protocol', { spaceId: id, ...event }) : undefined,
+      onChange: snapshot => {
+        for (const target of windows) if (!target.isDestroyed()) target.webContents.send('codex:changed', snapshot)
+        broadcastSpaces()
+      } })
+    codexRunners.set(id, runner)
   }
-})
-
-const libraryManager = createLibraryManager({
-  userData: app.getPath('userData'),
-  listEntries: listLibrary,
-  isBusy: () => activeTranslations.size > 0
-})
-const documentChanges = createDocumentChangeStore()
-let libraryApplyTail: Promise<unknown> = Promise.resolve()
-
-const startup = createStartup({ registerProtocols: registerImageProtocol, openWindow: createWindow, initialize })
-if (firstInstance) void app.whenReady().then(() => startup.start())
-
-function registerImageProtocol() {
-  protocol.handle('md-duck', async (request) => {
-    const filePath = new URL(request.url).searchParams.get('path') ?? ''
-    const type = IMAGE_TYPES[extname(filePath).toLowerCase()]
-    if (!type || !(await isAllowed(filePath))) return new Response('forbidden', { status: 403 })
-    const data = await fs.readFile(filePath).catch(() => null)
-    if (!data) return new Response('missing', { status: 404 })
-    return new Response(data, { headers: { 'Content-Type': type, 'Cache-Control': 'no-store' } })
+  await runner.initialize()
+  if (quitting) throw new Error('ERR_CODEX_CLOSED')
+  if (mutatingSpaces.has(id) || spaceRootKey(recordFor(id).root) !== spaceRootKey(runner.status().root)) throw new Error('ERR_CODEX_SPACE_CHANGED')
+  return runner
+}
+async function mutateSpace<T>(id: string, action: () => Promise<T>) {
+  mutatingSpaces.add(id)
+  try { return await action() } finally { mutatingSpaces.delete(id) }
+}
+function summaries(): SpaceSummary[] {
+  let records: SpaceRecord[]
+  try { records = store.snapshot().spaces } catch { return [] }
+  return records.map(record => {
+    const task = codexRunners.get(record.id)?.status().task
+    return { ...record, openPath: null, availability: failedSessions.has(record.id) ? 'unreadable' : 'ready', unavailableReason: failedSessions.has(record.id) ? 'settings' : undefined, changeIssue: failedSessions.has(record.id), windowOpen: false,
+      ...readySessions.get(record.id)?.summary(),
+      codexTask: task ? { phase: task.phase, activity: task.activity, updatedAt: task.updatedAt } : undefined }
   })
 }
-
-async function initialize() {
-  settings = await loadSettings()
-  ai = createAIService({
-    storePath: join(app.getPath('userData'), 'ai-settings.json'),
-    encrypt: (key) => {
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('ERR_STORAGE')
-      return `enc:${safeStorage.encryptString(key).toString('base64')}`
-    },
-    decrypt: decodeKey,
-    legacy: { key: readKey(), model: settings.prefs.model },
-    openExternal: (url) => shell.openExternal(url),
-    onChange: (next) => {
-      settings.prefs.model = next.profiles[next.provider].model
-      scheduleSave()
-      window?.webContents.send('ai:changed', next)
-    }
-  })
-  let aiStorageError = false
-  const legacyKey = settings.openRouterKey
-  try {
-    await ai.init()
-    // Migration has reached the separate store before the legacy copy is removed.
-    settings.openRouterKey = null
-    settings.prefs.model = ai.state().profiles[ai.state().provider].model
-    await writeSettings()
-  } catch { settings.openRouterKey = legacyKey; aiStorageError = true }
-  translator = createDocumentTranslator({
-    isAllowed,
-    onProgress: (progress) => {
-      if (progress.phase === 'running') activeTranslations.add(progress.sourcePath)
-      else { activeTranslations.delete(progress.sourcePath); scheduleLibrary() }
-      window?.webContents.send('translation:progress', progress)
-      if (progress.phase === 'complete') {
-        scheduleLibrary()
-        void onFile(progress.targetPath)
-      }
-    }
-  })
-  if (process.platform === 'darwin') {
-    const dockIcon = nativeImage.createFromPath(iconPath).resize({ width: 256, height: 256 })
-    app.dock?.setIcon(dockIcon)
-  }
-  if (settings.root) await watchRoot(settings.root)
+function broadcastSpaces() {
+  if (summaryTimer) clearTimeout(summaryTimer)
+  summaryTimer = setTimeout(() => {
+    summaryTimer = undefined
+    const value = summaries()
+    for (const win of windows) if (!win.isDestroyed()) win.webContents.send('spaces:changed', value)
+  }, 60)
+}
+function opened(win: BrowserWindow) {
+  const state = sessionFor(win).state()
+  return { state, openPath: state.openPath }
+}
+function notifyState(win: BrowserWindow) { if (!win.isDestroyed()) win.webContents.send('state:changed', opened(win)) }
+function setWindowTitle(win: BrowserWindow, session: ReaderSession) {
+  const name = session.id ? recordFor(session.id).name : ''
+  win.setTitle(name ? `${name} — MD Duck` : 'MD Duck')
+}
+function attach(win: BrowserWindow, session: ReaderSession) {
+  bindings.get(win.id)?.attach(null)
+  bindings.set(win.id, session)
+  session.attach(win)
+  lastActiveSession = session
+  setWindowTitle(win, session)
   buildMenu()
-  startupProbe.mark('initialized')
-  if (aiStorageError && window) {
-    void dialog.showMessageBox(window!, {
-      type: 'error',
-      message: settings.prefs.ui === 'zh' ? 'AI 设置暂时无法读取或安全保存' : 'AI settings could not be loaded or saved securely',
-      detail: settings.prefs.ui === 'zh'
-        ? '原有配置已保留，阅读仍可正常使用。请检查系统凭据存储和应用数据目录的访问权限，再重新打开 MD Duck。'
-        : 'Your existing configuration is preserved and reading still works. Check access to system credential storage and the application data folder, then reopen MD Duck.'
-    })
-  }
+  broadcastSpaces()
 }
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
-
-app.on('activate', activateWindow)
-
-function activateWindow() {
-  if (!firstInstance || !app.isReady() || startup.phase() === 'idle') return
-  if (!window || window.isDestroyed()) void createWindow().catch(() => undefined)
-  if (window?.isMinimized()) window.restore()
-  window?.show()
-  window?.focus()
+function showWindow(win: BrowserWindow) {
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
 }
-
-app.on('before-quit', (event) => {
-  if (!settings || quitSaved) {
-    return
+function decodeKey(stored: string | null) {
+  if (!stored) return null
+  if (stored.startsWith('raw:')) return stored.slice(4)
+  if (stored.startsWith('enc:') && safeStorage.isEncryptionAvailable()) {
+    try { return safeStorage.decryptString(Buffer.from(stored.slice(4), 'base64')) } catch { return null }
   }
-  event.preventDefault()
-  if (quitSaving) return
-  quitSaving = true
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = null
-  }
-  void flushSettingsOnQuit().then(() => {
-    quitSaved = true
-    app.quit()
-  }).catch(async () => {
-    const zh = settings.prefs.ui === 'zh'
-    const result = await dialog.showMessageBox({
-      type: 'error',
-      message: zh ? '最新设置无法保存' : 'Your latest settings could not be saved',
-      detail: zh ? '返回应用可以检查磁盘和访问权限。仍然退出会放弃尚未保存的最新偏好。' : 'Return to the app to check disk space and access permissions. Quitting now discards your latest unsaved preferences.',
-      buttons: zh ? ['返回应用', '重试保存', '放弃最新设置并退出'] : ['Return to app', 'Retry saving', 'Discard latest settings and quit'],
-      defaultId: 0,
-      cancelId: 0
-    })
-    quitSaving = false
-    if (result.response === 2) { quitSaved = true; app.quit() }
-    else if (result.response === 1) app.quit()
-  })
-})
-
-// Unload guards can cancel before-quit; dispose services only after windows agree to close.
-app.on('will-quit', () => {
-  speech?.kill()
-  ai?.dispose()
-  translator?.dispose?.()
-})
-
-function createWindow(): Promise<void> {
-  if (window && !window.isDestroyed()) { window.show(); return Promise.resolve() }
-  const createdWindow = new BrowserWindow({
-    width: 1320,
-    height: 860,
-    minWidth: 900,
-    minHeight: 600,
-    title: 'MD Duck',
-    icon: iconPath,
-    ...windowChrome(process.platform),
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1b1a18' : '#fbfaf7',
-    show: true,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  })
-  window = createdWindow
-  if (createdWindow.isVisible()) startupProbe.mark('window-visible')
-  createdWindow.once('show', () => startupProbe.mark('window-visible'))
-  createdWindow.on('closed', () => {
-    if (window === createdWindow) window = null
-  })
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
-    return { action: 'deny' }
-  })
-  window.webContents.on('will-prevent-unload', (event) => {
-    const zh = settings?.prefs.ui === 'zh'
-    const response = dialog.showMessageBoxSync(window!, {
-      type: 'warning',
-      message: zh ? '批注草稿还没有保存到磁盘' : 'Note drafts have not been saved to disk',
-      detail: zh ? '返回后可以重试保存。直接关闭会丢弃只保存在内存中的草稿。' : 'Return and retry saving. Closing now discards drafts stored only in memory.',
-      buttons: zh ? ['返回保存', '放弃草稿并关闭'] : ['Return to save', 'Discard drafts and close'],
-      defaultId: 0,
-      cancelId: 0
-    })
-    // Preventing Electron's event explicitly permits unloading the page.
-    if (response === 1) event.preventDefault()
-    else { quitSaved = false; quitSaving = false }
-  })
-  window.webContents.on('will-navigate', (event, url) => {
-    const devUrl = process.env.ELECTRON_RENDERER_URL
-    if (devUrl && url.startsWith(devUrl)) return
-    event.preventDefault()
-  })
-  const loading = process.env.ELECTRON_RENDERER_URL
-    ? createdWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-    : createdWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  return loading.then(() => { startupProbe.mark('renderer-loaded') }).catch(async () => {
-    // Closing a Mac window while it loads is normal; activating the app creates
-    // another window. It must not permanently reject profile initialization.
-    if (createdWindow.isDestroyed()) return
-    const zh = settings?.prefs.ui === 'zh' || defaultUiLanguage(app.getPreferredSystemLanguages()) === 'zh'
-    const result = await dialog.showMessageBox(createdWindow, {
-      type: 'error',
-      message: zh ? '阅读界面无法加载' : 'The reader could not load',
-      detail: zh ? '请重新启动 MD Duck。文章和已保存的批注不受影响。' : 'Restart MD Duck. Your articles and saved notes are preserved.',
-      buttons: zh ? ['重新启动', '关闭'] : ['Restart', 'Close'],
-      defaultId: 0, cancelId: 1
-    })
-    if (result.response === 0) app.relaunch()
-    app.quit()
-    throw new Error('ERR_STARTUP')
-  })
+  return null
 }
-
-function buildMenu() {
-  const dev = !app.isPackaged
-  const lang = settings?.prefs.ui ?? 'en'
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate([
-      ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
-      {
-        label: t(lang, 'menuFile'),
-        submenu: [
-          { label: t(lang, 'menuOpenFolder'), accelerator: 'CmdOrCtrl+O', click: () => void startup.ready().then(pickRoot).catch(() => undefined) },
-          { label: t(lang, 'menuOpenFile'), accelerator: 'CmdOrCtrl+Shift+O', click: () => void startup.ready().then(pickFile).catch(() => undefined) },
-          { type: 'separator' },
-          { role: 'close' },
-          ...(process.platform !== 'darwin' ? [{ role: 'quit' as const }] : [])
-        ]
+async function ensureAI(settings: ReaderSettings) {
+  if (!aiReady) {
+    ai = createAIService({
+      storePath: join(userData, 'ai-settings.json'),
+      encrypt: key => {
+        if (!safeStorage.isEncryptionAvailable()) throw new Error('ERR_STORAGE')
+        return `enc:${safeStorage.encryptString(key).toString('base64')}`
       },
-      { role: 'editMenu' },
-      {
-        label: t(lang, 'menuView'),
-        submenu: [
-          ...(dev ? [{ role: 'reload' as const }, { role: 'toggleDevTools' as const }, { type: 'separator' as const }] : []),
-          { role: 'togglefullscreen' }
-        ]
+      decrypt: decodeKey,
+      legacy: { key: decodeKey(settings.openRouterKey), model: settings.prefs.model },
+      openExternal: url => shell.openExternal(url),
+      onChange: next => {
+        for (const session of readySessions.values()) session.setModel(next.profiles[next.provider].model)
+        for (const win of windows) if (!win.isDestroyed()) win.webContents.send('ai:changed', next)
+      }
+    })
+    aiReady = ai.init().catch(() => { aiStorageReady = false })
+  }
+  await aiReady
+  return aiStorageReady
+}
+async function getSession(id: string | null, inherited = defaults, homeWindow?: number): Promise<ReaderSession> {
+  const key = id ?? `__home__${homeWindow ?? ''}`
+  let pending = sessions.get(key)
+  if (!pending) {
+    const record = id ? recordFor(id) : null
+    const assetScope = assets.register(path => session.allowed(path))
+    const session = createReaderSession({
+      id, root: record?.root ?? null,
+      assetScope,
+      settingsFile: id ? store.settingsPath(id) : join(userData, homeWindow ? `home-settings-${homeWindow}.json` : 'home-settings.json'),
+      defaultPrefs: inherited,
+      ai: () => ai,
+      ensureAI,
+      spaces: summaries,
+      onSummaryChange: broadcastSpaces,
+      onPreferencesChange: buildMenu,
+      onSettingsError: () => {
+        void dialog.showMessageBox({ type: 'warning',
+          message: inherited.ui === 'zh' ? '空间设置暂时无法保存' : 'Space settings could not be saved',
+          detail: inherited.ui === 'zh'
+            ? `「${record?.name ?? 'MD Duck'}」仍可继续阅读，原有配置已保留。请检查可用磁盘空间及应用数据目录权限，再重试保存。`
+            : `You can keep reading in “${record?.name ?? 'MD Duck'}”. Your original configuration is preserved. Check free disk space and access to the application data folder before retrying.` })
       },
-      { role: 'windowMenu' }
-    ])
-  )
+      beforeSpeech: () => { for (const other of readySessions.values()) if (other !== session) other.stopSpeech() },
+      isTaskActive: () => taskActive(id)
+    })
+    assetScopes.set(key, assetScope)
+    for (const channel of session.channels()) registerSessionChannel(channel)
+    pending = session.initialize().then(() => {
+      readySessions.set(key, session)
+      failedSessions.delete(key)
+      broadcastSpaces()
+      return session
+    }).catch(error => { assets.remove(assetScope); assetScopes.delete(key); sessions.delete(key); failedSessions.add(key); broadcastSpaces(); throw error })
+    sessions.set(key, pending)
+  }
+  return pending
 }
 
-function handleReady(channel: string, listener: Parameters<typeof ipcMain.handle>[1]) {
+async function switchSpace(win: BrowserWindow, id: string, newWindow = false) {
+  recordFor(id)
+  const previous = bindings.get(win.id)
+  await previous?.flush()
+  const session = await getSession(id, previous?.state().prefs)
+  const existing = session.window()
+  await store.activate(id)
+  if (existing && !existing.isDestroyed()) {
+    showWindow(existing)
+    broadcastSpaces()
+    return opened(win)
+  }
+  if (newWindow) {
+    const created = await createWindow(session)
+    notifyState(created)
+    showWindow(created)
+  } else {
+    attach(win, session)
+  }
+  return opened(win)
+}
+async function openFolder(win: BrowserWindow, root: string, file?: string) {
+  const canonical = await fs.realpath(root)
+  const containing = store.snapshot().spaces.find(space => spaceRootsOverlap(space.root, canonical) && spaceRootKey(space.root) !== spaceRootKey(canonical) && !relative(space.root, canonical).startsWith('..') && !isAbsolute(relative(space.root, canonical)))
+  const record = containing ?? await store.add(canonical)
+  await switchSpace(win, record.id)
+  const session = await getSession(record.id)
+  const targetWindow = session.window()!
+  if (file) {
+    const source = await resolveSourcePath(await fs.realpath(file))
+    if (!await session.allowed(source)) throw new Error('ERR_NOT_IN_FOLDER')
+    await session.openDocument(source)
+    if (targetWindow !== win) notifyState(targetWindow)
+  }
+  return opened(win)
+}
+async function pickRoot(win: BrowserWindow) {
+  const picked = await dialog.showOpenDialog(win, { properties: ['openDirectory'] })
+  if (picked.canceled || !picked.filePaths[0]) return opened(win)
+  return openFolder(win, picked.filePaths[0])
+}
+async function pickFile(win: BrowserWindow) {
+  const picked = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }] })
+  if (picked.canceled || !picked.filePaths[0]) return opened(win)
+  const path = picked.filePaths[0]
+  return openFolder(win, dirname(path), path)
+}
+
+function guarded(channel: string, handler: (win: BrowserWindow, event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown) {
+  if (registered.has(channel)) return
+  registered.add(channel)
   ipcMain.handle(channel, async (event, ...args) => {
     await startup.ready()
-    const result = await listener(event, ...args)
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || !windows.has(win) || event.senderFrame !== win.webContents.mainFrame) throw new Error('ERR_NOT_IN_FOLDER')
+    const result = await handler(win, event, ...args)
     if (channel === 'state:get') startupProbe.mark('state-served')
     if (channel === 'doc:open') startupProbe.mark('document-restored')
     return result
   })
 }
-
-ipcMain.handle('startup:restart', (event) => {
-  if (event.sender !== window?.webContents || startup.phase() !== 'failed') return
-  app.relaunch()
-  app.quit()
-})
-
-handleReady('state:get', () => publicState())
-
-handleReady('root:pick', async () => {
-  const opened = await pickRoot()
-  return { state: publicState(), openPath: opened }
-})
-
-handleReady('file:pick', async () => {
-  const opened = await pickFile()
-  return { state: publicState(), openPath: opened }
-})
-
-handleReady('path:open', async (_event, target: string) => {
-  const stat = await fs.stat(target).catch(() => null)
-  if (!stat) throw new Error('ERR_NOT_FOUND')
-  if (stat.isDirectory()) {
-    await setRoot(target)
-    return { state: publicState(), openPath: null }
-  }
-  if (!/\.(md|markdown)$/i.test(target)) throw new Error('ERR_ONLY_MD')
-  await setRoot(dirname(target))
-  return { state: publicState(), openPath: await resolveSourcePath(target) }
-})
-
-handleReady('root:example', async () => {
-  const source = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'examples')
-  const exampleRoot = await prepareExampleLibrary(source, join(app.getPath('userData'), 'examples'))
-  await setRoot(exampleRoot)
-  const first = library.find((entry) => basename(entry.path) === 'article.md') ?? library[0]
-  const opened = { state: publicState(), openPath: first?.path ?? null }
-  window?.webContents.send('state:changed', opened)
-  return opened
-})
-
-handleReady('doc:open', async (_event, filePath: string) => libraryManager.exclusive(() => openDocument(filePath)))
-handleReady('changes:get', (_event, filePath: string, documentId?: string) => libraryManager.exclusive(async () => {
-  const { root, entry } = await changeTarget(filePath, documentId)
-  return documentChanges.inspect(root, entry)
-}))
-handleReady('changes:acknowledge', (_event, filePath: string, revision: string, documentId?: string) => libraryManager.exclusive(async () => {
-  const { root, entry } = await changeTarget(filePath, documentId)
-  const result = await documentChanges.acknowledge(root, entry, revision)
-  if (settings.root === root) {
-    const entries = library.map(item => item.id === entry.id ? { ...item, zhPath: result.current.zhText === null ? null : entry.zhPath } : item)
-    await applyLibraryChange(root, { snapshot: { entries, folders: libraryFolders, issue: libraryIssue }, relocations: [] })
-  }
-  return result
-}))
-handleReady('library:manage', async (event, command: LibraryCommand) => {
-  if (event.sender !== window?.webContents || event.senderFrame !== window.webContents.mainFrame || !settings.root) throw new Error('ERR_NOT_IN_FOLDER')
-  if (managingLibrary) throw new Error('LIBRARY_BUSY')
-  const root = settings.root
-  managingLibrary = true
-  try {
-    const change = await libraryManager.mutate(root, command)
-    change.root = root
-    await applyLibraryChange(root, change)
-    return change
-  } finally { managingLibrary = false }
-})
-handleReady('doc:close', (_event, filePath: string) => {
-  if (openPath !== filePath) return
-  ++documentOpenRequest
-  openPath = ''
-  settings.openPath = null
-  scheduleSave()
-})
-
-handleReady('prefs:set', (_event, prefs: Partial<Preferences>) => {
-  const uiChanged = prefs.ui != null && prefs.ui !== settings.prefs.ui
-  settings.prefs = { ...settings.prefs, ...prefs }
-  if (uiChanged) buildMenu()
-  scheduleSave()
-  return settings.prefs
-})
-
-let modelCache: { at: number; catalog: ModelCatalog } | null = null
-
-handleReady('models:list', async () => {
-  if (modelCache && Date.now() - modelCache.at < 6 * 60 * 60 * 1000) return modelCache.catalog
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/models', { signal: AbortSignal.timeout(12000) })
-    if (!response.ok) return modelCache?.catalog ?? fallbackCatalog()
-    const payload = (await response.json()) as { data?: Parameters<typeof buildCatalog>[0] }
-    const catalog = buildCatalog(payload.data ?? [])
-    modelCache = { at: Date.now(), catalog }
-    return catalog
-  } catch {
-    return modelCache?.catalog ?? fallbackCatalog()
-  }
-})
-
-handleReady('key:set', async (_event, key: string | null) => {
-  const current = ai.state()
-  const profile = current.profiles[current.provider]
-  const next = await ai.save({ provider: current.provider, baseUrl: profile.baseUrl, model: profile.model, key })
-  return next.profiles[next.provider].hasKey
-})
-
-handleReady('ai:get', () => ai.state())
-handleReady('ai:save', (_event, input: AIConfigInput) => ai.save(input))
-handleReady('ai:test', () => ai.test())
-handleReady('ai:connect', () => ai.connectOpenRouter())
-handleReady('ai:cancel-auth', () => ai.cancelAuth())
-handleReady('translation:info', (_event, filePath: string) => translator.inspect(filePath))
-handleReady('translation:start', async (_event, filePath: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, filePath, documentId)
-  const credentials = ai.credentials()
-  if (!credentials.key) throw new Error('NO_KEY')
-  return translator.start(filePath, {
-    model: credentials.model,
-    identity: `${credentials.provider}:${credentials.baseUrl}:${credentials.model}`,
-    request: (messages, signal) => requestChat(credentials, messages, { signal, temperature: 0.2 })
-  })
-}))
-handleReady('translation:stop', (_event, filePath: string) => translator.stop(filePath))
-handleReady('translation:choose', async (_event, filePath: string, documentId?: string) => {
-  if (!window || !(await isAllowed(filePath))) throw new Error('ERR_NOT_IN_FOLDER')
-  const picked = await dialog.showOpenDialog(window, {
-    title: settings.prefs.ui === 'zh' ? '选择对应的中文译文' : 'Choose the Chinese translation',
-    defaultPath: dirname(filePath),
-    properties: ['openFile'],
-    filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
-  })
-  if (picked.canceled || !picked.filePaths[0]) return false
-  await libraryManager.exclusive(async () => {
-    await assertLibraryDocument(settings.root, library, filePath, documentId)
-    await translator.associate(filePath, picked.filePaths[0])
-  })
-  scheduleLibrary()
-  if (openPath === filePath) await onFile(picked.filePaths[0])
-  return true
-})
-
-handleReady('scroll:save', (_event, filePath: string, blockKey: string) => libraryManager.exclusive(async () => {
-  if (filePath !== openPath || !(await isAllowed(filePath)) || !(await fs.stat(filePath).catch(() => null))?.isFile()) return
-  settings.scroll[filePath] = blockKey
-  scheduleSave()
-}))
-
-handleReady('notes:save', (_event, path: string, note: Note, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.saveNote(path, note)
-}))
-handleReady('notes:get', (_event, path: string) => libraryManager.exclusive(() => reviews.load(path)))
-handleReady('notes:edit', (_event, path: string, id: string, comment: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.editNote(path, id, comment)
-}))
-handleReady('notes:status', (_event, path: string, id: string, status: Note['status'], documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.setNoteStatus(path, id, status)
-}))
-handleReady('notes:delete', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.deleteNote(path, id)
-}))
-handleReady('notes:restore', (_event, path: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.restore(path)
-}))
-handleReady('words:save', (_event, path: string, word: LearnedWord, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.saveWord(path, word)
-}))
-handleReady('words:delete', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.deleteWord(path, id)
-}))
-handleReady('review:legacy', async (_event, path: string) => shell.showItemInFolder(await reviews.legacyFile(path)))
-handleReady('review:candidates', (_event, path: string) => libraryManager.exclusive(() => reviews.listCandidates(path)))
-handleReady('review:associate', (_event, path: string, id: string, documentId?: string) => libraryManager.exclusive(async () => {
-  await assertLibraryDocument(settings.root, library, path, documentId)
-  return reviews.associate(path, id)
-}))
-
-handleReady('clipboard:write', (_event, text: string) => clipboard.writeText(text))
-
-handleReady('shell:open', (_event, url: string) => {
-  if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
-})
-
-handleReady('shell:reveal', async (_event, filePath: string) => {
-  const root = settings.root
-  const canonical = await revealTarget(filePath, root)
-  if (settings.root !== root) throw new Error('ERR_NOT_IN_FOLDER')
-  shell.showItemInFolder(canonical)
-})
-
-const fileActions = createFileActionService(
-  () => ({ root: settings.root, library, revision: fileActionRevision }),
-  { reveal: (path) => shell.showItemInFolder(path), open: (path) => shell.openPath(path), copy: (path) => clipboard.writeText(path) }
-)
-
-handleReady('file:menu', async (event, filePath: string, position?: { x: number; y: number }) => {
-  const targetWindow = window
-  if (!targetWindow || targetWindow.isDestroyed() || event.sender !== targetWindow.webContents || event.senderFrame !== targetWindow.webContents.mainFrame) {
-    throw new Error('ERR_NOT_IN_FOLDER')
-  }
-  const request = ++fileMenuRequest
-  cancelFileMenu?.()
-  const session = await fileActions.prepare(filePath)
-  if (request !== fileMenuRequest || window !== targetWindow || targetWindow.isDestroyed()) return null
-  const zh = settings.prefs.ui === 'zh'
-  const labels = {
-    reveal: zh ? process.platform === 'darwin' ? '在 Finder 中显示' : '显示文件所在位置' : process.platform === 'darwin' ? 'Show in Finder' : 'Show in folder',
-    open: zh ? '用默认应用打开' : 'Open with default app',
-    copy: zh ? '复制完整路径' : 'Copy full path',
-    translation: zh ? '译文文件' : 'Translation file'
-  }
-  const pending = presentFileMenu({
-    create: (choose) => {
-      const items = (target: FileMenuResult['target']) => [
-        { label: labels.reveal, click: () => choose({ action: 'reveal', target }) },
-        { label: labels.open, click: () => choose({ action: 'open-default', target }) },
-        { label: labels.copy, click: () => choose({ action: 'copy-path', target }) }
-      ]
-      const menu = Menu.buildFromTemplate([
-        ...items('source'),
-        ...(session.translationReal ? [{ type: 'separator' as const }, { label: labels.translation, submenu: items('translation') }] : [])
-      ])
-      return {
-        popup: (callback) => {
-          const bounds = targetWindow.getContentBounds()
-          const zoom = targetWindow.webContents.getZoomFactor()
-          const anchor = position && typeof position === 'object' && Number.isFinite(position.x) && Number.isFinite(position.y)
-            ? {
-                x: Math.max(0, Math.min(bounds.width - 1, Math.round(position.x * zoom))),
-                y: Math.max(0, Math.min(bounds.height - 1, Math.round(position.y * zoom)))
-              }
-            : {}
-          menu.popup({ window: targetWindow, ...anchor, callback })
-        },
-        close: () => menu.closePopup()
-      }
-    },
-    onWindowClosed: (cancel) => {
-      targetWindow.once('closed', cancel)
-      return () => targetWindow.removeListener('closed', cancel)
-    },
-    execute: (choice, canceled) => fileActions.execute(session, choice, () => canceled() || targetWindow.isDestroyed())
-  })
-  cancelFileMenu = pending.cancel
-  try { return await pending.result } finally {
-    if (cancelFileMenu === pending.cancel) cancelFileMenu = null
-  }
-})
-
-handleReady('speech:speak', (_event, id: string, text: string) => {
-  if (!speech) startSpeech()
-  speech?.postMessage({ type: 'speak', id, text, voice: settings.prefs.voice, speed: settings.prefs.speed })
-})
-
-handleReady('speech:cancel', () => {
-  speech?.postMessage({ type: 'cancel' })
-})
-
-const wordHelp = createWordHelpService()
-handleReady('word:dictionary', (_event, word: string) => wordHelp.lookupDictionary(word))
-handleReady('word:explain', (_event, word: string, sentence: string, detail: boolean) => {
-  return wordHelp.explainWord(word, sentence, detail, ai.credentials())
-})
-
-handleReady('gloss', async (_event, word: string, sentence: string, detail: boolean, learn = false) => {
-  const credentials = ai.credentials()
-  const model = credentials.model
-  const lang = settings.prefs.ui ?? 'en'
-  const passage = word.trim().split(/\s+/).length > 8
-  const instruction = learn
-    ? '你是英语老师。只解释给出的那一个英文词在句子里的意思。用简体中文，两行：第一行是这个词，第二行是一句白话释义。不要解释句子里的其他词。'
-    : passage
-      ? '把给出的英文译成通顺的简体中文，按原来的句子顺序。不要拆成词条，不要写词性，不要解释选段里没有的内容。'
-      : lang === 'zh'
-        ? detail
-          ? '用简体中文解释选中的词或短语在这句里的意思、一个常见搭配、一处容易混的地方。最多 6 行。不要解释句中其他词。'
-          : '用简体中文说明选中内容在这句里的意思。只写一两句白话。不要写词性，不要解释没有被选中的词。'
-        : detail
-          ? 'Explain only the selected words in this sentence, in simplified Chinese: the meaning, one common use, and one easy confusion. At most 6 lines. Do not explain any other words.'
-          : 'Say what the selected English means in this sentence, in one or two sentences of simplified Chinese. No part-of-speech label. Do not explain words that were not selected.'
-  const text = await requestChat(credentials, [
-    { role: 'system', content: instruction },
-    { role: 'user', content: passage ? `选中：\n${word}` : `选中：${word}\n句子：${sentence}` }
-  ], { temperature: 0.2 })
-  return { text, model }
-})
-
-function startSpeech() {
-  speech = utilityProcess.fork(speechWorkerPath, [], { serviceName: 'MD Duck Speech' })
-  speech.postMessage({
-    type: 'init',
-    cacheDir: join(app.getPath('userData'), 'speech-cache'),
-    modelDir: join(app.getPath('userData'), 'kokoro-cache'),
-    voiceDirectory: app.isPackaged ? join(process.resourcesPath, 'kokoro-voices') : resolve('src/main/data/kokoro-voices')
-  })
-  speech.on('message', (event: SpeechEvent) => {
-    window?.webContents.send('speech:event', event)
-  })
-  speech.on('exit', () => {
-    speech = null
-  })
+function registerSessionChannel(channel: string) {
+  guarded(channel, (win, event, ...args) => sessionFor(win).invoke(channel, event, args))
 }
-
-function publicState(): AppState {
-  return {
-    root: settings.root,
-    library,
-    folders: libraryFolders,
-    libraryIssue,
-    libraryChange: latestLibraryChange,
-    prefs: settings.prefs,
-    hasKey: ai ? ai.state().profiles[ai.state().provider].hasKey : Boolean(settings.openRouterKey),
-    openPath: settings.openPath,
-    scroll: settings.scroll
-  }
-}
-
-async function pickRoot() {
-  if (!window) return null
-  const picked = await dialog.showOpenDialog(window, { properties: ['openDirectory'] })
-  if (picked.canceled || !picked.filePaths[0]) return null
-  await setRoot(picked.filePaths[0])
-  window.webContents.send('state:changed', { state: publicState(), openPath: null })
-  return null
-}
-
-async function pickFile() {
-  if (!window) return null
-  const picked = await dialog.showOpenDialog(window, {
-    properties: ['openFile'],
-    filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
-  })
-  const file = picked.filePaths[0]
-  if (picked.canceled || !file) return null
-  await setRoot(dirname(file))
-  const target = await resolveSourcePath(file)
-  window.webContents.send('state:changed', { state: publicState(), openPath: target })
-  return target
-}
-
-async function setRoot(next: string) {
-  if (managingLibrary || activeTranslations.size) throw new Error('LIBRARY_BUSY')
-  ++documentOpenRequest
-  ++fileActionRevision
-  ++fileMenuRequest
-  cancelFileMenu?.()
-  settings.root = next
-  settings.openPath = null
-  openPath = ''
-  scheduleSave()
-  await watchRoot(next)
-}
-
-async function watchRoot(dir: string) {
-  await watcher?.close()
-  if (libraryTimer) { clearTimeout(libraryTimer); libraryTimer = null }
-  for (const timer of fileTimers.values()) clearTimeout(timer)
-  fileTimers.clear()
-  const change = await libraryManager.refresh(dir)
-  if (settings.root !== dir) return
-  await applyLibraryChange(dir, change, false)
-  const watchedDir = await fs.realpath(dir).catch(() => dir)
-  watcher = chokidar.watch(watchedDir, {
-    // Chokidar 4 uses native fs.watch without the former FSEvents backend.
-    ignoreInitial: true,
-    depth: 24,
-    ignored: (target) => {
-      const rel = relative(watchedDir, target)
-      return rel.split(sep).some((part) => part.startsWith('.') || IGNORED_DIRS.has(part))
-    },
-    awaitWriteFinish: { stabilityThreshold: 120, pollInterval: 30 }
-  })
-  const schedule = (watchedFile: string) => {
-    if (settings.root !== dir) return
-    const file = join(dir, relative(watchedDir, watchedFile))
-    clearTimeout(fileTimers.get(file))
-    fileTimers.set(
-      file,
-      setTimeout(() => {
-        fileTimers.delete(file)
-        if (managingLibrary) { scheduleLibrary(); return }
-        if (settings.root === dir) void onFile(file).catch(() => scheduleLibrary())
-      }, 30)
-    )
-  }
-  watcher.on('add', schedule).on('change', schedule).on('unlink', schedule)
-    .on('addDir', () => { if (settings.root === dir) scheduleLibrary() })
-    .on('unlinkDir', () => { if (settings.root === dir) scheduleLibrary() })
-}
-
-async function openDocument(filePath: string): Promise<OpenedDocument> {
-  const request = ++documentOpenRequest
-  if (!(await isAllowed(filePath))) throw new Error('ERR_NOT_IN_FOLDER')
-  const sourcePath = await resolveSourcePath(filePath)
-  if (!(await isAllowed(sourcePath))) throw new Error('ERR_NOT_IN_FOLDER')
-  const entry = library.find((item) => item.path === sourcePath)
-  if (entry?.id && entry.fileIdentity) await assertLibraryDocument(settings.root, library, sourcePath, entry.id)
-  const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
-  const [sourceText, zhText, review, alignmentInspection] = await Promise.all([
-    fs.readFile(sourcePath, 'utf8'),
-    zhPath && zhPath !== sourcePath ? fs.readFile(zhPath, 'utf8').catch(() => null) : Promise.resolve(null),
-    reviews.load(sourcePath),
-    translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
-  ])
-  // A missing draft document must not detach the visible article from its watcher.
-  if (request === documentOpenRequest) {
-    openPath = sourcePath
-    settings.openPath = sourcePath
-    scheduleSave()
-  }
-  return {
-    sourcePath,
-    documentId: library.find((entry) => entry.path === sourcePath)?.id,
-    dir: dirname(sourcePath),
-    zhPath: zhText !== null ? zhPath : null,
-    zhDir: zhText !== null && zhPath ? dirname(zhPath) : null,
-    sourceText,
-    zhText,
-    notes: review.notes,
-    notesMissing: review.notesMissing,
-    reviewIssue: review.reviewIssue,
-    legacyUnassigned: review.legacyUnassigned,
-    words: review.words,
-    assetVersion,
-    translationAlignment: alignmentInspection.alignment,
-    translationAlignmentState: alignmentInspection.state,
-    missing: false
-  }
-}
-
-async function onFile(file: string) {
-  const root = settings.root
-  if (!root) return
-  if (/\.(md|markdown)$/i.test(file)) scheduleLibrary()
-  if (!openPath) return
-  const sourcePath = openPath
-  const request = documentOpenRequest
-  const zhPath = await translator.getTargetPath(sourcePath).catch(() => null)
-  if (openPath !== sourcePath || request !== documentOpenRequest) return
-  if (file === openPath || file === zhPath) {
-    window?.webContents.send('doc:status', { sourcePath: openPath, status: 'updating' })
-    const text = await fs.readFile(file, 'utf8').catch(() => null)
-    const alignmentInspection = await translator.inspectAlignment(sourcePath).catch(() => ({ alignment: null, state: 'invalid' as const }))
-    if (openPath !== sourcePath || request !== documentOpenRequest) return
-    assetVersion += 1
-    window?.webContents.send('doc:update', {
-      sourcePath: openPath,
-      side: file === openPath ? 'source' : 'zh',
-      text,
-      missing: text === null,
-      zhPath,
-      zhDir: zhPath ? dirname(zhPath) : null,
-      assetVersion,
-      translationAlignment: alignmentInspection.alignment,
-      translationAlignmentState: alignmentInspection.state
-    })
-    return
-  }
-  if (IMAGE_TYPES[extname(file).toLowerCase()] && (isInside(file, dirname(openPath)) || zhPath && isInside(file, dirname(zhPath)))) {
-    assetVersion += 1
-    window?.webContents.send('doc:update', { sourcePath: openPath, side: 'source', text: null, missing: false, assetVersion, zhPath, zhDir: zhPath ? dirname(zhPath) : null })
-  }
-}
-
-function scheduleLibrary() {
-  if (libraryTimer) clearTimeout(libraryTimer)
-  const root = settings?.root
-  libraryTimer = setTimeout(() => {
-    libraryTimer = null
-    if (!root || settings.root !== root) return
-    void libraryManager.refresh(root).then((change) => applyLibraryChange(root, change)).catch(() => {
-      if (settings.root !== root) return
-      libraryIssue = 'LIBRARY_REFRESH_FAILED'
-      window?.webContents.send('library:changed', { snapshot: { entries: library, folders: libraryFolders, issue: libraryIssue }, relocations: [] })
-    })
-  }, 350)
-}
-
-function applyLibraryChange(root: string, change: LibraryChange, notify = true) {
-  // Every relocation must reach settings and the reader before a newer scan.
-  // This queue is separate from the manager lock also held by acknowledgement.
-  const next = libraryApplyTail.catch(() => undefined).then(() => applyLibraryChangeNow(root, change, notify))
-  libraryApplyTail = next
-  return next
-}
-
-async function applyLibraryChangeNow(root: string, change: LibraryChange, notify: boolean) {
-  if (settings.root !== root) return
-  change.root = root
-  change.revision = ++libraryChangeRevision
-  change.snapshot.entries = await documentChanges.summarize(root, change.snapshot.entries)
-  if (settings.root !== root) return
-  latestLibraryChange = change
-  const previousTranslation = library.find((entry) => entry.path === openPath)?.zhPath
-  library = change.snapshot.entries
-  libraryFolders = change.snapshot.folders
-  libraryIssue = change.snapshot.issue
-  ++fileActionRevision
-  const moves = new Map(change.relocations.map(({ from, to }) => [from, to]))
-  const nextOpen = openPath ? moves.get(openPath) : undefined
-  if (change.relocations.length) {
-    settings.scroll = relocateScroll(settings.scroll, change.relocations)
-    if (settings.openPath) settings.openPath = moves.get(settings.openPath) ?? settings.openPath
-    if (nextOpen) { openPath = nextOpen; ++documentOpenRequest }
-    await writeSettings()
-  }
-  if (notify) window?.webContents.send('library:changed', change)
-  const currentTranslation = library.find((entry) => entry.path === openPath)?.zhPath
-  if (!nextOpen && previousTranslation !== currentTranslation) ++documentOpenRequest
-  if (notify && openPath && (nextOpen || previousTranslation !== currentTranslation)) {
-    await onFile(openPath)
-    if (currentTranslation) await onFile(currentTranslation)
-  }
-}
-
-async function changeTarget(filePath: string, documentId?: string) {
-  const root = settings.root
-  await assertLibraryDocument(root, library, filePath, documentId)
-  if (!root) throw new Error('ERR_NOT_IN_FOLDER')
-  const entry = library.find(item => item.path === filePath)!
-  // Resolve the current companion even if its watcher event has not refreshed
-  // the list yet (for example, an AI creating/removing a translation).
-  const zhPath = await translator.getTargetPath(filePath)
-  return { root, entry: { ...entry, zhPath: zhPath === filePath ? null : zhPath } }
-}
-
-async function listLibrary(dir: string): Promise<LibraryEntry[]> {
-  const files: string[] = []
-  await walk(dir, files, 0)
-  const set = new Set(files)
-  const translationFiles = new Set<string>()
-  const targets = new Map<string, string>()
-  for (const file of files) {
-    const source = await resolveSourcePath(file)
-    if (source !== file && set.has(source)) translationFiles.add(file)
-    const target = translator ? await translator.getTargetPath(file).catch(() => null) : translationPath(file)
-    if (target) {
-      targets.set(file, target)
-      if (set.has(target) && target !== file) translationFiles.add(target)
-    }
-  }
-  const entries = await Promise.all(
-    files
-      .filter((file) => !translationFiles.has(file))
-      .map(async (file) => {
-        const zh = targets.get(file)
-        const text = await readHead(file)
-        return {
-          path: file,
-          zhPath: zh && zh !== file && set.has(zh) ? zh : null,
-          title: titleFrom(text, basename(file)),
-          folder: relative(dir, dirname(file)) || '.'
-        }
-      })
-  )
-  return entries.sort((a, b) => a.folder.localeCompare(b.folder) || a.title.localeCompare(b.title))
-}
-
-async function walk(dir: string, files: string[], depth: number) {
-  if (depth > 24 || files.length >= MAX_FILES) return
-  const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => [])
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || IGNORED_DIRS.has(entry.name)) continue
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) await walk(full, files, depth + 1)
-    else if (/\.(md|markdown)$/i.test(entry.name)) files.push(full)
-  }
-}
-
-async function readHead(file: string) {
-  const handle = await fs.open(file, 'r').catch(() => null)
-  if (!handle) return ''
-  const buffer = Buffer.alloc(4096)
-  const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0)
-  await handle.close()
-  return buffer.subarray(0, bytesRead).toString('utf8')
-}
-
-function titleFrom(text: string, fileName: string) {
-  if (text.startsWith('---')) {
-    const titled = /^title:\s*(.+)$/m.exec(text)
-    if (titled) return titled[1].trim().replace(/^["']|["']$/g, '')
-  }
-  const heading = /^#\s+(.+)$/m.exec(text)
-  return heading?.[1]?.trim() || fileName.replace(/\.(md|markdown)$/i, '')
-}
-
-async function isAllowed(filePath: string) {
-  return isPathInsideRoot(filePath, settings?.root ?? null)
-}
-
-function isInside(filePath: string, dir: string) {
-  return filePath === dir || filePath.startsWith(dir.endsWith(sep) ? dir : dir + sep)
-}
-
-function readKey() {
-  return decodeKey(settings.openRouterKey)
-}
-
-function decodeKey(stored: string | null) {
-  if (!stored) return null
-  if (stored.startsWith('raw:')) return stored.slice(4)
-  if (stored.startsWith('enc:') && safeStorage.isEncryptionAvailable()) {
+for (const channel of READER_CHANNELS) registerSessionChannel(channel)
+guarded('state:get', win => sessionFor(win).state())
+guarded('spaces:list', async () => {
+  await Promise.all(store.snapshot().spaces.map(async record => {
     try {
-      return safeStorage.decryptString(Buffer.from(stored.slice(4), 'base64'))
-    } catch {
-      return null
+      const session = await getSession(record.id)
+      if (session.summary().availability !== 'ready') await session.refresh()
+    } catch { /* Keep a failed space visible so the saved shortcut is recoverable. */ }
+  }))
+  return summaries()
+})
+guarded('spaces:switch', (win, _event, id: string) => queueOperation(() => switchSpace(win, id)))
+guarded('spaces:window', (win, _event, id: string) => queueOperation(async () => { await switchSpace(win, id, true) }))
+guarded('spaces:add', win => queueOperation(() => pickRoot(win)))
+guarded('root:pick', win => queueOperation(() => pickRoot(win)))
+guarded('file:pick', win => queueOperation(() => pickFile(win)))
+guarded('path:open', (win, _event, path: string) => queueOperation(async () => {
+  if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('ERR_NOT_FOUND')
+  const stat = await fs.stat(path).catch(() => null)
+  if (!stat) throw new Error('ERR_NOT_FOUND')
+  if (stat.isDirectory()) return openFolder(win, path)
+  if (!/\.(md|markdown)$/i.test(path)) throw new Error('ERR_ONLY_MD')
+  return openFolder(win, dirname(path), path)
+}))
+guarded('root:example', win => queueOperation(async () => {
+  const source = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'examples')
+  const root = await prepareExampleLibrary(source, join(userData, 'examples'))
+  return openFolder(win, root)
+}))
+guarded('spaces:rename', (_win, _event, id: string, name: string) => queueOperation(async () => {
+  await store.rename(id, name)
+  const session = readySessions.get(id)
+  if (session?.window()) setWindowTitle(session.window()!, session)
+  broadcastSpaces()
+  return summaries()
+}))
+guarded('spaces:remove', (win, _event, id: string) => queueOperation(() => mutateSpace(id, async () => {
+  recordFor(id)
+  if (taskActive(id)) throw new Error('ERR_CODEX_BUSY')
+  const session = await getSession(id)
+  if (session.busy()) throw new Error('LIBRARY_BUSY')
+  const owner = session.window()
+  if (owner && owner !== win) throw new Error('ERR_SPACE_WINDOW_OPEN')
+  await session.flush()
+  // Retain every setting and review file. Only remove the shortcut from the registry.
+  const home = owner ? await getSession(null, session.state().prefs, owner.id) : null
+  await codexRunners.get(id)?.dispose()
+  codexRunners.delete(id)
+  await store.remove(id)
+  if (owner && home) { attach(owner, home); notifyState(owner) }
+  try { await session.dispose() } catch {
+    // The pre-removal flush already succeeded. Cleanup cannot reverse the
+    // durable shortcut removal or leave a disposed session available to reopen.
+  } finally {
+    const scope = assetScopes.get(id)
+    if (scope) assets.remove(scope)
+    assetScopes.delete(id)
+    readySessions.delete(id)
+    sessions.delete(id)
+    broadcastSpaces()
+  }
+  return opened(win)
+})))
+guarded('spaces:relocate', (win, _event, id: string) => queueOperation(() => mutateSpace(id, async () => {
+  const old = recordFor(id)
+  if (taskActive(id)) throw new Error('ERR_CODEX_BUSY')
+  const session = await getSession(id)
+  if (session.busy()) throw new Error('LIBRARY_BUSY')
+  if (session.window() && session.window() !== win) throw new Error('ERR_SPACE_WINDOW_OPEN')
+  const picked = await dialog.showOpenDialog(win, { properties: ['openDirectory'], defaultPath: dirname(old.root) })
+  if (picked.canceled || !picked.filePaths[0]) return opened(win)
+  if (taskActive(id)) throw new Error('ERR_CODEX_BUSY')
+  await session.flush()
+  const target = await fs.realpath(picked.filePaths[0])
+  if (!(await fs.stat(target)).isDirectory()) throw new Error('ERR_SPACE_FOLDER')
+  if (store.snapshot().spaces.some(space => space.id !== id && spaceRootsOverlap(space.root, target))) throw new Error('ERR_SPACE_ROOT_OVERLAP')
+  await codexRunners.get(id)?.dispose()
+  codexRunners.delete(id)
+  await session.relocate(target)
+  try { await store.relocate(id, target) } catch (error) {
+    // A registry write failure must not leave this live reader pointing somewhere
+    // different from its durable shortcut. No article files are moved here.
+    try { await session.relocate(old.root) } finally {
+      if (session.window()) notifyState(session.window()!)
+      broadcastSpaces()
+    }
+    throw error
+  }
+  broadcastSpaces()
+  return opened(win)
+})))
+guarded('spaces:context', async (win, _event, id: string, path?: string) => {
+  const record = recordFor(id)
+  const session = await getSession(id)
+  let relativePath: string | undefined
+  const chosen = path ?? session.state().openPath
+  if (chosen) {
+    try {
+      const actual = await fs.realpath(chosen)
+      if (!await session.allowed(actual)) throw new Error('ERR_NOT_IN_FOLDER')
+      const candidate = relative(record.root, actual).split('\\').join('/')
+      await resolveSpaceArticle(record.root, candidate)
+      relativePath = candidate
+    } catch (error) { if (path !== undefined) throw error }
+  }
+  return { text: spaceContextPrompt({ space: record, relativePath }, sessionFor(win).state().prefs.ui), url: spaceOpenUrl({ spaceId: id, relativePath }) }
+})
+
+guarded('codex:status', async (win, _event, id: string) => (await codexFor(win, id)).status())
+guarded('codex:check', async (win, _event, id: string) => (await codexFor(win, id)).check())
+for (const operation of ['start', 'resume'] as const) {
+  guarded(`codex:${operation}`, async (win, _event, id: string, input: CodexTaskInput) => {
+    // Serialize target validation with folder relocation, but keep stop responsive
+    // while the app-server handshake or the model's first turn is pending.
+    const runner = await queueOperation(async () => {
+      if (quitting || taskActive(id)) throw new Error('ERR_CODEX_BUSY')
+      const runner = await codexFor(win, id)
+      if (sessionFor(win).busy()) throw new Error('LIBRARY_BUSY')
+      startingTasks.add(id)
+      return runner
+    })
+    try { return await runner[operation](input) } finally { startingTasks.delete(id) }
+  })
+}
+guarded('codex:stop', async (win, _event, id: string) => (await codexFor(win, id)).stop())
+guarded('codex:takeover', async (win, _event, id: string) => (await codexFor(win, id)).takeover())
+guarded('codex:respond', async (win, _event, id: string, response: CodexApprovalResponse) => (await codexFor(win, id)).respond(response))
+
+ipcMain.handle('startup:restart', event => {
+  if (!BrowserWindow.fromWebContents(event.sender) || startup.phase() !== 'failed') return
+  app.relaunch(); app.quit()
+})
+
+function registerImageProtocol() {
+  protocol.handle('md-duck', async request => {
+    const asset = await assets.resolve(request.url)
+    if (!asset) return new Response('forbidden', { status: 403 })
+    const data = await fs.readFile(asset.path).catch(() => null)
+    return data ? new Response(data, { headers: { 'Content-Type': asset.type, 'Cache-Control': 'no-store' } }) : new Response('missing', { status: 404 })
+  })
+}
+async function createWindow(session?: ReaderSession): Promise<BrowserWindow> {
+  const win = new BrowserWindow({ width: 1320, height: 860, minWidth: 900, minHeight: 600, title: 'MD Duck', icon: iconPath,
+    ...windowChrome(process.platform), backgroundColor: nativeTheme.shouldUseDarkColors ? '#1b1a18' : '#fbfaf7', show: true,
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  windows.add(win)
+  if (session) attach(win, session)
+  if (win.isVisible()) startupProbe.mark('window-visible')
+  win.once('show', () => startupProbe.mark('window-visible'))
+  win.on('focus', () => {
+    buildMenu()
+    const current = bindings.get(win.id)
+    if (!current) return
+    lastActiveSession = current
+    if (current.id) void store.activate(current.id).then(broadcastSpaces).catch(() => undefined)
+  })
+  win.on('closed', () => {
+    const session = bindings.get(win.id)
+    session?.attach(null)
+    void session?.flush().catch(() => undefined)
+    bindings.delete(win.id)
+    windows.delete(win)
+    if (initialWindow === win) initialWindow = null
+    broadcastSpaces()
+  })
+  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:\/\//i.test(url)) void shell.openExternal(url); return { action: 'deny' } })
+  win.webContents.on('will-prevent-unload', event => {
+    const zh = bindings.get(win.id)?.state().prefs.ui === 'zh'
+    const response = dialog.showMessageBoxSync(win, { type: 'warning', message: zh ? '批注草稿还没有保存到磁盘' : 'Note drafts have not been saved to disk',
+      detail: zh ? '返回后可以重试保存。直接关闭会丢弃只保存在内存中的草稿。' : 'Return and retry saving. Closing now discards drafts stored only in memory.',
+      buttons: zh ? ['返回保存', '放弃草稿并关闭'] : ['Return to save', 'Discard drafts and close'], defaultId: 0, cancelId: 0 })
+    if (response === 1) event.preventDefault()
+    else { quitSaved = false; quitting = false }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    const dev = process.env.ELECTRON_RENDERER_URL
+    if (dev && url.startsWith(dev)) return
+    event.preventDefault()
+  })
+  try {
+    if (process.env.ELECTRON_RENDERER_URL) await win.loadURL(process.env.ELECTRON_RENDERER_URL)
+    else await win.loadFile(join(__dirname, '../renderer/index.html'))
+    startupProbe.mark('renderer-loaded')
+  } catch {
+    if (!win.isDestroyed()) {
+      await dialog.showMessageBox(win, { type: 'error', message: 'MD Duck could not load the reader. Please restart the app.' })
+      throw new Error('ERR_STARTUP')
     }
   }
-  return null
+  return win
 }
-
-function settingsPath() {
-  return join(app.getPath('userData'), 'settings.json')
+function buildMenu() {
+  const lang = currentWindow() ? bindings.get(currentWindow()!.id)?.state().prefs.ui ?? defaults.ui : defaults.ui
+  const withWindow = (action: (win: BrowserWindow) => Promise<unknown>) => { void startup.ready().then(() => queueOperation(async () => {
+    const win = currentWindow()
+    if (!win) return
+    await action(win)
+    notifyState(win)
+  })).catch(() => undefined) }
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
+    { label: t(lang, 'menuFile'), submenu: [
+      { label: t(lang, 'menuOpenFolder'), accelerator: 'CmdOrCtrl+O', click: () => withWindow(pickRoot) },
+      { label: t(lang, 'menuOpenFile'), accelerator: 'CmdOrCtrl+Shift+O', click: () => withWindow(pickFile) },
+      { type: 'separator' }, { role: 'close' }, ...(process.platform !== 'darwin' ? [{ role: 'quit' as const }] : [])
+    ] }, { role: 'editMenu' },
+    { label: t(lang, 'menuView'), submenu: [
+      { label: lang === 'zh' ? '所有空间' : 'All spaces', accelerator: 'CmdOrCtrl+Shift+S', click: () => currentWindow()?.webContents.send('spaces:overview') },
+      ...(!app.isPackaged ? [{ role: 'reload' as const }, { role: 'toggleDevTools' as const }, { type: 'separator' as const }] : []), { role: 'togglefullscreen' }
+    ] }, { role: 'windowMenu' }
+  ]))
 }
-
-async function loadSettings(): Promise<Settings> {
-  const raw = await fs.readFile(settingsPath(), 'utf8').catch(() => '')
-  let saved: Partial<Settings> & { prefs?: Partial<Preferences> & { openRouterKey?: string } } = {}
+async function initialize() {
+  defaults.ui = defaultUiLanguage(app.getPreferredSystemLanguages())
+  const registry = await store.load()
+  if (!registry.activeSpaceId) {
+    const homeFile = join(userData, 'home-settings.json')
+    const defaultFile = await fs.stat(homeFile).catch(() => null) ? homeFile : join(userData, 'settings.json')
+    const legacy = await readReaderSettings(defaultFile, null, defaults)
+    defaults = legacy.prefs
+    await ensureAI(legacy)
+  }
+  let session: ReaderSession
+  try { session = await getSession(registry.activeSpaceId) } catch (error) {
+    if (!registry.activeSpaceId) throw error
+    // A damaged space must not block the other local folders. Its original
+    // configuration stays untouched and its card remains available to retry.
+    session = await getSession(null)
+  }
+  defaults = session.state().prefs
+  if (initialWindow && !initialWindow.isDestroyed()) attach(initialWindow, session)
+  if (process.platform === 'darwin') app.dock?.setIcon(nativeImage.createFromPath(iconPath).resize({ width: 256, height: 256 }))
+  if (app.isPackaged && !testProfile) app.setAsDefaultProtocolClient('mdduck')
+  buildMenu()
+  startupProbe.mark('initialized')
+  if (!aiStorageReady && initialWindow && !initialWindow.isDestroyed()) {
+    void dialog.showMessageBox(initialWindow, { type: 'error',
+      message: defaults.ui === 'zh' ? 'AI 设置暂时无法读取或安全保存' : 'AI settings could not be loaded or saved securely',
+      detail: defaults.ui === 'zh' ? '原有配置已保留，文章阅读不受影响。请检查系统凭据存储和应用数据目录权限。' : 'Your existing configuration is preserved and reading remains available. Check system credential storage and access to the application data folder.' })
+  }
+  // Background libraries remain monitored; change badges never invent an AI task status.
+  for (const record of registry.spaces) if (record.id !== session.id && !failedSessions.has(record.id)) void getSession(record.id).catch(() => broadcastSpaces())
+}
+const startup = createStartup({ registerProtocols: registerImageProtocol, openWindow: async () => { initialWindow = await createWindow() }, initialize })
+traceSpaceRuntime('single-instance-lock-start')
+const launchData = createSpaceLaunchData(process.argv)
+const firstInstance = app.requestSingleInstanceLock(launchData)
+traceSpaceRuntime('single-instance-lock-result', { firstInstance })
+if (!firstInstance) app.quit()
+function collectTarget(args: string[], data?: unknown) {
   try {
-    saved = raw ? JSON.parse(raw) : {}
-  } catch {
-    saved = {}
-  }
-  const legacyKey = saved.prefs?.openRouterKey
-  let languages: string[] = []
-  try { languages = app.getPreferredSystemLanguages() } catch { languages = [app.getLocale()] }
-  const prefs = { ...DEFAULT_PREFS, ui: defaultUiLanguage(languages), ...saved.prefs }
-  delete (prefs as Partial<Preferences> & { openRouterKey?: string }).openRouterKey
-  const root = typeof saved.root === 'string' && (await fs.stat(saved.root).catch(() => null)) ? saved.root : null
-  return {
-    root,
-    prefs,
-    openPath: root && typeof saved.openPath === 'string' ? saved.openPath : null,
-    scroll: saved.scroll ?? {},
-    openRouterKey: saved.openRouterKey ?? (legacyKey ? `raw:${legacyKey}` : null)
-  }
+    // Chromium can reorder switch arguments before delivering second-instance.
+    // Prefer the original process's parsed intent, validated again here.
+    const forwarded = parseSpaceLaunchData(data)
+    if (forwarded?.invalid) throw new Error('ERR_SPACE_TARGET')
+    const target = forwarded ? forwarded.target : parseSpaceTargetArgs(args)
+    if (target) pendingTargets.push(target)
+    traceSpaceRuntime('target-collected', { found: !!target })
+  } catch { invalidTarget = true; traceSpaceRuntime('target-invalid') }
 }
-
-function scheduleSave() {
-  settingsRevision += 1
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    saveTimer = null
-    void writeSettings().catch(() => {
-      // Keep settings in memory; quitting retries and offers an explicit choice on failure.
-    })
-  }, 250)
+collectTarget(process.argv, launchData)
+app.on('open-url', (event, url) => { event.preventDefault(); try { pendingTargets.push(parseSpaceOpenUrl(url)) } catch { invalidTarget = true }; void processTargets() })
+app.on('second-instance', (_event, args, _directory, data) => { traceSpaceRuntime('second-instance-received'); collectTarget(args, data); void processTargets(true) })
+async function processTargets(activate = false) {
+  traceSpaceRuntime('targets-requested', { ready: app.isReady(), count: pendingTargets.length })
+  if (!app.isReady()) return
+  try { await startup.ready() } catch { return }
+  await queueOperation(async () => {
+    traceSpaceRuntime('targets-processing', { count: pendingTargets.length })
+    if (invalidTarget) { invalidTarget = false; await dialog.showMessageBox({ type: 'error', message: defaults.ui === 'zh' ? '无法打开这个空间链接' : 'This space link could not be opened', detail: defaults.ui === 'zh' ? '空间标识或文章路径无效。请在 MD Duck 中重新复制空间说明。' : 'The space ID or article path is invalid. Copy the space instructions again in MD Duck.' }) }
+    while (pendingTargets.length) {
+      const target = pendingTargets.shift()!
+      try {
+        const record = recordFor(target.spaceId)
+        const path = target.relativePath ? await resolveSpaceArticle(record.root, target.relativePath) : undefined
+        const session = await getSession(record.id)
+        let win = session.window()
+        if (!win || win.isDestroyed()) {
+          // External AI targets open their own space instead of hijacking an unrelated reader.
+          win = await createWindow(session)
+        }
+        await store.activate(record.id)
+        if (path) await session.openDocument(path)
+        notifyState(win); showWindow(win)
+      } catch {
+        await dialog.showMessageBox({ type: 'error', message: defaults.ui === 'zh' ? '找不到指定空间或文章' : 'The requested space or article could not be found', detail: defaults.ui === 'zh' ? '请检查文件夹位置，并从对应空间重新复制说明。没有改动任何文章。' : 'Check the folder location and copy instructions from the correct space. No article was modified.' })
+      }
+    }
+    if (activate && currentWindow()) showWindow(currentWindow()!)
+    traceSpaceRuntime('targets-complete')
+  })
 }
-
-async function flushSettingsOnQuit() {
-  let writtenRevision: number
-  do {
-    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
-    writtenRevision = settingsRevision
-    await writeSettings()
-  } while (writtenRevision !== settingsRevision)
+async function activateWindow() {
+  if (!firstInstance || !app.isReady()) return
+  try { await startup.ready() } catch { if (initialWindow) showWindow(initialWindow); return }
+  await queueOperation(async () => {
+    const existing = currentWindow()
+    if (existing) { showWindow(existing); return }
+    const session = await getSession(store.snapshot().activeSpaceId, defaults, BrowserWindow.getAllWindows().length + 1)
+    const win = await createWindow(session); notifyState(win); showWindow(win)
+  })
 }
-
-async function writeSettings() {
-  settingsWriter ??= createSettingsWriter(settingsPath())
-  return settingsWriter.write(settings)
-}
+if (firstInstance) void app.whenReady().then(async () => { await startup.start(); await processTargets() })
+app.on('activate', () => { void activateWindow() })
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+app.on('before-quit', event => {
+  if (quitSaved || !readySessions.size) return
+  event.preventDefault()
+  if (quitting) return
+  quitting = true
+  void queueOperation(async () => {
+    const stopped = await Promise.allSettled([...codexRunners].map(async ([id, runner]) => {
+      await runner.dispose()
+      if (codexRunners.get(id) === runner) codexRunners.delete(id)
+    }))
+    const failed = stopped.find(result => result.status === 'rejected')
+    if (failed?.status === 'rejected') throw failed.reason
+    await Promise.all([...readySessions.values()].map(session => session.flush()))
+    if (lastActiveSession && !lastActiveSession.id) await homeDefaultsWriter.write(lastActiveSession.settings())
+    await store.flush()
+  }).then(() => { quitSaved = true; app.quit() }).catch(async error => {
+    quitting = false
+    const zh = defaults.ui === 'zh'
+    if (/ERR_CODEX/.test(String(error))) {
+      const result = await dialog.showMessageBox({ type: 'error',
+        message: zh ? '还不能确认 Codex 任务已经停止' : 'Codex task shutdown could not be confirmed',
+        detail: zh ? '应用保持打开，已经写入的文章仍保留。可以返回任务面板检查，或重试停止后退出。' : 'The app remains open and saved article changes are preserved. Return to the task panel, or retry stopping before quitting.',
+        buttons: zh ? ['返回应用', '重试停止并退出'] : ['Return to app', 'Retry stopping and quit'], defaultId: 0, cancelId: 0 })
+      if (result.response === 1) app.quit()
+      return
+    }
+    const result = await dialog.showMessageBox({ type: 'error', message: zh ? '空间设置无法保存' : 'Space settings could not be saved',
+      buttons: zh ? ['返回应用', '重试保存', '放弃最新设置并退出'] : ['Return to app', 'Retry saving', 'Discard latest settings and quit'], defaultId: 0, cancelId: 0 })
+    if (result.response === 2) { quitSaved = true; app.quit() } else if (result.response === 1) app.quit()
+  })
+})
+app.on('will-quit', () => { ai?.dispose(); for (const session of readySessions.values()) void session.dispose().catch(() => undefined) })

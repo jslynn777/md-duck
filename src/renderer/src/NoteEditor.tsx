@@ -3,6 +3,7 @@ import { Copy, X } from 'lucide-react'
 import type { Lang } from '@shared/types'
 import type { QuoteAnchor } from '@shared/quote-anchor'
 import { useT } from './i18n'
+import { useReadingLanguage } from './reading-languages'
 
 export type NoteEditorTarget = {
   sourcePath: string
@@ -35,6 +36,7 @@ export function NoteEditor({ target, comment, hasDraft, persisted, saving, error
   restoring?: boolean
 }) {
   const tr = useT()
+  const language = useReadingLanguage(target.lang, !target.unavailable)
   const ref = useRef<HTMLDivElement>(null)
   const textarea = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
@@ -90,9 +92,9 @@ export function NoteEditor({ target, comment, hasDraft, persisted, saving, error
           <button className="btn icon ghost" aria-label={tr('close')} onClick={onClose}><X size={16} /></button>
         </div>
         <div className="note-editor-meta" title={target.sourcePath}>
-          {tr(target.lang === 'zh' ? 'readChinese' : 'readEnglish')} · {target.sourcePath.split(/[/\\]/).slice(-2).join('/')}
+          {language.label} · {target.sourcePath.split(/[/\\]/).slice(-2).join('/')}
         </div>
-        <div className="quoted">{target.quote}</div>
+        <div className="quoted" lang={language.tag}>{target.quote}</div>
         {target.warning && <p className="note-editor-warning" role="status">{target.warning}</p>}
         {target.noteId && !target.warning && <p className="draft-hint">{tr('editNoteHint')}</p>}
         <label htmlFor="note-editor-comment">{tr('noteComment')}</label>

@@ -39,7 +39,7 @@ function localDestination(url: string): string | null {
   try { return decodeURIComponent(url) } catch { return url }
 }
 
-export function assetSrc(dir: string, url: string, version: number): string {
+export function assetSrc(dir: string, url: string, version: number, scope?: string): string {
   if (/^https?:\/\//i.test(url)) return url
   const destination = localDestination(url)
   if (!destination || destination.includes('\0')) return ''
@@ -50,5 +50,7 @@ export function assetSrc(dir: string, url: string, version: number): string {
     ? base.root : target.root || base.root
   const parts = normalizeParts(target.root ? target.parts : [...normalizeParts(base.parts), ...target.parts])
   const absolute = root + parts.join('/')
-  return `md-duck://asset/?path=${encodeURIComponent(absolute)}&v=${version}`
+  // Permission is decided by the host for this document's space. Omitting a
+  // scope remains compatible with path callers, but grants no asset access.
+  return `md-duck://asset/?path=${encodeURIComponent(absolute)}&v=${version}${scope ? `&scope=${encodeURIComponent(scope)}` : ''}`
 }

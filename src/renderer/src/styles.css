@@ -504,6 +504,7 @@ html:not([data-platform="darwin"]) .topbar .pad {
 
 /* Main column */
 .main {
+  position: relative;
   container: reading / inline-size;
   grid-column: 2;
   grid-row: 1;
@@ -515,23 +516,39 @@ html:not([data-platform="darwin"]) .topbar .pad {
 }
 
 .topbar {
-  height: 52px;
+  position: relative;
+  z-index: 30;
+  height: 92px;
   flex: none;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.topbar-heading, .topbar-actions {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  flex: none;
+  min-width: 0;
+}
+.topbar-heading {
+  height: 48px;
+  padding: 0 18px;
+  gap: 18px;
   border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }
+.topbar-actions { height: 43px; padding: 0 12px; gap: 8px; }
 
-.topbar > * {
+.topbar-heading > *, .topbar-actions > * {
   -webkit-app-region: no-drag;
   flex-shrink: 0;
 }
 
 .topbar .pad {
-  width: 56px;
+  width: 50px;
   flex: none;
 }
 
@@ -539,11 +556,12 @@ html:not([data-platform="darwin"]) .topbar .pad {
   min-width: 0;
   flex: 1 1 120px;
   font-weight: 500;
-  font-size: 13px;
-  color: var(--ink-soft);
+  font-size: 14px;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  -webkit-app-region: drag;
 }
 
 .topbar .spacer {
@@ -572,12 +590,62 @@ html:not([data-platform="darwin"]) .topbar .pad {
 }
 
 .read-modes {
-  background: color-mix(in srgb, var(--panel) 65%, transparent);
-  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-inline: 4px;
 }
-
-.read-modes button.on {
-  box-shadow: none;
+.read-modes button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-faint);
+  transition: color .12s, background-color .12s;
+}
+.read-modes button[aria-pressed='true'],
+.read-modes button[aria-pressed='true']:hover {
+  color: var(--ink);
+}
+.read-modes button[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.read-modes button:enabled:hover {
+  color: var(--ink);
+  background: var(--panel);
+}
+.read-modes button:disabled {
+  opacity: .38;
+  cursor: default;
+}
+.read-modes button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.mode-name {
+  max-width: 11em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (forced-colors: active) {
+  .read-modes button[aria-pressed='true'] { outline: 2px solid Highlight; }
 }
 
 .reader-tools {
@@ -677,6 +745,7 @@ html:not([data-platform="darwin"]) .topbar .pad {
 
 /* Reading */
 .scroll {
+  container: article / inline-size;
   flex: 1;
   overflow: auto;
   min-height: 0;
@@ -2358,17 +2427,30 @@ html:not([data-platform="darwin"]) .topbar .pad {
 }
 
 @container reading (max-width: 740px) {
-  .topbar {
+  .topbar-actions {
     gap: 6px;
     padding-inline: 10px;
   }
+  .topbar-heading { padding-inline: 14px; gap: 14px; }
 
-  .topbar .seg button {
+  .topbar .read-modes {
+    gap: 2px;
+    margin-inline: 0;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .topbar .read-modes button {
+    flex-shrink: 1;
+    min-width: 40px;
     padding-inline: 8px;
     font-size: 12px;
   }
 
-  .topbar > .panel-toggle {
+  .topbar .read-modes button::after { left: 8px; right: 8px; }
+  .topbar .mode-name { max-width: 7.5em; min-width: 0; }
+
+  .topbar-actions > .panel-toggle {
     width: 32px;
     padding: 0;
     gap: 0;
@@ -2378,7 +2460,11 @@ html:not([data-platform="darwin"]) .topbar .pad {
   .topbar .control-count {
     display: none;
   }
+  .topbar .status-pill { max-width: 90px; padding-inline: 6px; }
+  .topbar .has-codex-task .status-pill { display: none; }
+}
 
+@container article (max-width: 740px) {
   .reader {
     padding-inline: 48px;
   }
@@ -2426,11 +2512,6 @@ html:not([data-platform="darwin"]) .topbar .pad {
 }
 .entry.on::before { opacity: 1; }
 .entry-open:focus-visible { outline-offset: -2px; }
-.read-modes button.on {
-  background: var(--panel-2);
-  color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--accent);
-}
 .status-pill { text-overflow: ellipsis; }
 .blk.missing {
   display: flex;

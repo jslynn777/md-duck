@@ -72,7 +72,7 @@ export function getAuthoringPrompt(language: UiLang): string {
 读者与用途：[填写目标读者、阅读后要做的事]
 篇数与顺序：[例如 10 篇，先给出系列目录]
 文章库位置：[填写我指定的本地文件夹；不知道时先问我]
-语言：[英文原稿 + 简体中文对照；也可改为只写单语]
+语言：[原稿语言（如法语或英语）+ 简体中文对照；也可改为只写单语]
 
 请按下面的 MD Duck 规则写作。我会用自己的 AI 或编辑器写文件，在 MD Duck 中阅读，把需要修改的段落截图或复制给你，也可以集中整理成批注。MD Duck 直接读取本地 Markdown 文件，不需要导入数据库，也不要求你连接它的 API。正文由你或我的编辑器修改；MD Duck 不负责正文编辑或发布到网站。
 
@@ -81,7 +81,7 @@ export function getAuthoringPrompt(language: UiLang): string {
 - 一个系列、每篇独立文件夹的示例：
 ${AUTHORING_FOLDER_EXAMPLE}
 - 用 01-、02- 等序号表示系列和篇目顺序。按名称排序时，独立 article.md 文章使用所在文章文件夹的名称；正文标题可以自由表达，不必加序号。
-- article.md 是英文原稿，article.zh.md 是同目录的中文稿。也支持 topic.md + topic.zh.md，以及 topic.markdown + topic.zh.markdown。单语文章只需一份 Markdown，不生成空译文。
+- article.md 是原稿，article.zh.md 是同目录的中文稿。也支持 topic.md + topic.zh.md，以及 topic.markdown + topic.zh.markdown。单语文章只需一份 Markdown，不生成空译文。
 - 使用 UTF-8 保存，扩展名必须是真的 .md 或 .markdown，不要变成 .md.txt。文件夹名要能在 Mac 和 Windows 使用；避免 <>:"/\\|?*、结尾空格/句点，以及 CON、PRN、AUX、NUL、COM1、LPT1 等系统保留名。
 - 图片放在这篇文章的 assets/ 内，Markdown 写相对路径，例如 ![图的具体说明](assets/detail.png)。即使在 Windows，Markdown 图片路径也用 /。只引用实际存在、已获准使用的素材；没有图片时省略，不编造图片链接。不要使用本机绝对路径。
 
@@ -111,7 +111,7 @@ This is the first paragraph.
 Audience and purpose: [who will read this and what they should be able to do]
 Article count and order: [for example, 10 articles; propose the series outline first]
 Library location: [the local folder I specify; ask if you do not know it]
-Languages: [English source + Simplified Chinese companion; or specify a single language]
+Languages: [Source language (e.g. French or English) + Simplified Chinese companion; or specify a single language]
 
 Write for this MD Duck workflow: I write files with my preferred AI or editor, read in MD Duck, then send you a screenshot or copied passage with a revision request. I can also collect comments for a batch of changes. MD Duck reads local Markdown files directly. There is no database import or MD Duck API connection to set up. You or my editor change the text; MD Duck does not edit article text or publish to a website.
 
@@ -120,7 +120,7 @@ Write for this MD Duck workflow: I write files with my preferred AI or editor, r
 - Example of a series with one subfolder per article:
 ${AUTHORING_FOLDER_EXAMPLE}
 - Prefix series and article folders with 01-, 02-, and so on for a deliberate order. Name sorting uses the article folder name for a standalone article.md article. The displayed article title does not need a number.
-- article.md is the English source and article.zh.md is its Chinese companion in the same folder. topic.md + topic.zh.md and topic.markdown + topic.zh.markdown also work. A single-language article needs only one Markdown file; do not create an empty companion.
+- article.md is the source and article.zh.md is its Chinese companion in the same folder. topic.md + topic.zh.md and topic.markdown + topic.zh.markdown also work. A single-language article needs only one Markdown file; do not create an empty companion.
 - Save as UTF-8 with a real .md or .markdown extension, not .md.txt. Use Mac- and Windows-compatible folder names: avoid <>:"/\\|?*, trailing spaces or dots, and reserved names such as CON, PRN, AUX, NUL, COM1 and LPT1.
 - Put images inside this article's assets/ folder. Use relative Markdown paths such as ![Specific image description](assets/detail.png), with / even on Windows. Reference only existing assets that we are allowed to use. Omit images when none are available; do not invent image links or use machine-specific absolute paths.
 
@@ -207,7 +207,7 @@ export function getRevisionPrompt(language: UiLang): string {
 
 请先读取指定位置的最新原稿、已有的对应中文稿及我提供的批注，按块 ID、引用和上下文定位，不要只凭旧引用猜测。找不到或意见冲突时说明情况，先保留该处。
 
-- 只修改这些意见涉及的内容；有中文稿且英文含义改变时同步中文，保持标题层级、段落、列表、表格及对应 ID 一致。单语文章不必新增译文。
+- 只修改这些意见涉及的内容；有中文稿且原文含义改变时同步中文，保持标题层级、段落、列表、表格及对应 ID 一致。单语文章不必新增译文。
 - 保留已有 <!-- block:... --> ID。新增块才增加唯一 ID；不要重新编号、批量改名或无故删掉标记。需要合并、拆分或删除块时，保留能对应原意的 ID，并列出新增/移除的 ID 供我复核。
 - 保持现有文件名、文章位置和图片相对路径。不要动 .review/、.mdduck/、批注状态、词汇记录或设置，不要自动替我把批注标记完成。
 - 有文件权限时保存实际修改；没有权限时按“相对文件路径 + 完整替换内容”输出，明确由我保存。不要声称已经写入本机。
@@ -219,7 +219,7 @@ Review comments copied from MD Duck:
 
 Read the latest source, its Chinese companion if present, and the comments I provide. Locate each target by its block ID, quotation and context, rather than guessing from an old quotation. Report missing targets or conflicting instructions and leave those passages unchanged for now.
 
-- Change only the content addressed by these comments. Update an existing Chinese companion when the English meaning changes, preserving corresponding headings, paragraphs, lists, tables and IDs. A single-language article does not need a new translation.
+- Change only the content addressed by these comments. Update an existing Chinese companion when the meaning of the source changes, preserving corresponding headings, paragraphs, lists, tables and IDs. A single-language article does not need a new translation.
 - Keep existing <!-- block:... --> IDs. Give only new blocks new unique IDs; do not renumber, bulk-rename or remove markers without a reason. If a block must be split, merged or deleted, retain the ID that still matches the original meaning and list added/removed IDs for my review.
 - Keep filenames, article locations and relative image paths. Do not touch .review/, .mdduck/, comment status, word records or settings. Do not mark comments as done on my behalf.
 - Save actual changes if you have filesystem access. Otherwise, return each relative filename with its complete replacement content and clearly ask me to save it; do not claim to have written local files.

@@ -21,6 +21,7 @@ vi.mock('react', async () => ({
 }))
 vi.mock('@shared/i18n', async () => await import('../../shared/i18n'))
 vi.mock('./i18n', () => ({ useT: () => (key: string) => key }))
+vi.mock('./reading-languages', () => ({ useReadingLanguage: () => ({ label: 'French', tag: 'fr' }) }))
 
 class Element {
   children: Element[] = []

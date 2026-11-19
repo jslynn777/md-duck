@@ -1,6 +1,6 @@
 # MD Duck 安装 / Installation
 
-本版本 / This version: **0.1.0-beta.7**。
+本版本 / This version: **0.1.0-beta.10**。公开文件与发布状态以官网下载页为准 / See the website for public files and release status.
 
 ## 中文
 
@@ -22,6 +22,12 @@ MD Duck 免费使用。Mac 测试包面向 **Apple Silicon Mac（M 系列芯片�
 
 打开程序后先点「打开示例」，试试对照阅读、点击英文单词查看音标，以及选中一句话写批注。自己的文章可以用「打开文件夹」「打开文件」或拖进窗口打开。
 
+文章分属不同项目时，点击右上角空间名称 →「添加文件夹…」，把独立的本地文章目录分别添加为空间。切换时会恢复该空间上次文章、阅读位置和阅读偏好；「管理空间」可改显示名称、在独立窗口打开、重新定位搬动的目录或移除快捷入口。移除不会删除文章和阅读记录。不要同时添加互相包含的父子目录。
+
+首次从旧版升级时，原文章库成为第一个空间，设置和阅读位置复制到该空间；旧配置另存为 `settings.pre-spaces.json`。原稿、译文和批注仍在原位置。空间不是云同步，换电脑需自行带走完整文章库，再在新电脑添加。
+
+「交给 AI」可复制当前空间说明给自己的 AI，也可启动 Codex 本地任务。后者需要先安装并登录 Codex CLI；Windows 另需 Codex 的沙箱就绪，使用其本机登录和额度，与阅读器翻译密钥分开。提交前核对工作目录，任务完成后回来审阅；停止或接管不会撤销已经保存的文件，任务也不会自动发布文章。详见 [空间与 AI 说明](https://mdduck.com/guide/#codex-tasks)。
+
 阅读和批注不需要 AI 账户。本地朗读继续使用 Kokoro q8 模型和原有五种声音，第一次请求播放时下载约 92 MB 模型（92,361,116 字节），之后在本机合成。已有模型缓存通过完整性检查后会直接复用。普通启动不会下载模型；首次下载受网络影响，网络受限时仍可阅读和写批注。
 
 对照阅读中的「检查整篇」会列出全文配对和标记问题。点击问题里的原文或中文行号，可回到对应正文，再用自己的编辑器修改。检查不会自动配对或写入两份稿子，也不判断译文的意思是否准确。
@@ -30,7 +36,7 @@ AI 释义和翻译是可选功能，使用你自己选择的服务商和 API 额
 
 批注、单词和译文进度保存在文章旁的 `.review/`，文件夹管理与改动快照保存在文章库的 `.mdduck/`。升级或搬移材料时一起保留这两个隐藏目录和全部文章；应用设置和草稿保存在当前电脑。更新时替换程序即可，不需要删除应用数据。详细操作见 [中文指南](https://mdduck.com/guide/)。
 
-beta.7 新增「有改动」筛选和段落前后对照。首次检查文章只会建立起始快照，无法还原安装前的旧稿；之后用「查看改动」复核，再「标为已查看」。仅打开文章不会清除提示。
+「有改动」筛选和段落前后对照继续保留。首次检查文章只会建立起始快照，无法还原安装前的旧稿；之后用「查看改动」复核，再「标为已查看」。仅打开文章不会清除提示。
 
 ## English
 
@@ -52,6 +58,12 @@ The release page supplies SHA-256 hashes. To compare a file, type `shasum -a 256
 
 Choose **Open example** to try side-by-side reading, click an English word for phonetics, and select a sentence to leave a note. Use **Open folder**, **Open a file**, or drag a file into the window for your own articles.
 
+For different projects, click the space name at the top right and choose **Add folder…**. Add independent local article folders as spaces. Each space restores its last article, reading position and reading preferences. **Manage spaces** lets you rename the display label, open a separate window, locate a moved folder or remove the shortcut. Removing a space preserves its articles and reading records. Do not register overlapping parent and child folders.
+
+On the first upgrade from an earlier version, the existing library becomes the first space and receives its settings and reading positions. The old configuration is backed up as `settings.pre-spaces.json`; articles, translations and annotations remain where they were. Spaces are not cloud sync: move or sync the complete library yourself, then add it on another computer.
+
+**Give to AI** lets you copy the current space’s instructions to your own AI or start a local Codex task. Local tasks require Codex CLI installed and signed in; Windows also needs Codex’s sandbox ready. They use that local login and allowance, separately from the reader’s translation API key. Check the working folder before submitting and review the saved files afterwards. Stopping or taking over does not undo saved files, and tasks do not publish articles automatically. See [spaces and AI](https://mdduck.com/en/guide/#codex-tasks).
+
 Reading and annotations need no AI account. Local speech keeps the same Kokoro q8 model and five voices. The first playback request downloads about 92 MB (92,361,116 bytes); later synthesis runs on your computer. An existing model cache is reused after an integrity check. Opening the app alone does not trigger a download. The first download depends on your network; reading and annotations remain available if it cannot finish.
 
 In the side-by-side view, **Check whole document** lists pairing and marker issues throughout the document. Click an original or Chinese line number to return to that passage, then make changes in your preferred editor. The check does not assign pairs or write to either draft, and it does not judge translation accuracy.
@@ -60,7 +72,7 @@ AI explanations and translations are optional and use your own provider and API 
 
 Notes, words and translation progress live in the article's nearby `.review/` folder. Library management and change snapshots live in the library's `.mdduck/` folder. Keep both hidden folders and all articles when backing up or moving your library. App settings and drafts stay on this computer. Replace the app to update; you do not need to delete its application data. See the [English guide](https://mdduck.com/en/guide/).
 
-beta.7 adds the **Updated** filter and paragraph comparisons. The first check of an article creates a starting snapshot; it cannot recover drafts from before installation. For later edits, choose **View changes**, review them, then **Mark as viewed**. Opening an article alone does not clear its marker.
+The **Updated** filter and paragraph comparisons remain available. The first check of an article creates a starting snapshot; it cannot recover drafts from before installation. For later edits, choose **View changes**, review them, then **Mark as viewed**. Opening an article alone does not clear its marker.
 
 ## Windows 测试构建 / Windows test build
 

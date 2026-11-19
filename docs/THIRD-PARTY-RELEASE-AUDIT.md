@@ -1,6 +1,6 @@
-# MD Duck beta.7：第三方声明与对应源码
+# MD Duck beta.10：第三方声明与对应源码
 
-源码与声明复核日期：2026-10-29；引擎重建和历史事项证据保留原有记录。范围：macOS arm64、Windows x64 的生产依赖和内置神经朗读资源。项目自有代码与文档采用 GPL-3.0-or-later，第三方材料保留原始声明。本文记录源码输入与构建证据；最终公开交付还必须通过两平台安装包验证，并在二进制旁提供匹配的完整对应源码下载。
+源码与声明复核日期：2026-11-19；引擎重建和历史事项证据保留原有记录。范围：macOS arm64、Windows x64 的生产依赖和内置神经朗读资源。项目自有代码与文档采用 GPL-3.0-or-later，第三方材料保留原始声明。本文记录源码输入与构建证据；最终公开交付还必须通过两平台安装包验证，并在二进制旁提供匹配的完整对应源码下载。
 
 ## 神经朗读保留了什么
 
@@ -23,9 +23,18 @@ Kokoro 的模型/声音/词表/规范化来源、归档 integrity、逐声音哈
 
 ## 对应源码的交付和替换
 
-公开二进制必须同时提供 `MD-Duck-0.1.0-beta.7-Corresponding-Source.tar.gz`。它由最终二进制 Git revision 的完整 MD Duck 源码和以下明确选择的公开原始输入合并：完整 ephone 源码归档、完整 Emscripten 3.1.64 源码归档、经 npm integrity 校验的 Kokoro 原始归档。`third-party/SOURCE-INPUTS.json` 给出输入来源和哈希；没有复制用户文章、设置、API 密钥、模型/音频缓存或开发审计目录。
+公开二进制必须同时提供 `MD-Duck-0.1.0-beta.10-Corresponding-Source.tar.gz`。它由最终二进制 Git revision 的完整 MD Duck 源码和以下明确选择的公开原始输入合并：完整 ephone 源码归档、完整 Emscripten 3.1.64 源码归档、经 npm integrity 校验的 Kokoro 原始归档。`third-party/SOURCE-INPUTS.json` 给出输入来源和哈希；没有复制用户文章、设置、API 密钥、模型/音频缓存或开发审计目录。
 
-维护者先用 `scripts/stage-neural-sources.mjs --archives <已验证归档目录> --output <源码包根目录>` 选择输入，再合并最终 `git archive`。它只接受明确记录的三个归档，不能用整个工作目录或归档目录代替选择。仅在本机整理好材料，不代表已经完成公开下载交付。
+维护者使用以下命令，从与最终二进制一致的明确 Git commit 制作源码包：
+
+```sh
+node scripts/package-corresponding-source.mjs \
+  --revision <最终二进制源码commit> \
+  --archives <已验证归档目录> \
+  --output verification/release-beta10-20261119
+```
+
+加 `--check-only` 可先检查已提交的源码清单、许可补充文件哈希和三个输入归档，不制作发布文件。正式制作使用该 commit 的 `git archive`，再调用归档内的 `stage-neural-sources.mjs` 选择明确记录的三个公开输入；拒绝用户资料、未列明的路径和旧的输出文件。生成的 `SOURCE_REVISION.json` 记录版本与实际 commit，最终压缩包会重新解压，逐文件与 Git blob、逐归档与原始哈希核对。不能用整个工作目录或归档目录代替选择。仅在本机整理好材料，不代表已经完成公开下载交付。
 
 从合并源码根目录执行：
 
@@ -34,6 +43,10 @@ node scripts/build-phonemizer.mjs --archive third-party/source-archives/ephone-j
 ```
 
 省略 `--verify` 会在核对完全相同的输出哈希后重写引擎文件；需要替换为自己的构建时调整其输入/输出记录，然后用正常平台构建与打包命令生成修改版。固定容器提供重建工具链，完整 Emscripten 源码包含实际链接到 WebAssembly 的运行库源码。Windows 维护者可使用 WSL2/Docker；普通阅读用户不需要它们。
+
+## beta.10 新增依赖声明
+
+语言检测使用 `franc@6.2.0`。其 npm 包引用仓库许可但未携带全文，因此在 `scripts/notices-sources/franc-6.2.0-LICENSE` 保留发布记录所指 commit `4b17eaccaa256bb57c46d02414925eb272c3b565` 的 MIT 原文，并在补充声明清单记录来源与 SHA-256。该文本参与严格收集与源码包校验，不改变已有音标数据和语音引擎的许可条件。
 
 ## 可执行检查
 

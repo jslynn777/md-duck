@@ -100,6 +100,9 @@ export type ModelCatalog = {
 }
 
 export type AppState = {
+  activeSpaceId?: string | null
+  spaces?: import('./spaces').SpaceSummary[]
+  spaceRootAliases?: string[]
   root: string | null
   library: LibraryEntry[]
   folders?: import('./library').LibraryFolder[]
@@ -125,6 +128,7 @@ export type OpenedDocument = {
   legacyUnassigned?: number
   words: LearnedWord[]
   assetVersion: number
+  assetScope?: string
   missing: boolean
   translationAlignment?: TranslationAlignment | null
   translationAlignmentState?: TranslationAlignmentInspection['state']
@@ -136,6 +140,7 @@ export type DocUpdate = {
   text: string | null
   missing: boolean
   assetVersion: number
+  assetScope?: string
   translationAlignment?: TranslationAlignment | null
   translationAlignmentState?: TranslationAlignmentInspection['state']
   zhPath?: string | null
@@ -166,6 +171,7 @@ export type LearnedWord = {
 
 export type SpeechEvent =
   | { type: 'status'; message: string }
+  | { type: 'cancelled'; id: string }
   | { type: 'part'; id: string; samples: Float32Array; sampleRate: number }
   | { type: 'done'; id: string }
   | { type: 'error'; id: string; message: string }

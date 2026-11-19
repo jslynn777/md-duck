@@ -3,6 +3,7 @@ import { Check, ChevronDown, Circle, CircleCheck, Copy, Pencil, RotateCcw, Trash
 import { reasonText, t } from '@shared/i18n'
 import type { Note, UiLang } from '@shared/types'
 import { useT, useUi } from './i18n'
+import { useReadingLanguage } from './reading-languages'
 
 export type NoteDraftItem = {
   key: string
@@ -40,6 +41,7 @@ export function NotesPanel({
 }) {
   const tr = useT()
   const ui = useUi()
+  const languages = { source: useReadingLanguage('source'), zh: useReadingLanguage('zh') }
   const [draftsExpanded, setDraftsExpanded] = useState(true)
   const headingId = useId()
   const draftsId = useId()
@@ -78,10 +80,10 @@ export function NotesPanel({
                 <div key={draft.key} className={`draft-card${draft.isCurrent ? ' current' : ''}`}>
                   <div className="draft-meta">
                     <span className="draft-document" title={draft.documentLabel}>{draft.documentLabel}</span>
-                    <span className="note-language">{tr(draft.lang === 'zh' ? 'columnChinese' : 'columnEnglish')}</span>
+                    <span className="note-language">{draft.isCurrent ? languages[draft.lang].label : draft.lang === 'source' ? tr('sourceRole') : tr('translationRole')}</span>
                   </div>
                   {draft.isEdit && <span className="draft-kind"><Pencil size={11} aria-hidden="true" />{tr('editingDraft')}</span>}
-                  <blockquote className="draft-quote" lang={draft.lang === 'zh' ? 'zh-CN' : 'en'}>{draft.quote}</blockquote>
+                  <blockquote className="draft-quote" lang={draft.isCurrent ? languages[draft.lang].tag : undefined}>{draft.quote}</blockquote>
                   <p className="draft-comment">{draft.comment}</p>
                   {draft.unavailable && <p className="draft-unavailable">{tr('originalUnavailable')}</p>}
                   <button className="btn small ghost draft-resume" onClick={() => onResumeDraft(draft.key)}>
@@ -100,9 +102,9 @@ export function NotesPanel({
                 <NoteStatusIcon status={note.status} />
                 {badgeLabel(note, ui)}
               </span>
-              <span className="note-language">{tr(note.quoteLang === 'zh' ? 'columnChinese' : 'columnEnglish')}</span>
+              <span className="note-language">{languages[note.quoteLang].label}</span>
             </div>
-            <button className="quote" lang={note.quoteLang === 'zh' ? 'zh-CN' : 'en'} aria-current={activeId === note.id ? 'true' : undefined} onClick={() => onJump(note)}>
+            <button className="quote" lang={languages[note.quoteLang].tag} aria-current={activeId === note.id ? 'true' : undefined} onClick={() => onJump(note)}>
               {note.quote}
             </button>
             {note.status === 'orphaned' && note.orphanReason && <p className="note-location-hint">{reasonText(ui, note.orphanReason)}</p>}

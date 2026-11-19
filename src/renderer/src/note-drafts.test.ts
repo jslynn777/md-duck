@@ -5,8 +5,11 @@ import {
   listNoteDrafts,
   noteDraftKey,
   readNoteDrafts,
+  mergeNoteDraftChanges,
+  writeNoteDraftChanges,
   relocateNoteDraftKey,
   relocateNoteDrafts,
+  relocateSpaceNoteDrafts,
   type NoteDrafts,
   writeNoteDrafts
 } from './note-drafts'
@@ -156,6 +159,116 @@ describe('note draft storage', () => {
     expect(visible.map((entry) => entry.key)).toEqual([oldKey, editKey])
     expect(visible[0]).toMatchObject({ quote: '  original quote ', comment: '  unfinished\n' })
     expect(restored).toEqual(drafts)
+  })
+})
+
+describe('independent draft records across space windows', () => {
+  function storage() {
+    const data = new Map<string, string>()
+    return { data, get length() { return data.size }, key: (index: number) => [...data.keys()][index] ?? null,
+      getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value) } }
+  }
+  it('retains legacy drafts and their exact backup while separate windows add drafts', () => {
+    const saved = storage()
+    const old = { old: { quote: 'old', comment: '  keep me\n' } }
+    const legacy = JSON.stringify({ version: 1, drafts: old })
+    saved.setItem(STORAGE_KEY, legacy)
+    const a = { quote: 'a', comment: 'first space' }, b = { quote: 'b', comment: 'second space' }
+    expect(writeNoteDraftChanges(saved, old, { ...old, a })).toBe(true)
+    expect(writeNoteDraftChanges(saved, old, { ...old, b })).toBe(true)
+    expect(readNoteDrafts(saved)).toEqual({ ...old, a, b })
+    expect(saved.getItem(STORAGE_KEY)).toBe(legacy)
+    expect(saved.getItem('md-duck:note-drafts:v1:spaces-backup')).toBe(legacy)
+  })
+  it('does not resurrect a deleted legacy draft when another window saves stale state', () => {
+    const saved = storage()
+    const old = { old: { quote: 'old', comment: 'remove me' } }
+    saved.setItem(STORAGE_KEY, JSON.stringify({ version: 1, drafts: old }))
+    writeNoteDraftChanges(saved, old, {})
+    writeNoteDraftChanges(saved, old, { ...old, b: { quote: 'b', comment: 'keep this' } })
+    expect(readNoteDrafts(saved)).toEqual({ b: { quote: 'b', comment: 'keep this' } })
+  })
+  it('leaves the original untouched when the backup or first entry cannot be written', () => {
+    const saved = storage()
+    const old = { old: { quote: 'old', comment: 'unchanged' } }
+    saved.setItem(STORAGE_KEY, JSON.stringify({ version: 1, drafts: old }))
+    const fail = { ...saved, setItem: () => { throw new Error('quota') } }
+    expect(writeNoteDraftChanges(fail, old, { old: { quote: 'old', comment: 'new edit' } })).toBe(false)
+    expect(readNoteDrafts(saved)).toEqual(old)
+    expect(writeNoteDraftChanges(saved, old, { old: { quote: 'old', comment: 'new edit' } })).toBe(true)
+    expect(readNoteDrafts(saved).old.comment).toBe('new edit')
+  })
+  it('keeps failed local edits while accepting another space’s storage events', () => {
+    const a = { quote: 'a', comment: 'original' }, edited = { quote: 'a', comment: 'unsaved edit' }, b = { quote: 'b', comment: 'other space' }
+    expect(mergeNoteDraftChanges({ a }, { a: edited }, { a, b })).toEqual({ a: edited, b })
+    expect(mergeNoteDraftChanges({ a }, {}, { a, b })).toEqual({ b })
+  })
+  it('writes relocation destinations before hiding source records', () => {
+    const saved = storage()
+    const source = noteDraftKey('/old/article.md', 'source', { id: 'one', key: 'p' }), target = noteDraftKey('/new/article.md', 'source', { id: 'one', key: 'p' })
+    const draft = { quote: 'one', comment: 'Keep the only copy' }
+    saved.setItem(STORAGE_KEY, JSON.stringify({ version: 1, drafts: { [source]: draft } }))
+    const attempted: string[] = []
+    const failing = { getItem: saved.getItem, setItem: (key: string, value: string) => { attempted.push(key); if (key.startsWith('md-duck:note-draft:v2:')) throw new Error('disk full'); saved.setItem(key, value) } }
+    expect(writeNoteDraftChanges(failing, { [source]: draft }, { [target]: draft })).toBe(false)
+    expect(attempted.at(-1)).toContain(encodeURIComponent(target))
+    expect(readNoteDrafts(saved)[source]).toEqual(draft)
+  })
+  it('reads the previous complete state if the source tombstone fails after the destination is staged', () => {
+    const saved = storage(), draft = { quote: 'q', comment: 'preserve' }
+    saved.setItem(STORAGE_KEY, JSON.stringify({ version: 1, drafts: { old: draft } }))
+    const failing = { getItem: saved.getItem, setItem: (key: string, value: string) => { if (key.endsWith(':old')) throw new Error('denied'); saved.setItem(key, value) } }
+    expect(writeNoteDraftChanges(failing, { old: draft }, { moved: draft })).toBe(false)
+    expect(readNoteDrafts(saved)).toEqual({ old: draft })
+  })
+  it('keeps both originals after an interrupted swap and retries without touching another window’s entry', () => {
+    const saved = storage(), first = { quote: 'one', comment: 'first unique draft' }, second = { quote: 'two', comment: 'second unique draft' }, third = { quote: 'three', comment: 'other space' }
+    writeNoteDraftChanges(saved, {}, { a: first })
+    writeNoteDraftChanges(saved, { a: first }, { a: first, b: second })
+    const original = { a: first, b: second }, swapped = { a: second, b: first }
+    const failing = { getItem: saved.getItem, setItem: (key: string, value: string) => { if (key.endsWith(':b')) throw new Error('quota'); saved.setItem(key, value) } }
+    expect(writeNoteDraftChanges(failing, original, swapped)).toBe(false)
+    expect(readNoteDrafts(saved)).toEqual(original)
+    expect(writeNoteDraftChanges(saved, original, { ...original, c: third })).toBe(true)
+    expect(writeNoteDraftChanges(saved, original, swapped)).toBe(true)
+    expect(readNoteDrafts(saved)).toEqual({ ...swapped, c: third })
+  })
+  it('keeps previous values when the commit marker fails, without reviving an entry later rewritten by another window', () => {
+    const saved = storage(), first = { quote: 'a', comment: 'original A' }, second = { quote: 'b', comment: 'original B' }, updated = { quote: 'a', comment: 'newest A' }
+    writeNoteDraftChanges(saved, {}, { a: first, b: second })
+    const before = { a: first, b: second }
+    const failing = { getItem: saved.getItem, setItem: (key: string, value: string) => { if (key.startsWith('md-duck:note-draft-commit:v2:')) throw new Error('denied'); saved.setItem(key, value) } }
+    expect(writeNoteDraftChanges(failing, before, { a: second, b: first })).toBe(false)
+    expect(readNoteDrafts(saved)).toEqual(before)
+    expect(writeNoteDraftChanges(saved, before, { a: updated, b: second })).toBe(true)
+    expect(readNoteDrafts(saved)).toEqual({ a: updated, b: second })
+  })
+  it('rejects stale writes to the same draft without replacing the newer value', () => {
+    const saved = storage(), first = { quote: 'a', comment: 'first' }, newer = { quote: 'a', comment: 'newer' }, stale = { quote: 'a', comment: 'stale edit' }
+    writeNoteDraftChanges(saved, {}, { a: first })
+    writeNoteDraftChanges(saved, { a: first }, { a: newer })
+    expect(writeNoteDraftChanges(saved, { a: first }, { a: stale })).toBe(false)
+    expect(readNoteDrafts(saved)).toEqual({ a: newer })
+  })
+})
+
+describe('space root draft migration', () => {
+  const key = (path: string) => noteDraftKey(path, 'source', { id: 'intro', key: 'p' })
+  const draft = { quote: 'sentence', comment: 'unfinished' }
+  it('normalizes a Windows alias and separator spelling while keeping another space untouched', () => {
+    const old = key('c:/Old/series/article.md'), other = key('C:\\Old\\other-space\\article.md')
+    const result = relocateSpaceNoteDrafts({ [old]: draft, [other]: draft }, 'D:\\New', ['C:\\OLD'], ['C:\\Old\\other-space'])
+    expect(result).toEqual({ [key('D:\\New\\series\\article.md')]: draft, [other]: draft })
+  })
+  it('migrates a Mac symlink alias once and never remaps an already-current nested path', () => {
+    const old = key('/alias/article.md'), current = key('/alias/real/another.md')
+    const result = relocateSpaceNoteDrafts({ [old]: draft, [current]: draft }, '/alias/real', ['/alias'])
+    expect(result).toEqual({ [key('/alias/real/article.md')]: draft, [current]: draft })
+    expect(relocateSpaceNoteDrafts(result, '/alias/real', ['/alias'])).toEqual(result)
+  })
+  it('preserves both draft versions at occupied destinations', () => {
+    const old = key('/old/article.md'), current = key('/new/article.md'), newer = { quote: 'new', comment: 'different' }
+    expect(relocateSpaceNoteDrafts({ [old]: draft, [current]: newer }, '/new', ['/old'])).toEqual({ [old]: draft, [current]: newer })
   })
 })
 

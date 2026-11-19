@@ -114,6 +114,11 @@ jobs:
         run: |
           node scripts/verify-change-review.cjs --app-root 'release/win-unpacked' --output 'release/validation/packaged-change-review' 2>&1 | Tee-Object release/validation/packaged-change-review.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify packaged spaces, transitions and isolated reading data
+        timeout-minutes: 5
+        run: |
+          node scripts/verify-spaces-runtime.cjs --app-root 'release/win-unpacked' --output 'release/validation/packaged-spaces' 2>&1 | Tee-Object release/validation/packaged-spaces.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install into a path with Chinese characters and spaces
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
@@ -140,6 +145,11 @@ jobs:
         run: |
           node scripts/verify-change-review.cjs --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" --output 'release/validation/installed-change-review' 2>&1 | Tee-Object release/validation/installed-change-review.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify spaces and preserved reading data after NSIS installation
+        timeout-minutes: 5
+        run: |
+          node scripts/verify-spaces-runtime.cjs --app-root "$env:MD_DUCK_TEST_INSTALL_DIR" --output 'release/validation/installed-spaces' 2>&1 | Tee-Object release/validation/installed-spaces.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Uninstall the test copy
         if: always() && env.MD_DUCK_TEST_INSTALL_DIR != ''
         run: |
@@ -158,6 +168,9 @@ jobs:
           archive payloads, packaged native dependencies and offline synthesis with all five voices.
           Packaged and installed readers also verify source/translation change markers, filtering,
           explicit review confirmation, offline edits and pending-review persistence after restart.
+          Both readers verify space migration, upper-right switching and transition lifecycles,
+          reduced motion, separate windows, reading anchors, notes, scoped images and CLI targeting.
+          Space task context and passive Codex status are checked without starting an AI task.
           Verification explicitly downloads the pinned model; ordinary startup does not download it.
           Portable payload integrity is checked; its interactive launcher has not been tested.
           Redistribution notices and corresponding-source records are verified separately.
@@ -172,6 +185,9 @@ jobs:
             release/validation/*-change-review/**/*.json
             release/validation/*-change-review/**/*.png
             release/validation/*-change-review/**/*.log
+            release/validation/*-spaces/**/*.json
+            release/validation/*-spaces/**/*.png
+            release/validation/*-spaces/**/*.log
           if-no-files-found: ignore
           retention-days: 7
       - name: Keep successful test packages

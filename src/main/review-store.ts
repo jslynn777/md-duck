@@ -18,6 +18,8 @@ type Options = {
   isAllowed: (path: string) => Promise<boolean>
   userData: string
   candidates: (source: string) => Promise<Candidate[]>
+  /** Historical source paths, newest first, for private backup lookup only. */
+  backupAliases?: (source: string) => string[]
 }
 const empty = (): Data => ({ notes: [], words: [] })
 const hash = (text: string) => createHash('sha256').update(text).digest('hex')
@@ -80,6 +82,15 @@ export function createReviewStore(options: Options) {
   async function readBackupFile(path: string) {
     return readRegularReviewFile(path, () => checkBackup(path))
   }
+  async function readSourceBackup(source: string, fileFor: (source: string) => string = backup) {
+    for (const candidate of new Set([source, ...(options.backupAliases?.(source) ?? [])])) {
+      const raw = await readBackupFile(fileFor(candidate))
+      // Existing corrupt or unreadable data must never fall through to an older snapshot.
+      // Historical paths are hashed here; their former folders are never accessed.
+      if (raw !== null) return raw
+    }
+    return null
+  }
   async function saveBackup(source: string, content: string) {
     const path = backup(source)
     await checkBackup(path)
@@ -127,7 +138,7 @@ export function createReviewStore(options: Options) {
       const recovered = new Map<string, Note[]>()
       let foundBackup = false
       for (const candidate of candidates) {
-        const old = await readBackupFile(join(userData, 'note-backups', hash(join(dir, candidate.name)), 'notes.json'))
+        const old = await readSourceBackup(join(dir, candidate.name), source => join(userData, 'note-backups', hash(source), 'notes.json'))
         const records = legacyArray(old, 'notes', validNote)
         if (old !== null && records === null) throw new Error('REVIEW_LEGACY_CORRUPT')
         if (old !== null && records !== null) {
@@ -163,7 +174,7 @@ export function createReviewStore(options: Options) {
       }
       return { ...value, notesMissing: false, ...await migrationStatus(source) }
     }
-    const backupRaw = await readBackupFile(backup(source))
+    const backupRaw = await readSourceBackup(source)
     const saved = snapshot(backupRaw, source)
     if (saved) return { ...saved, notesMissing: true, ...await migrationStatus(source), reviewIssue: 'missing' }
     if (backupRaw !== null) return { ...empty(), notesMissing: false, reviewIssue: 'corrupt' }
@@ -185,7 +196,7 @@ export function createReviewStore(options: Options) {
     }
   }
   async function recovery(source: string, issue: ReviewIssue): Promise<Loaded> {
-    const saved = snapshot(await readBackupFile(backup(source)), source)
+    const saved = snapshot(await readSourceBackup(source), source)
     return { ...(saved ?? empty()), notesMissing: !!saved, reviewIssue: issue }
   }
   async function write(source: string, data: Data) {
@@ -324,7 +335,7 @@ export function createReviewStore(options: Options) {
       // A stale restore click must never overwrite newer, valid edits.
       const current = snapshot(raw, source)
       if (current) return { ...current, notesMissing: false, ...await migrationStatus(source) }
-      const saved = snapshot(await readBackupFile(backup(source)), source)
+      const saved = snapshot(await readSourceBackup(source), source)
       if (!saved) throw new Error('REVIEW_NO_BACKUP')
       if (raw !== null) await writeReviewFile(source, `${primary(source)}.corrupt-${randomUUID()}`, raw, isAllowed)
       await write(source, saved)
