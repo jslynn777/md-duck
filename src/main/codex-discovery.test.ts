@@ -66,9 +66,12 @@ describe('local Codex native executable discovery', () => {
     const { root, shim } = await npmPackage()
     const binary = await platformBinary(root, 'darwin', 'arm64', 'aarch64-apple-darwin')
     const actualRealpath = fs.realpath.bind(fs)
-    const realpath = vi.spyOn(fs, 'realpath').mockImplementation(async (path, ...rest) => String(path) === '/opt/homebrew/bin/codex' ? shim : actualRealpath(path, ...rest))
+    // The simulated macOS candidate is still joined by the host's path module.
+    // Match that spelling on Windows too, without touching a real installation.
+    const fallback = join('/opt/homebrew/bin', 'codex')
+    const realpath = vi.spyOn(fs, 'realpath').mockImplementation(async (path, ...rest) => String(path) === fallback ? shim : actualRealpath(path, ...rest))
     expect(await discoverCodexExecutable({ platform: 'darwin', arch: 'arm64', env: { PATH: '' }, home: fixture })).toBe(binary)
-    expect(realpath).toHaveBeenCalledWith('/opt/homebrew/bin/codex')
+    expect(realpath).toHaveBeenCalledWith(fallback)
   })
 
   it('does not accept a missing binary, a directory, or a wrapper whose package name is wrong', async () => {

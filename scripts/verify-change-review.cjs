@@ -130,7 +130,9 @@ async function main() {
   report.run = run;
   // All fixture paths are new and intentionally contain spaces and non-ASCII characters.
   // Neither appRoot nor the normal user profile is ever used as a fixture directory.
-  temporary = await fs.mkdtemp(path.join(tmpdir(), 'md-duck-review-'));
+  // macOS can expose /var through /private/var. Spaces persist canonical roots,
+  // so keep the fixture canonical across the initial migration and relaunch.
+  temporary = await fs.realpath(await fs.mkdtemp(path.join(tmpdir(), 'md-duck-review-')));
   profile = path.join(temporary, '测试 profile');
   library = path.join(temporary, '文章 library');
   source = path.join(library, '01-guide', 'article.md');

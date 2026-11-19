@@ -80,11 +80,14 @@ describe('Codex article file snapshots', () => {
   })
 
   it('rejects an oversized file set instead of returning an incomplete comparison', async () => {
+    const snapshotRoot = root
     for (let start = 0; start <= CODEX_SNAPSHOT_MAX_FILES; start += 100) {
-      await Promise.all(Array.from({ length: Math.min(100, CODEX_SNAPSHOT_MAX_FILES + 1 - start) }, (_, index) => write(join(root, `${start + index}.md`), '')))
+      await Promise.all(Array.from({ length: Math.min(100, CODEX_SNAPSHOT_MAX_FILES + 1 - start) }, (_, index) => write(join(snapshotRoot, `${start + index}.md`), '')))
     }
-    await expect(snapshotCodexFiles(root)).rejects.toThrow('ERR_CODEX_SNAPSHOT_LIMIT')
-  })
+    await expect(snapshotCodexFiles(snapshotRoot)).rejects.toThrow('ERR_CODEX_SNAPSHOT_LIMIT')
+    // Real 2,001-file I/O takes longer on Windows runners. Let it settle before
+    // teardown and the next test install their FileHandle.read spies.
+  }, 30_000)
 
   it('stops at the total Markdown hash budget without switching remaining files to stat fingerprints', async () => {
     for (let index = 0; index < 4; index++) {

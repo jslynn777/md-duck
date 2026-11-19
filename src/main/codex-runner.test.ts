@@ -68,15 +68,17 @@ async function setup(extra: Partial<CodexRunnerOptions> = {}, configure?: (serve
 const settle = () => new Promise(resolve => setTimeout(resolve, 5))
 
 describe('owned Codex stdio tasks', () => {
-  it('checks login with handshake only and closes its own server, without exposing account data', async () => {
-    const { runner, servers, spawnProcess, terminateProcess } = await setup()
+  it.each(['darwin', 'win32'] as const)('checks login with handshake only and closes its own server, without exposing account data (%s)', async platform => {
+    const { runner, servers, spawnProcess, terminateProcess } = await setup({ platform })
     const result = await runner.check()
     expect(result.availability).toMatchObject({ state: 'ready', accountType: 'chatgpt' })
     expect(JSON.stringify(result)).not.toContain('never-expose')
-    expect(servers[0].sent.filter(packet => packet.method).map(packet => packet.method)).toEqual(['initialize', 'initialized', 'account/read'])
+    expect(servers[0].sent.filter(packet => packet.method).map(packet => packet.method)).toEqual([
+      'initialize', 'initialized', 'account/read', ...(platform === 'win32' ? ['windowsSandbox/readiness'] : [])
+    ])
     expect(servers[0].sent.find(p => p.method === 'account/read')?.params).toEqual({ refreshToken: false })
     expect(spawnProcess.mock.calls[0][1]).toContain('stdio://')
-    expect(spawnProcess.mock.calls[0][2]).toMatchObject({ shell: false, detached: true })
+    expect(spawnProcess.mock.calls[0][2]).toMatchObject({ shell: false, windowsHide: true, detached: platform !== 'win32' })
     expect(terminateProcess).toHaveBeenCalledOnce()
   })
 
@@ -322,16 +324,17 @@ describe('owned Codex stdio tasks', () => {
     expect(context.terminateProcess).not.toHaveBeenCalled()
   })
 
-  it('diagnoses the exact timed-out protocol method without exposing parameters or returned data', async () => {
+  it.each(['darwin', 'win32'] as const)('diagnoses the exact timed-out protocol method without exposing parameters or returned data (%s)', async platform => {
     const diagnostic = vi.fn()
-    const { runner } = await setup({ onDiagnostic: diagnostic, requestTimeoutMs: 10 }, server => {
+    const { runner } = await setup({ platform, onDiagnostic: diagnostic, requestTimeoutMs: 10 }, server => {
       server.intercept = packet => packet.method === 'thread/start'
     })
     expect((await runner.start({ prompt: 'private task text' })).task?.error).toBe('ERR_CODEX_TIMEOUT')
     const events = diagnostic.mock.calls.map(([event]) => event)
     expect(events).toContainEqual({ event: 'request', method: 'initialize', requestId: 'mdduck-1', connection: 1 })
     expect(events).toContainEqual({ event: 'resolved', method: 'account/read', requestId: 'mdduck-2', connection: 1 })
-    expect(events).toContainEqual({ event: 'timeout', method: 'thread/start', requestId: 'mdduck-3', connection: 1 })
+    if (platform === 'win32') expect(events).toContainEqual({ event: 'resolved', method: 'windowsSandbox/readiness', requestId: 'mdduck-3', connection: 1 })
+    expect(events).toContainEqual({ event: 'timeout', method: 'thread/start', requestId: platform === 'win32' ? 'mdduck-4' : 'mdduck-3', connection: 1 })
     expect(events.every(event => Object.keys(event).every(key => ['event', 'connection', 'method', 'requestId'].includes(key)))).toBe(true)
     expect(JSON.stringify(events)).not.toMatch(/private task text|never-expose|chatgpt/)
   })
