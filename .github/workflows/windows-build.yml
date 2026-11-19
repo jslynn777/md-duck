@@ -67,7 +67,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Run tests on Windows
-        run: npm test
+        # Keep independent filesystem suites from saturating the hosted disk;
+        # concurrency inside each store/process test remains fully exercised.
+        run: |
+          node -e "const os = require('node:os'); console.log('Runner logical CPUs:', os.cpus().length, 'available parallelism:', os.availableParallelism())"
+          npm test -- --maxWorkers=2
       - name: Verify redistribution notices and corresponding-source records
         run: node scripts/collect-notices.mjs --release-strict
       - name: Build unsigned installer and portable test application
