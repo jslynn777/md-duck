@@ -11,7 +11,7 @@
 1. `https://mdduck.com/` 显示中文首页，`https://mdduck.com/en/` 显示英文首页。
 2. `/guide/`、`/download/`、`/en/guide/`、`/en/download/` 分别读取相应目录的 `index.html`；目录页面的无尾斜杠地址重定向到带尾斜杠版本。中英文页面都应可直接访问，不依赖浏览器语言或客户端脚本跳转。
 3. 普通未知地址返回中文 `404.html`，`/en/` 下的未知地址返回英文 `en/404/index.html`，HTTP 状态均为 404。两份错误文档作为 nginx 的内部错误响应；直接访问 `/404.html` 或 `/en/404/` 也返回 404。按语言回落必须配置并验证服务器规则，不会仅因英文文件存在而自动生效。不要把未知路径重写为首页，也不要将错误响应改成 200。
-4. 主站域名固定为 `mdduck.com`，HTTP 重定向到 HTTPS；如同时启用 `www.mdduck.com`，重定向到主站。
+4. 主站域名固定为 `mdduck.com`，HTTP 重定向到 HTTPS。`www.mdduck.com` 的 HTTP 和 HTTPS 请求以 301 永久跳转到 `https://mdduck.com`，保留原路径和查询参数；HTTP 的 ACME 验证目录保留给证书续期。
 5. `robots.txt` 与 `sitemap.xml` 可直接访问。站点地图包含 6 个正文页面的中英地址与 hreflang，不包含两份错误页面。
 6. HTML 和非哈希文件（图片、示例 ZIP）不设置永久缓存；`/_astro/` 中带内容哈希的文件可长期缓存。
 7. 示例 ZIP 和安装包返回正确的文件类型。安装包可放在独立的 `downloads/` 目录，版本化文件名在上传后不覆盖；支持完整下载并核对 SHA-256。对较大文件检查 HTTP Range 响应，便于中断后继续下载。
@@ -21,6 +21,16 @@
 先上传到新的版本目录，验证完整后再切换站点根目录或 `current` 链接。保留上一份产物用于回滚。不要在没有备份的情况下覆盖现有网站或修改其他站点配置。
 
 每次上线前读取现有服务器配置与当前网站状态，确认站点目录和 HTTPS 不受其他站点影响。公开安装包不是介绍站上线的技术前提；安装包尚未验收时，页面保持准备状态。
+
+### www 跳转与证书续期
+
+`www` 使用独立配置 `/www/server/panel/vhost/nginx/mdduck-www-redirect.conf`，对应仓库中的 `server/www-redirect.conf`。主站的配置、证书及 `current` 发布目录无需改动。不要在其他站点配置中重复添加 `server_name www.mdduck.com`；如以后迁移到面板管理，先合并这份独立配置。
+
+`www` 的 Let's Encrypt 证书由 Certbot 管理，位于 `/etc/letsencrypt/live/www.mdduck.com/`，验证方式为 HTTP-01，webroot 固定为 `/www/wwwroot/mdduck.com`。保留 `/.well-known/acme-challenge/` 的 HTTP 文件访问，不要把验证文件写进会轮换的 `current` 目录。
+
+服务器已有的 `certbot.timer` 自动检查续期；此证书的 deploy hook 为 `/usr/local/sbin/mdduck-www-cert-reload`，源码是 `server/renew-www-certificate.sh`。它只处理 `www.mdduck.com` 的证书，先检查 Nginx 配置再平滑重载。不要新增重复的续期 cron，也不要把私钥提交到仓库或放进公开目录。
+
+维护后可用 `certbot renew --cert-name www.mdduck.com --dry-run --run-deploy-hooks --no-random-sleep-on-renew --non-interactive` 验证续期及重载。配置备份和本次回执保存在服务器的 `/www/backup/mdduck.com/www-redirect-20261120/`，本地验收记录位于 `verification/www-redirect-20261120/`。
 
 ### 发布目录清理与故障恢复
 
@@ -36,7 +46,7 @@ beta.10 的本地发布脚本与清单模板位于 `verification/release-beta10-
 
 ## 上线后验证
 
-- 检查主域名、HTTP/HTTPS、可选 www 重定向。
+- 检查主域名、HTTP/HTTPS，以及 www 的有效 TLS 证书和 301 跳转；带路径、查询参数的链接应跳到主站同一地址，下载链接仍支持 Range。
 - 实际打开中英文首页、指南和下载页，确认 6 个页面均可直接访问；逐页切换语言应到达对应页面。静态语言切换不保证保留当前 `#片段` 或滚动位置。
 - 分别访问中文和 `/en/` 下不存在的路径，确认显示对应语言的错误页且 HTTP 状态为 404；再检查 `/404.html`、`/en/404/` 及错误页语言入口。
 - 检查正文页面的 HTML `lang`、canonical、`zh-CN` / `en` / `x-default` hreflang 与站点地图地址一致，两份错误页面保留 `noindex`。
