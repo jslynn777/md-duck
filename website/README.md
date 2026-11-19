@@ -33,7 +33,9 @@ npm run preview
 - `src/content/guide.md`、`src/content/guide.en.md`：中文与英文指南正文；两份指南使用相同的章节锚点。
 - `src/i18n.ts`：语言类型和页面路径转换。
 - `/404.html`、`/en/404/`：中文与英文错误页面；实际未知地址的回落行为见部署说明。
-- `src/data/release.ts`：唯一的版本号、仓库地址和安装包配置入口。
+- `src/data/release.ts`：唯一的公开版本号、仓库地址和安装包配置入口。
+- `src/data/preview.ts`：真实截图信息，不控制版本号或公开安装包。
+- `SpacesPreview.astro`、`SpacesGuide.astro`：空间管理、每空间阅读位置、其他 AI 定位和 Codex 本地任务的中英使用说明；能力以 `../docs/SPACE-AI.md` 和当前源码为准。
 - `public/examples/md-duck-starter.zip`：包含两篇原创双语文章、图片和说明的练习文章库；当前 JPG 截图展示的是程序内置 Christmas Ribbon 示例。旧单篇示例地址继续保留。
 - `HomeWalkthrough.astro`：首页五步操作教程，包含 Mac / Windows 提示、练习文件与可复制的 AI 写作/修改规范。
 - `src/styles/global.css`、`home.css`、`pages.css`：米白纸张与红色批注的共用样式。
@@ -41,7 +43,7 @@ npm run preview
 
 页面右上角的语言入口会打开当前页面的另一语言版本，例如 `/guide/` 对应 `/en/guide/`。站点使用静态链接，不保证保留地址中的片段（如 `#ai-setup`）或当前滚动位置。指南图片和示例 ZIP 由两种语言共用。
 
-当前网站对应 `0.1.0-beta.6` 免费测试版，下载入口面向 Apple Silicon Mac（macOS 13+）和 Windows x64（Windows 10+）。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。Mac 构建使用 ad-hoc 临时签名，没有 Apple Developer ID 签名或苹果公证；Windows 安装包没有发布者签名。中英文指南保留各系统的安装提示，不要求关闭系统安全检查。Mac 安装指导依据 [苹果官方说明](https://support.apple.com/zh-cn/102445)。
+官网内容对应 `0.1.0-beta.10`，公开下载状态完全由 `src/data/release.ts` 控制。发布准备期间使用 `preparing` 和空下载列表；只有同版本两平台包、对应源码与校验清单验收完成后才改为 `published`，不能把页面内容完成当作安装包已发布。下载入口面向 Apple Silicon Mac（macOS 13+）和 Windows x64（Windows 10+）。Intel Mac、Windows ARM 和 Linux 暂未提供安装包。Mac 构建使用 ad-hoc 临时签名，没有 Apple Developer ID 签名或苹果公证；Windows 安装包没有发布者签名。中英文指南保留各系统的安装提示，不要求关闭系统安全检查。Mac 安装指导依据 [苹果官方说明](https://support.apple.com/zh-cn/102445)。
 
 项目仓库为 [jslynn777/md-duck](https://github.com/jslynn777/md-duck)，项目许可证为 GPL-3.0-or-later。安装包的发布状态由 `release.status` 控制；在公开文件验收完成前保持 `preparing`，不生成下载按钮。免费程序与第三方 AI 服务额度分别说明，AI 服务按需由用户连接。
 
@@ -66,3 +68,9 @@ The bilingual homepage includes six usage scenarios and seven actual beta.6 read
 - Refresh videos manually: `python3 scripts/build-workflow-video.py` with Pillow and ffmpeg available. The site build itself does not need these tools.
 - Screenshots and media provenance: `ASSETS.md`.
 - Publication steps describe handing approved files to an external tool; MD Duck remains a reader and reviewer.
+
+### Article spaces (beta.10)
+
+The homepage and guide explain beta.10 spaces and the optional Codex workflow. Shared anchors are `#spaces`, `#ai-location` and `#codex-tasks`. Feature notices and download metadata share the same release version and status. The guide explains per-space reading preferences, shared AI service settings, local-only identities, actual file permissions, task approvals, stopping and review before publication. The original five-step workflow and four AI prompts remain available; older beta.7 users receive an explicit update note for space switching.
+
+`src/data/preview.ts` selects actual captures under `public/images/spaces/`. Missing captures render no mock image. Both languages share the real Chinese-interface Mac captures and translated captions; they are not Windows acceptance evidence. The Codex image shows a request before submission, not a running or completed task. The short silent switching video is optional playback and has a readable description. See `ASSETS.md` for provenance.

@@ -22,9 +22,17 @@
 
 每次上线前读取现有服务器配置与当前网站状态，确认站点目录和 HTTPS 不受其他站点影响。公开安装包不是介绍站上线的技术前提；安装包尚未验收时，页面保持准备状态。
 
-当前 `0.1.0-beta.6` 按免费测试版发行，官网仅提供 Mac arm64 DMG 与 Windows x64 Setup。Mac 使用 ad-hoc 临时签名，没有 Developer ID 签名或苹果公证；Windows 没有发布者签名。保持中英文下载页与指南的安装提示。发布前核对源码版本、项目许可证和第三方声明，确认对应原生依赖的许可与源码材料，再验证平台包结构、安装与启动、朗读依赖、完整 HTTP 下载和 SHA-256。未完成这些检查时，`release.status` 保持 `preparing`。
+### 发布目录清理与故障恢复
+
+生产入口 `/www/wwwroot/mdduck.com/current` 是软链接。清理服务器文件前，必须先用 `readlink -f /www/wwwroot/mdduck.com/current` 确认当前真实目录，并检查其中的 `index.html`；`releases/` 中正在被引用的目录是线上文件，不是可删除的备份。保留当前版本、至少一份可用回滚版本，以及公开下载 URL 对应的全部安装包、源码和校验文件。不要通过面板批量清空 `releases/`。
+
+恢复时先在新的版本目录校验网站资源与下载文件，再原子切换 `current`，随后验收中英文页面、下载与真实 404。备份必须放在 `releases/` 之外，并保留异机副本。2026-11-19 的恢复记录与脚本在仓库 `verification/site-recovery-20261119/`；服务器恢复副本在 `/www/backup/mdduck.com/recovery-20261119/`，不通过官网公开。
+
+`0.1.0-beta.10` 按免费测试版发行，官网仅提供 Mac arm64 DMG 与 Windows x64 Setup，具体是否可下载以 `release.status` 和线上验收记录为准。Mac 使用 ad-hoc 临时签名，没有 Developer ID 签名或苹果公证；Windows 没有发布者签名。保持中英文下载页与指南的安装提示。发布前核对源码版本、项目许可证和第三方声明，确认对应原生依赖的许可与源码材料，再验证平台包结构、安装与启动、空间与文章定位、朗读依赖、完整 HTTP 下载和 SHA-256。未完成这些检查时，`release.status` 保持 `preparing`。
 
 上传顺序：先把已经验收的安装包与同版本对应源码/朗读构建材料上传到版本目录，读取公开 HTTPS 下载 URL 并核对字节和哈希；然后填写 `src/data/release.ts` 的两条 `artifacts` 和 `sourceUrl`，将状态设为 `published`，重新构建并验证网站。两条安装包记录分别使用 `kind: 'mac-dmg'` 与 `kind: 'windows-setup'`，文件名须包含同一版本号和平台名；源码归档文件名为 `MD-Duck-{version}-Corresponding-Source.tar.gz`。源码归档在开源区域显示普通下载链接，准备状态不显示占位链接。不要公开 Portable 测试包，也不要在同一个版本 URL 下替换二进制。最后切换网站版本目录并保留回滚版本。
+
+beta.10 的本地发布脚本与清单模板位于 `verification/release-beta10-20261119/website/`。执行前确认 `current` 仍指向 `20261119-spaces-guide`；先把 beta.10 的 DMG、EXE、对应源码以及 `MD-Duck-0.1.0-beta.10-SHA256SUMS.txt` 四个版本化文件公开到已有 `downloads/`，完成完整 HTTP 下载、字节与哈希核对。之后再按清单构建 `20261119-beta10`，保留已有全部 `downloads/` 和 `_astro/` 文件的硬链接，校验完成后原子切换。私有输入与回执保存在 `/www/backup/mdduck.com/release-beta10-20261119/`。默认运行脚本仅预检，`--activate` 才切换，`--rollback` 恢复上一网站；不要删除前一版或恢复备份。
 
 ## 上线后验证
 

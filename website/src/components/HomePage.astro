@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import HomeWalkthrough from './HomeWalkthrough.astro';
 import WorkflowCase from './WorkflowCase.astro';
 import UsageScenarios from './UsageScenarios.astro';
+import SpacesPreview from './SpacesPreview.astro';
 import { localizePath, type Locale } from '../i18n';
 import { release } from '../data/release';
 import '../styles/home.css';
@@ -45,6 +46,7 @@ const copy = en ? {
         <p class="editorial-intro">{copy.intro}</p>
         <div class="editorial-actions"><a class="button button-dark" href={route('/download/')}>{copy.download}</a><a class="text-link" href="#features">{copy.try}</a></div>
         <p class="editorial-platforms">{copy.platforms}</p>
+        <a class="editorial-preview-link" href="#spaces-preview">{en ? 'Spaces & local AI tasks' : '空间管理与本地 AI 任务'}</a>
         <a class="editorial-scenario-link" href="#scenarios">{en ? 'Explore ways to use it' : '看看不同用法'} <span aria-hidden="true">↗</span></a>
       </div>
       <aside class="editorial-margin">
@@ -60,6 +62,7 @@ const copy = en ? {
       <div class="editorial-proof-note" aria-hidden="true"><img src="/images/editorial/proof-arrow.png" alt="" width="2172" height="724" /><p>{copy.note}</p></div>
       <figcaption><span>{copy.previewLabel}</span><a href={route('/guide/#quickstart')}>{copy.guide}</a></figcaption>
     </figure>
+    <SpacesPreview lang={lang} />
     <HomeWalkthrough lang={lang} />
     <WorkflowCase lang={lang} />
     <UsageScenarios lang={lang} />

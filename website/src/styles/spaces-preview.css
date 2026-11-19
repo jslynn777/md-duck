@@ -1,0 +1,55 @@
+.preview-notice { border-left: 2px solid var(--accent); padding: 2px 0 2px 20px; max-width: 800px; margin-block: 26px; }
+.preview-notice strong { color: var(--accent); font-size: 14px; font-weight: 600; }
+.preview-notice p { color: var(--muted); font-size: 14px; line-height: 1.8; margin: 7px 0 0; }
+.preview-notice .text-link { margin-top: 8px; }
+.spaces-preview { border-top: 1px solid var(--line); padding-block: 64px 70px; margin-top: 54px; }
+.spaces-preview-heading { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px 80px; align-items: end; }
+.spaces-preview-heading > .eyebrow { grid-column: 1 / -1; }
+.spaces-preview-heading h2 { font-size: clamp(32px, 4vw, 50px); line-height: 1.45; }
+.spaces-preview-heading > p:last-child { color: var(--muted); font-size: 17px; line-height: 1.9; max-width: 470px; padding-bottom: 6px; }
+.space-capture { margin: 30px 0; min-width: 0; }
+.space-capture a { display: block; }
+.space-capture img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+.space-capture figcaption { color: var(--muted); font-size: 13px; line-height: 1.75; margin-top: 10px; }
+.spaces-preview > .space-capture a { aspect-ratio: 1440 / 560; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+.spaces-preview > .space-capture img { height: 100%; object-fit: cover; object-position: top; border: 0; border-radius: 0; }
+.spaces-feature-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 32px; margin-top: 35px; }
+.spaces-feature-list article { border-top: 1px solid var(--line); padding-top: 22px; }
+.spaces-feature-list h3, .spaces-handoff h3 { font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.5; }
+.spaces-feature-list p, .spaces-handoff > div > p:not(.eyebrow) { font-size: 16px; line-height: 1.9; color: var(--muted); margin-top: 14px; }
+.spaces-feature-list .text-link, .spaces-handoff .text-link { margin-top: 16px; }
+.spaces-handoff { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 48px; align-items: center; margin-top: 50px; padding-top: 32px; border-top: 1px solid var(--line); }
+.spaces-handoff h3 { font-size: 29px; margin-top: 14px; }
+.spaces-handoff .space-capture { margin-block: 0; }
+.spaces-guide { margin-block: 42px; padding-bottom: 10px; }
+.prose .spaces-guide h2 { scroll-margin-top: 24px; }
+.spaces-guide details { border-block: 1px solid var(--line); padding-block: 15px; margin-block: 22px; }
+.spaces-guide summary { cursor: pointer; font-weight: 600; }
+.spaces-guide details > p:last-child { margin-bottom: 4px; }
+.spaces-guide .space-guide-step { padding-left: 1.5em; }
+.spaces-guide .space-guide-step > li { padding-left: 6px; margin-block: 16px; }
+.spaces-guide .preview-notice { margin-top: 20px; }
+.space-switch-demo video { display: block; width: 100%; height: auto; margin-top: 18px; border: 1px solid var(--line); border-radius: 4px; }
+.space-switch-demo > p { font-size: 14px; color: var(--muted); }
+.download-preview { padding-block: 2px 30px; }
+.download-preview .preview-notice { margin-top: 0; }
+.editorial-preview-link { display: inline-block; margin-top: 12px; font-size: 14px; color: var(--accent); text-decoration: underline; text-underline-offset: 5px; }
+@media (max-width: 800px) {
+  .spaces-preview-heading { gap: 16px 35px; }
+  .spaces-feature-list { gap: 22px; }
+  .spaces-feature-list h3 { font-size: 21px; }
+  .spaces-handoff { grid-template-columns: 1fr; gap: 26px; }
+}
+@media (max-width: 600px) {
+  .spaces-preview { padding-block: 36px 42px; margin-top: 32px; }
+  .spaces-preview-heading, .spaces-feature-list { grid-template-columns: 1fr; }
+  .spaces-preview-heading { gap: 14px; }
+  .spaces-preview-heading h2 { font-size: 32px; }
+  .spaces-preview-heading > p:last-child { font-size: 16px; }
+  .preview-notice { padding-left: 14px; margin-block: 22px; }
+  .space-capture { margin-block: 24px; }
+  .spaces-feature-list { gap: 24px; margin-top: 28px; }
+  .spaces-feature-list article { padding-top: 20px; }
+  .spaces-handoff { margin-top: 32px; padding-top: 24px; }
+  .spaces-handoff h3 { font-size: 25px; }
+}

@@ -1,0 +1,16 @@
+---
+import type { Locale } from '../i18n';
+import { localizePath } from '../i18n';
+import { release } from '../data/release';
+import '../styles/spaces-preview.css';
+interface Props { lang: Locale; guideLink?: boolean }
+const { lang, guideLink = true } = Astro.props;
+const en = lang === 'en';
+---
+<aside class="preview-notice" data-feature-release-version={release.version} data-feature-release-status={release.status}>
+  <strong>{en ? `Article spaces · ${release.version}` : `文章空间 · ${release.version}`}</strong>
+  <p>{release.status === 'published'
+    ? (en ? 'Add local folders as spaces, return to your reading position and give AI a precise place to work. Local Codex tasks are optional and require your own installed, signed-in Codex CLI.' : '把本地文件夹添加为空间，回来继续上次阅读，也能给 AI 明确的工作位置。Codex 本地任务按需使用，需要自己安装并登录 Codex CLI。')
+    : (en ? 'Mac and Windows installers are undergoing release checks. Download links will appear after both platform packages and the corresponding source are verified.' : 'Mac 和 Windows 安装包正在进行发布检查。两平台安装包与对应源码核验完成后，再提供下载入口。')}</p>
+  {guideLink && <a class="text-link" href={`${localizePath('/guide/', lang)}#spaces`}>{en ? 'Learn how to use spaces' : '了解空间怎么用'}</a>}
+</aside>

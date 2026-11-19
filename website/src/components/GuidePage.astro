@@ -5,6 +5,7 @@ import { Content as EnglishGuide } from '../content/guide.en.md';
 import { localizePath, type Locale } from '../i18n';
 import { release } from '../data/release';
 import GuideWalkthrough from './GuideWalkthrough.astro';
+import SpacesGuide from './SpacesGuide.astro';
 interface Props { lang?: Locale }
 const { lang = 'zh' } = Astro.props;
 const en = lang === 'en';
@@ -13,6 +14,9 @@ const sections = [
   ['review-workflow', en ? 'Your everyday workflow' : '日常使用场景'],
   ['file-rules', en ? 'File rules' : '文件存放规则'],
   ['ai-workflow', en ? 'Prompts for your AI' : '给 AI 的提示词'],
+  ['spaces', en ? 'Article spaces' : '文章空间'],
+  ['ai-location', en ? 'Locate articles for AI' : 'AI 文章定位'],
+  ['codex-tasks', en ? 'Local Codex tasks' : 'Codex 本地任务'],
   ['install', en ? 'Install on Mac' : 'Mac 安装'],
   ['install-windows', en ? 'Install on Windows' : 'Windows 安装'],
   ['open', en ? 'Open an article' : '打开文章'],
@@ -48,8 +52,9 @@ const Content = en ? EnglishGuide : ChineseGuide;
       <a class="sample-link" href="/examples/md-duck-workflow.zip" download>{en ? 'Download the workflow example' : '下载流程演示文件'} <span aria-hidden="true">↓</span></a>
     </aside>
     <article class="prose guide-content">
-      <p class="notice">{en ? `This guide covers the free ${release.version} beta. ` : `本指南对应免费测试版 ${release.version}。`}{release.status === 'preparing' && (en ? 'Public installers are still being prepared. ' : '公开安装包仍在准备。')}<a href={localizePath('/download/', lang)}>{en ? 'See release status' : '查看发布状态'}</a></p>
+      <p class="notice">{en ? `This guide covers ${release.version}: local article spaces, reading and review, and optional Codex tasks. ` : `本指南对应 ${release.version}：本地文章空间、阅读与审阅，以及可选的 Codex 任务。`}{release.status === 'preparing' && (en ? 'Public installers are still being prepared. ' : '公开安装包仍在准备。')}<a href={localizePath('/download/', lang)}>{en ? 'See release status' : '查看发布状态'}</a> · <a href="#spaces">{en ? 'Set up your spaces' : '开始设置文章空间'}</a></p>
       <GuideWalkthrough lang={lang} />
+      <SpacesGuide lang={lang} />
       <Content />
       <div class="guide-end"><p>{en ? 'Start with the demo: read a paragraph, ask for a focused revision, then check it.' : '从演示文件开始：读一段，提一个具体修改要求，再回来复核。'}</p><a class="text-link" href="/examples/md-duck-workflow.zip" download>{en ? 'Download the workflow example' : '下载流程演示文件'} <span aria-hidden="true">↓</span></a></div>
     </article>

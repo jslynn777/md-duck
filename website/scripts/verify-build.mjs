@@ -29,12 +29,18 @@ await walk(root);
 const pages = files.filter(path => path.endsWith('.html'));
 assert.equal(pages.length, routes.length, 'Expected all bilingual pages and both error documents');
 let checked = 0;
+const featureReleases = [];
 for (const route of routes) {
   const page = resolve(root, route.file);
   const html = await readFile(page, 'utf8');
   const htmlTag = attributes(html.match(/<html\b[^>]*>/)?.[0] ?? '');
   const links = [...html.matchAll(/<link\b[^>]*>/g)].map(match => attributes(match[0]));
   const anchors = [...html.matchAll(/<a\b[^>]*>/g)].map(match => attributes(match[0]));
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length, `${route.path}: unique element IDs`);
+  for (const match of html.matchAll(/\baria-controls="([^"]+)"/g)) {
+    for (const id of match[1].split(/\s+/)) assert.ok(ids.includes(id), `${route.path}: existing controlled element ${id}`);
+  }
   assert.equal(htmlTag.lang, route.lang, `${route.path}: document language`);
   assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1, `${route.path}: exactly one main heading`);
   assert.match(html, /<meta name="description" content="[^"]+"/, `${route.path}: description`);
@@ -46,6 +52,19 @@ for (const route of routes) {
     if (source) assert.equal(new URL(source, origin + route.path).origin, origin, `${route.path}: interactions run locally`);
   }
   if (!isHome && !isGuide) assert.doesNotMatch(html, /<script\b/, `${route.path}: static pages should require no scripts`);
+  for (const match of html.matchAll(/<video\b[^>]*>/g)) {
+    assert.equal(attributes(match[0]).preload, 'none', `${route.path}: videos load on demand`);
+    assert.doesNotMatch(match[0], /\bautoplay\b/, `${route.path}: videos do not start automatically`);
+  }
+  if (!route.noindex) {
+    const notice = html.match(/<aside\b[^>]*data-feature-release-version[^>]*>([\s\S]*?)<\/aside>/);
+    assert.ok(notice, `${route.path}: feature availability follows the release state`);
+    const metadata = attributes(notice[0].slice(0, notice[0].indexOf('>') + 1));
+    assert.ok(['preparing', 'published'].includes(metadata['data-feature-release-status']), `${route.path}: explicit feature release state`);
+    assert.match(metadata['data-feature-release-version'], /^\d+\.\d+\.\d+-beta\.\d+$/, `${route.path}: explicit feature version`);
+    assert.doesNotMatch(html, /本地预览|新版预览|Local preview|not included in the public/, `${route.path}: no obsolete local-preview availability claims`);
+    featureReleases.push(metadata);
+  }
   if (isHome) {
     assert.match(html, /data-home-walkthrough/, `${route.path}: introductory workflow available`);
     assert.equal((html.match(/data-home-step(?:\s|=|>)/g) || []).length, 5, `${route.path}: five workflow controls`);
@@ -65,6 +84,8 @@ for (const route of routes) {
     assert.ok(anchors.some(anchor => anchor.href === `/media/md-duck-workflow-${suffix}.txt`), `${route.path}: full transcript`);
     const guidePath = route.lang === 'en' ? '/en/guide/' : '/guide/';
     assert.ok(anchors.some(anchor => anchor.href === `${guidePath}#ai-workflow`), `${route.path}: complete writing and revision prompts`);
+    assert.ok(ids.includes('spaces-preview'), `${route.path}: spaces feature is directly linkable`);
+    for (const id of ['spaces', 'ai-location', 'codex-tasks']) assert.ok(anchors.some(anchor => anchor.href === `${guidePath}#${id}`), `${route.path}: spaces guide entry ${id}`);
   }
   if (isGuide) {
     assert.match(html, /data-guide-demo/, `${route.path}: guided workflow available`);
@@ -73,6 +94,10 @@ for (const route of routes) {
     assert.match(html, /value="mac"/, `${route.path}: Mac instructions`);
     assert.match(html, /value="windows"/, `${route.path}: Windows instructions`);
     assert.match(html, /<details\b[^>]*class="guide-nav-mobile"/, `${route.path}: compact mobile table of contents`);
+    assert.match(html, /data-spaces-guide/, `${route.path}: spaces instructions render without JavaScript`);
+    assert.match(html, /data-space-video/, `${route.path}: actual space switching demonstration`);
+    assert.ok(anchors.some(anchor => anchor.href === '/examples/md-duck-spaces.zip'), `${route.path}: downloadable independent spaces example`);
+    for (const capture of ['switcher', 'handoff', 'codex']) assert.ok(html.includes(`data-space-capture="${capture}"`), `${route.path}: actual application capture ${capture}`);
   }
   assert.doesNotMatch(html, /(?:href|src)="(?:#|javascript:[^"]*|https?:\/\/example\.com[^"]*)"/, `${route.path}: placeholder link`);
   assert.ok(anchors.some(anchor => anchor.href === route.alternate), `${route.path}: corresponding language switch`);
@@ -166,7 +191,12 @@ for (const [file, preparation, checksum] of [
   downloadManifests.push({ version: metadata['data-release-version'], status: metadata['data-release-status'], sourceUrl, checksumsUrl, artifacts });
 }
 assert.deepEqual(downloadManifests[0], downloadManifests[1], 'Both languages expose the same release files, sizes, hashes and corresponding source');
-const guideIds = ['quickstart', 'file-rules', 'ai-workflow', 'install', 'install-windows', 'open', 'changes', 'library', 'bilingual', 'pairing-check', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
+for (const metadata of featureReleases) {
+  assert.deepEqual(metadata, featureReleases[0], 'All six main pages expose the same feature release state');
+  assert.equal(metadata['data-feature-release-version'], downloadManifests[0].version, 'Features and installer version agree');
+  assert.equal(metadata['data-feature-release-status'], downloadManifests[0].status, 'Features and installer availability agree');
+}
+const guideIds = ['quickstart', 'file-rules', 'ai-workflow', 'spaces', 'ai-location', 'codex-tasks', 'install', 'install-windows', 'open', 'changes', 'library', 'bilingual', 'pairing-check', 'notes', 'words', 'speech', 'ai-setup', 'privacy', 'faq'];
 for (const file of ['guide/index.html', 'en/guide/index.html']) {
   const html = await readFile(resolve(root, file), 'utf8');
   for (const id of guideIds) assert.ok(html.includes(`id="${id}"`), `${file}: shared guide anchor ${id}`);
@@ -177,4 +207,5 @@ for (const route of routes.filter(route => !route.noindex)) assert.ok(sitemap.in
 for (const language of ['zh-CN', 'en', 'x-default']) assert.equal((sitemap.match(new RegExp(`hreflang="${language}"`, 'g')) || []).length, 6, `Sitemap ${language} alternate on every page`);
 assert.ok((await stat(resolve(root, 'examples/a-slower-morning.zip'))).size > 0, 'Sample is downloadable');
 assert.ok((await stat(resolve(root, 'examples/md-duck-starter.zip'))).size > 0, 'Starter series is downloadable');
+assert.ok((await stat(resolve(root, 'examples/md-duck-spaces.zip'))).size > 0, 'Spaces example is downloadable');
 console.log(`Verified ${pages.length} bilingual HTML pages, ${checked} local references, matching release metadata, guide anchors, language switches, canonical and hreflang links, sitemap and sample archive.`);

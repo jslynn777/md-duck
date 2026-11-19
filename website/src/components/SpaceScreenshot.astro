@@ -1,0 +1,11 @@
+---
+import type { Locale } from '../i18n';
+import { spaceCaptures } from '../data/preview';
+interface Props { lang: Locale; capture: keyof typeof spaceCaptures }
+const { lang, capture } = Astro.props;
+const image = spaceCaptures[capture];
+---
+{image && <figure class="space-capture" data-space-capture={capture}>
+  <a href={image.src} target="_blank" rel="noopener noreferrer" aria-label={lang === 'en' ? `Enlarge: ${image.alt.en}` : `放大截图：${image.alt.zh}`}><img src={image.src} width={image.width} height={image.height} alt={image.alt[lang]} loading="lazy" /></a>
+  <figcaption>{image.caption[lang]}</figcaption>
+</figure>}
