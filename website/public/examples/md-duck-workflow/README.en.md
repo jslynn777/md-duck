@@ -1,15 +1,16 @@
-# Write with your AI. Read in MD Duck.
+# One local space. A complete review.
 
 This local practice library works on Mac and Windows. It contains 11 short bilingual articles: one revision example, four loose drafts and two three-article series about product inquiries and editorial review.
 
 MD Duck reads and reviews local Markdown files. Your AI or editor writes and revises them. An external tool with your separate authorization can handle publishing.
 
-## Open the library
+## Add the practice folder as a space
 
 1. Extract the download first. Use Finder on Mac or “Extract All” in Windows File Explorer.
-2. In MD Duck choose File → Open Folder: `Command O` on Mac or `Ctrl O` on Windows.
+2. In MD Duck choose File → Open Folder: `Command O` on Mac or `Ctrl O` on Windows. If you already have a space open, use the top-right space name → Add folder….
 3. **Select the `library` folder inside this package.** Reference snapshots and these instructions sit outside the library so they will not appear as duplicate articles.
-4. Open `A clearer product inquiry` and choose side-by-side reading. Reading, selecting text and commenting require no AI key in MD Duck.
+4. In Manage spaces, rename this space “Review practice”. This changes its display name, not the folder on disk.
+5. Open `A clearer product inquiry`, choose side-by-side reading and let it finish loading. **Open the original before saving a revision** so there is a baseline to compare against. Reading, selecting text and commenting require no AI key in MD Duck.
 
 The main example is in `library/01-clearer-product-inquiry/`. It contains `article.md` and `article.zh.md`. Four loose draft pairs sit at the library root. `02-产品询价系列` and `03-写作审阅系列` contain three articles each, with each article's source, translation and `assets` folder kept together. `snapshots/before/` and `snapshots/after/` are reference copies of the main inquiry example, outside the live library.
 
@@ -23,15 +24,28 @@ It does not explain which details the reader should provide. Select and copy it 
 
 > This is too vague. Explain how the product, size, quantity, delivery city and preferred arrival date help a supplier quote. Do not invent specifications, quantities or dates. Read the latest source and Chinese companion in the folder I specify. Revise only the request-details block, update both languages and keep its existing block ID. If you cannot access local files, return the replacement text instead of claiming that you saved it.
 
-If your AI can access your local folder, have it save to the same two files. Otherwise, save its reply using your editor. Return to MD Duck, let the saved files refresh and read the passage again. “Check whole document” checks bilingual markers and structure; it does not judge factual accuracy, rewrite your text or automatically pair the article.
+Choose the handoff that suits you:
 
-You can practice without connecting AI: replace the two corresponding files in `library/01-clearer-product-inquiry/` with the copies in `snapshots/after/`. Do this only in your practice copy. Both versions retain the same eight block IDs; only `request-details` changes.
+- **Your usual external AI:** in the current article, choose Give to AI → Instructions for other AI → Copy instructions. Paste those instructions with the request and passage or screenshot. An AI with file access saves to the original two files. With a chat-only AI, supply the latest complete source and save its full revision yourself.
+- **Local Codex:** install and sign in to Codex CLI on this computer first; Windows also needs Codex sandbox setup. In Give to AI, check Working folder and Include current article, then enter the request and choose Start local task. Review any approval requests and answer its questions. Use Stop task or Take over when needed. These controls only affect the task started by MD Duck and do not undo already saved changes.
+
+After saving, return to this space: select Updated in the sidebar, open the article and choose View changes. Compare the original and translation, then explicitly Mark as viewed. Merely opening an article leaves its update marker in place. Check whole document checks bilingual markers and structure; it does not judge factual accuracy, rewrite your text or automatically pair the article.
+
+You can practice without connecting AI: **open the original as described above first**, then replace the two corresponding files in `library/01-clearer-product-inquiry/` with the copies in `snapshots/after/`. Do this only in your practice copy. Both versions retain the same eight block IDs; only `request-details` changes.
 
 ## 2. Use loose drafts or series folders
 
 The four loose drafts demonstrate a simple starting point: put Markdown files in a folder and read them. The two series demonstrate a structure you choose and create yourself. These are real local folders. MD Duck does not infer topics or automatically organize your writing.
 
 For a longer series, ask your AI for an outline first, then save one article per folder. Keep each article's translation and images with it. Use the full writing rules on the website for filenames, relative images and stable bilingual markers.
+
+### Add separate spaces when projects grow
+
+The two series in this practice library can share one space. For unrelated clients or projects, use independent local folders and add each as a space. Switch by name at the top right; each resumes its own article, reading position and preferences. Do not register both a folder and its parent as overlapping spaces.
+
+For a ready-made three-folder example, download https://mdduck.com/examples/md-duck-spaces.zip. A space is a folder entry point: it does not duplicate articles or upload them. Copy or sync the complete folders yourself when moving between computers.
+
+A submitted Codex task keeps its original working folder when you switch to read another space. When giving an external AI a new project, copy that target space’s instructions again.
 
 ## 3. Keep images and review work with the article
 
@@ -49,4 +63,4 @@ Keep the local source, translation and images. Saving a backend draft, publishin
 
 Full guide: https://mdduck.com/en/guide/
 
-The example articles and reused original MD Duck SVG illustrations use GPL-3.0-or-later; see `LICENSE`. Website walkthrough screenshots show the actual Mac beta.6 interface with an independent practice library. The workflow also applies to Windows, with different file-manager names and shortcuts.
+The example articles and reused original MD Duck SVG illustrations use GPL-3.0-or-later; see `LICENSE`. Website walkthrough screenshots show the actual Mac beta.10 interface with an independent practice library. The workflow also applies to Windows, with different file-manager names and shortcuts.

@@ -1,7 +1,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, relative, sep } from 'node:path';
 const archiveName = process.argv[2] || 'md-duck-starter';
-if (!['md-duck-starter', 'md-duck-workflow'].includes(archiveName)) throw new Error('Unknown example archive');
+if (!['md-duck-starter', 'md-duck-workflow', 'md-duck-spaces'].includes(archiveName)) throw new Error('Unknown example archive');
 const root = resolve(import.meta.dirname, '../public/examples', archiveName);
 const output = resolve(root, `../${archiveName}.zip`);
 const paths = [];

@@ -6,28 +6,23 @@ interface Props { lang: Locale }
 const { lang } = Astro.props;
 const en = lang === 'en';
 const guide = localizePath('/guide/', lang);
-const features = en ? [
-  { title: 'A space for each kind of writing.', text: 'Keep everyday drafts, a long series and bilingual reviews in their own local folders. Add the folders as spaces and switch by name, without copying your files.', link: 'spaces', action: 'Organize your folders' },
-  { title: 'Return to where you were reading.', text: 'Each space keeps its last article, reading position and reading preferences. You can also open a space in its own window.', link: 'spaces', action: 'See how spaces work' },
-  { title: 'Give AI the right place to work.', text: 'Copy a space’s instructions into your usual AI, or start a local Codex task. Check the folder and article first; switching your reading space leaves the task on its original target.', link: 'ai-location', action: 'See the AI handoff' },
-] : [
-  { title: '不同的文章，各有一个位置。', text: '日常草稿、一个长系列、双语审阅，各用自己的本地文件夹。把这些文件夹添加为空间，按名称切换，不必复制一遍文章。', link: 'spaces', action: '按文件夹整理空间' },
-  { title: '切回来，接着上次的地方读。', text: '每个空间分别记住上次文章、阅读位置和阅读偏好。需要并排处理时，也可以在独立窗口中打开。', link: 'spaces', action: '了解空间怎么用' },
-  { title: '交给 AI 时，先把位置说清楚。', text: '把空间说明复制给常用 AI，或启动 Codex 本地任务。先核对目录和文章；你切去读其他空间，任务仍处理原来的目标。', link: 'ai-location', action: '了解如何交给 AI' },
-];
 ---
 <section class="spaces-preview" id="spaces-preview" aria-labelledby="spaces-preview-title">
   <header class="spaces-preview-heading">
-    <p class="eyebrow">{en ? 'Your local article spaces' : '本地文章，各有空间'}</p>
-    <h2 id="spaces-preview-title">{en ? <>More articles.<br />Still your own folders.</> : <>文章多起来，<br />也有自己的秩序。</>}</h2>
-    <p>{en ? 'Keep your local folders as the source of truth. Spaces make it easier to move between subjects, resume reading and give AI a precise task.' : '本地文件夹仍是文章的家。空间让你在不同主题之间切换，接着读，也能把具体的改稿任务交给 AI。'}</p>
+    <p class="eyebrow">{en ? 'A place for each project' : '本地文章，各有空间'}</p>
+    <h2 id="spaces-preview-title">{en ? <>This project.<br />And the next one.</> : <>读这个项目，<br />随时切回另一个。</>}</h2>
+    <p>{en ? 'Add an existing local folder as a space. Give it a familiar name and switch from the top right. Each space remembers its last article, reading position and preferences.' : '把现有本地文件夹添加为空间，起个熟悉的名字，从右上角切换。每个空间记住上次文章、阅读位置和阅读偏好。'}</p>
   </header>
-  <PreviewNotice lang={lang} />
-  <p><a class="text-link" href={`${guide}#spaces`}>{en ? 'Try the three-folder example' : '用三分类示例跟着做'}</a></p>
+  <PreviewNotice lang={lang} guideLink={false} />
   <SpaceScreenshot lang={lang} capture="overview" />
-  <div class="spaces-feature-list">{features.map(feature => <article><h3>{feature.title}</h3><p>{feature.text}</p><a class="text-link" href={`${guide}#${feature.link}`}>{feature.action}</a></article>)}</div>
-  <div class="spaces-handoff">
-    <div><p class="eyebrow">{en ? 'A focused handoff' : '一次任务，一个明确目标'}</p><h3>{en ? 'Let AI revise. Keep the final say.' : '让 AI 改，最后仍由你判断。'}</h3><p>{en ? 'A local Codex task needs an installed, signed-in Codex CLI. Submit a specific request, answer its approval requests, then return to the saved files for review. It does not publish your article automatically.' : 'Codex 本地任务需要已安装并登录的 Codex CLI。提交具体要求，按需处理审批，完成后回到保存的文件复核。任务不会自动把文章发布出去。'}</p><a class="text-link" href={`${guide}#codex-tasks`}>{en ? 'Read the local-task walkthrough' : '查看本地任务用法'}</a></div>
-    <SpaceScreenshot lang={lang} capture="codex" />
-  </div>
+  <div class="spaces-reading-note"><p>{en ? 'The files stay in their original folders. A series can live in subfolders within one space; separate projects can have separate spaces or windows.' : '文件仍在原文件夹。一个系列可以在空间内分子文件夹；不同项目则各有空间，需要时也能分窗口阅读。'}</p><a class="text-link" href={`${guide}#spaces`}>{en ? 'Try the three-space example' : '用三个演示空间跟着做'}</a></div>
+  <section class="spaces-ai-paths" aria-labelledby="ai-paths-title" data-ai-paths>
+    <header><p class="eyebrow">{en ? 'Two ways to work with AI' : '两种方式，按习惯选'}</p><h3 id="ai-paths-title">{en ? 'Your AI. A clear place to work.' : '让 AI 知道，这次改哪里。'}</h3></header>
+    <div class="spaces-ai-options">
+      <article data-ai-path="external"><p class="spaces-ai-label">{en ? 'Your usual AI' : '继续用常用 AI'}</p><h4>{en ? 'Copy the space instructions.' : '复制空间说明，接着聊。'}</h4><p>{en ? 'Send the space instructions, the passage or screenshot, and your request to your usual AI. The instructions identify the folder and article. An AI with local file access can save changes; with a chat-only tool, you save its answer.' : '把「给 AI 的空间说明」、原段或截图、具体要求一起发到常用对话。说明里有目录和文章位置；AI 有本地文件权限就直接保存，只能聊天则由你保存回答。'}</p><a class="text-link" href={`${guide}#ai-location`}>{en ? 'See the handoff steps' : '查看空间说明怎么用'}</a></article>
+      <article data-ai-path="codex"><p class="spaces-ai-label">{en ? 'Optional local Codex task' : '可选的 Codex 本地任务'}</p><h4>{en ? 'Submit a task from this space.' : '在当前空间，提交一个任务。'}</h4><p>{en ? 'Install and sign in to Codex CLI first. Choose “Give to AI”, confirm the space and article, then submit your request. Respond to approval requests, stop or take over when needed, and review the saved changes afterward.' : '先安装并登录 Codex CLI。点击「交给 AI」，确认空间和文章，再提交要求。按需处理审批，也可停止或接管；任务完成后，回到保存的文件复核。'}</p><a class="text-link" href={`${guide}#codex-tasks`}>{en ? 'Follow the local-task guide' : '查看本地任务用法'}</a></article>
+    </div>
+    <details class="spaces-task-preview"><summary>{en ? 'See the local task panel' : '看看本地任务面板'}</summary><SpaceScreenshot lang={lang} capture="codex" /></details>
+    <p class="spaces-ai-boundary">{en ? 'Switching your reading space keeps a submitted task on its original target. Stopping a task keeps changes already saved. Publication remains a separate step in your own tools.' : '你切换阅读空间，已提交的任务仍留在原目标。停止任务后，已经保存的修改会保留。发布仍需在你自己的工具中单独完成。'}</p>
+  </section>
 </section>

@@ -4,6 +4,7 @@ import HomeWalkthrough from './HomeWalkthrough.astro';
 import WorkflowCase from './WorkflowCase.astro';
 import UsageScenarios from './UsageScenarios.astro';
 import SpacesPreview from './SpacesPreview.astro';
+import ReleaseHistory from './ReleaseHistory.astro';
 import { localizePath, type Locale } from '../i18n';
 import { release } from '../data/release';
 import '../styles/home.css';
@@ -14,27 +15,27 @@ const route = (path: string) => localizePath(path, lang);
 const available = release.status === 'published' && release.artifacts.length > 0;
 const copy = en ? {
   title: 'MD Duck — Write anywhere. Read closely here.',
-  description: 'Write with any AI, read the local files in MD Duck, and send a screenshot or passage back for revision. Review before publishing; keep your own source files.',
+  description: 'Organize local Markdown in article spaces, write with your own AI and review what changed. A quiet place to read, revise and keep your source files.',
   headline: ['Write anywhere.', 'Read closely here.'],
-  intro: 'Let your AI write. Open the local files here and read them carefully. A paragraph feels thin? Send a screenshot or the text back to your AI, then come back to check the revision.',
+  intro: 'Let your AI write. Keep each project in its own local space, read closely, and give AI a precise revision request. When the files change, find the article and check it again. You decide what is ready.',
   download: available ? 'Download for free' : 'See release status', try: 'Follow the walkthrough',
   platforms: available ? 'Apple Silicon Mac · Windows x64 · Free & open source' : 'Public Mac and Windows installers in preparation',
   label: 'Local Markdown', purpose: 'Reading & review',
-  aside: 'Your AI handles the writing. You decide what is ready. MD Duck is the quiet place in between, for reading and review.',
+  aside: 'Your folders hold the work. Spaces keep projects within reach. MD Duck gives you a quiet place to read and make the final call.',
   readingAlt: 'An actual MD Duck window with the sample product-inquiry article and its Chinese translation.',
-  previewLabel: 'Actual Mac capture · sample article · same workflow on Windows', full: 'View the full screenshot',
+  previewLabel: 'Mac beta.10 · independent sample library · Windows instructions included', full: 'View the full screenshot',
   note: 'Read it closely.\nWhat is still\ntoo vague?', guide: 'See the complete workflow',
 } : {
   title: 'MD Duck — 写在哪里都可以，认真读一遍在这里。',
-  description: '用任何 AI 写文章，在 MD Duck 阅读本地文件，把不满意的段落截图或复制给 AI 修改。审阅后再发布，本地留下原稿。',
+  description: '用空间管理本地 Markdown，让常用 AI 写作，在 MD Duck 阅读、提出修改要求、找到改动并复核。确认后再发布，原稿留在自己手里。',
   headline: ['写在哪里都可以，', '认真读一遍在这里。'],
-  intro: '让你熟悉的 AI 写，把本地文章放到这里认真读。哪一段不够好，就截图或复制给 AI 修改，再回来检查。满意后再发布，原稿留在自己手里。',
+  intro: '让你熟悉的 AI 写，把不同项目放进各自的本地空间。认真读，指出哪里还不够好；AI 改完，找到那一篇，再读一遍。什么时候交出去，由你决定。',
   download: available ? '免费下载' : '查看发布状态', try: '跟着做一遍',
   platforms: available ? 'Mac 苹果芯片 · Windows x64 · 免费开源' : 'Mac / Windows 公开安装包准备中',
   label: '本地 Markdown', purpose: '精读与审阅',
-  aside: 'AI 负责写，你负责判断。MD Duck 留出一个安静的位置，让你看清内容，再决定是否发布。',
+  aside: '文件夹装着文章，空间让项目随手可达。MD Duck 留出一个安静的位置，让你看清内容，再决定是否发布。',
   readingAlt: 'MD Duck 真实窗口中，产品询价演示文章与中文译文并排展示。',
-  previewLabel: 'Mac 实际截图 · 演示文章 · Windows 流程相同', full: '查看完整截图',
+  previewLabel: 'Mac beta.10 实际截图 · 独立演示文章库 · 附 Windows 用法', full: '查看完整截图',
   note: '认真读一遍，\n哪里还说得\n不够具体？', guide: '查看完整使用流程',
 };
 ---
@@ -46,8 +47,7 @@ const copy = en ? {
         <p class="editorial-intro">{copy.intro}</p>
         <div class="editorial-actions"><a class="button button-dark" href={route('/download/')}>{copy.download}</a><a class="text-link" href="#features">{copy.try}</a></div>
         <p class="editorial-platforms">{copy.platforms}</p>
-        <a class="editorial-preview-link" href="#spaces-preview">{en ? 'Spaces & local AI tasks' : '空间管理与本地 AI 任务'}</a>
-        <a class="editorial-scenario-link" href="#scenarios">{en ? 'Explore ways to use it' : '看看不同用法'} <span aria-hidden="true">↗</span></a>
+        <nav class="editorial-jump-links" aria-label={en ? 'Explore MD Duck' : '了解 MD Duck'}><a href="#spaces-preview">{en ? 'Spaces & AI' : '空间与 AI'}</a><a href="#scenarios">{en ? 'Ways to use it' : '实际用法'}</a><a href="#history">{en ? 'Release journal' : '成长记录'}</a></nav>
       </div>
       <aside class="editorial-margin">
         <p class="editorial-folio" aria-hidden="true">01</p>
@@ -58,7 +58,7 @@ const copy = en ? {
       </aside>
     </section>
     <figure class="editorial-product" id="preview">
-      <a class="editorial-product-image" href="/images/workflow/read-before.jpg" target="_blank" rel="noopener" aria-label={copy.full}><img src="/images/workflow/read-before.jpg" width="1440" height="940" alt={copy.readingAlt} fetchpriority="high" /></a>
+      <a class="editorial-product-image" href={en ? "/images/workflow/read-before-en.jpg" : "/images/workflow/read-before.jpg"} target="_blank" rel="noopener" aria-label={copy.full}><img src={en ? "/images/workflow/read-before-en.jpg" : "/images/workflow/read-before.jpg"} width="1440" height="940" alt={copy.readingAlt} fetchpriority="high" /></a>
       <div class="editorial-proof-note" aria-hidden="true"><img src="/images/editorial/proof-arrow.png" alt="" width="2172" height="724" /><p>{copy.note}</p></div>
       <figcaption><span>{copy.previewLabel}</span><a href={route('/guide/#quickstart')}>{copy.guide}</a></figcaption>
     </figure>
@@ -66,5 +66,6 @@ const copy = en ? {
     <HomeWalkthrough lang={lang} />
     <WorkflowCase lang={lang} />
     <UsageScenarios lang={lang} />
+    <ReleaseHistory lang={lang} />
   </div>
 </Layout>

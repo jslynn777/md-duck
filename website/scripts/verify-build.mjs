@@ -30,6 +30,7 @@ const pages = files.filter(path => path.endsWith('.html'));
 assert.equal(pages.length, routes.length, 'Expected all bilingual pages and both error documents');
 let checked = 0;
 const featureReleases = [];
+const historyManifests = [];
 for (const route of routes) {
   const page = resolve(root, route.file);
   const html = await readFile(page, 'utf8');
@@ -66,6 +67,18 @@ for (const route of routes) {
     featureReleases.push(metadata);
   }
   if (isHome) {
+    assert.ok(ids.includes('history'), `${route.path}: linkable project history`);
+    const history = [...html.matchAll(/<li\b([^>]*)data-history-version="([^"]+)"([^>]*)>([\s\S]*?)<\/li>/g)].map(([tag, , version, , content]) => {
+      const time = attributes(content.match(/<time\b[^>]*>/)?.[0] ?? '');
+      const link = attributes(content.match(/<a\b[^>]*>/)?.[0] ?? '');
+      assert.ok(Number.isFinite(Date.parse(time.datetime)), `${route.path}: valid history publication time`);
+      assert.equal(link.href, `https://github.com/jslynn777/md-duck/releases/tag/v${version}`, `${route.path}: traceable release note`);
+      return { version, publishedAt: time.datetime, current: /class="[^"]*release-history-current(?:\s|")/.test(tag.slice(0, tag.indexOf('>') + 1)) };
+    });
+    assert.ok(history.length >= 4, `${route.path}: verified public release milestones`);
+    assert.equal(new Set(history.map(item => item.version)).size, history.length, `${route.path}: unique history releases`);
+    assert.ok(history.every((item, index) => index === 0 || Date.parse(item.publishedAt) > Date.parse(history[index - 1].publishedAt)), `${route.path}: chronological release history`);
+    historyManifests.push(history);
     assert.match(html, /data-home-walkthrough/, `${route.path}: introductory workflow available`);
     assert.equal((html.match(/data-home-step(?:\s|=|>)/g) || []).length, 5, `${route.path}: five workflow controls`);
     assert.equal((html.match(/data-home-panel(?:\s|=|>)/g) || []).length, 5, `${route.path}: all introductory steps render`);
@@ -191,6 +204,8 @@ for (const [file, preparation, checksum] of [
   downloadManifests.push({ version: metadata['data-release-version'], status: metadata['data-release-status'], sourceUrl, checksumsUrl, artifacts });
 }
 assert.deepEqual(downloadManifests[0], downloadManifests[1], 'Both languages expose the same release files, sizes, hashes and corresponding source');
+assert.deepEqual(historyManifests[0], historyManifests[1], 'Both languages show the same release history');
+assert.deepEqual(historyManifests[0].filter(item => item.current).map(item => item.version), downloadManifests[0].status === 'published' ? [downloadManifests[0].version] : [], 'History current release agrees with downloads');
 for (const metadata of featureReleases) {
   assert.deepEqual(metadata, featureReleases[0], 'All six main pages expose the same feature release state');
   assert.equal(metadata['data-feature-release-version'], downloadManifests[0].version, 'Features and installer version agree');

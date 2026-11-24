@@ -12,7 +12,7 @@ const en = lang === 'en';
     <PreviewNotice lang={lang} guideLink={false} />
     <p>{en ? 'A space is an entry point to an existing folder, not another copy of your articles. Keep everyday drafts, a series and bilingual reviews in separate folders when that helps. For a few related articles, one space with series subfolders is enough.' : '空间是已有文件夹的入口，不会再复制一份文章。日常草稿、一个系列、双语审阅可以分开放；几篇相关的文章，也可以只用一个空间，在里面按系列建子文件夹。'}</p>
     <p><a class="text-link" href="/examples/md-duck-spaces.zip" download>{en ? 'Download the three-space example' : '下载三分类空间示例'}</a></p>
-    <p>{en ? 'Extract the ZIP, then add Daily Drafts, Series Guides and Bilingual Review as three separate spaces. Do not also add their outer folder. If you still use beta.7, open one example folder at a time; update to beta.10 for space switching.' : '解压后，把 Daily Drafts、Series Guides、Bilingual Review 三个子文件夹分别添加为空间，不要同时添加外层目录。仍在使用 beta.7 时，可逐个打开这些文件夹阅读；更新到 beta.10 后再使用空间切换。'}</p>
+    <p>{en ? 'Extract the ZIP. Add Daily Drafts, Series Guides and Bilingual Review separately, then give them names that make sense to you in Manage spaces. Leave the outer folder unregistered so the spaces do not overlap.' : '解压后，把 Daily Drafts、Series Guides、Bilingual Review 分别添加为空间，再在「管理空间」里取名为日常草稿、系列指南、双语审阅。外层目录不用重复添加，避免空间互相重叠。'}</p>
     <ol class="space-guide-step">
       <li><strong>{en ? 'Add a folder.' : '添加文件夹。'}</strong> {en ? 'Click the space name at the top right, choose “Add folder…” and select an existing local article folder. Use independent folders: a folder and its parent cannot be registered as overlapping spaces.' : '点击右上角的空间名称，选择「添加文件夹…」，选中已有的本地文章目录。空间使用彼此独立的目录，不要把同一个目录及其上级重复添加为空间。'}</li>
       <li><strong>{en ? 'Switch by subject.' : '按主题切换。'}</strong> {en ? 'Choose another space from the same menu. Each space saves its last article, reading position, font size, reading mode and sidebar preferences. “Manage spaces” also lets you open a space in its own window.' : '在同一个菜单选择另一个空间。每个空间分别保存上次文章、阅读位置、字号、阅读模式和侧栏偏好。「管理空间」也可以把某个空间放到独立窗口。'}</li>
@@ -20,9 +20,9 @@ const en = lang === 'en';
     </ol>
     <SpaceScreenshot lang={lang} capture="switcher" />
     <details class="space-switch-demo">
-      <summary>{en ? 'Watch an 8-second space switch' : '看一次空间切换 · 8 秒'}</summary>
-      <video controls playsinline preload="none" width="1440" height="960" poster="/images/spaces/switcher.webp" aria-label={en ? 'Actual space switching in MD Duck on Mac' : 'Mac 上 MD Duck 的真实空间切换'} data-space-video><source src="/images/spaces/space-switching.mp4" type="video/mp4" /></video>
-      <p>{en ? 'Silent Mac beta.10 recording: open the space menu, switch between two demo folders, open space management, then return to reading. No AI task is run.' : 'Mac beta.10 无声实录：打开空间菜单，在两个演示文件夹之间切换，打开空间管理，再回到阅读。没有运行 AI 任务。'}</p>
+      <summary>{en ? 'Watch a space switch' : '看一次真实的空间切换'}</summary>
+      <video controls playsinline preload="none" width="1440" height="960" poster={en ? "/images/spaces/switcher-en.webp" : "/images/spaces/switcher.webp"} aria-label={en ? 'Actual space switching in MD Duck on Mac' : 'Mac 上 MD Duck 的真实空间切换'} data-space-video><source src={en ? "/images/spaces/space-switching-en.mp4" : "/images/spaces/space-switching.mp4"} type="video/mp4" /></video>
+      <p>{en ? 'Silent Mac beta.10 recording: enter Series Guides from space management, then use the top-right menu to switch to Daily Drafts and Bilingual Review. No AI task is run.' : 'Mac beta.10 无声实录：从空间管理进入系列指南，再用右上角菜单切换到日常草稿、双语审阅。没有运行 AI 任务。'}</p>
     </details>
     <details>
       <summary>{en ? 'Renaming, moving a folder or removing a space' : '重命名、文件夹搬动与移除空间'}</summary>
@@ -30,9 +30,29 @@ const en = lang === 'en';
       <p>{en ? 'Reading preferences belong to each space; AI provider configuration is shared by the app. Spaces do not provide cloud sync. On another computer, copy or sync the complete folder yourself, add it in MD Duck, then copy that computer’s own space instructions.' : '阅读偏好按空间保存，AI 服务配置由应用共享。空间不提供云同步。在另一台电脑使用时，先自行复制或同步完整文件夹，在 MD Duck 添加它，再复制这台电脑自己的空间说明。'}</p>
     </details>
   </section>
+  <section class="guide-ai-choice" aria-labelledby="choose-ai">
+    <p class="eyebrow">{en ? 'Choose the way you already work' : '选你顺手的方式'}</p>
+    <h2 id="choose-ai">{en ? 'Two ways to ask for a change' : '两种方式，把修改要求交给 AI'}</h2>
+    <p>{en ? 'Both return to the same local article for your review. You can use either route without changing how your files are organized.' : '两条路最后都回到同一份本地文章，由你审阅。换一种 AI 用法，不需要重新整理文章。'}</p>
+    <div class="guide-ai-routes">
+      <div>
+        <h3>{en ? 'Keep your usual AI' : '继续用你熟悉的 AI'}</h3>
+        <p>{en ? 'Copy the space instructions, passage or screenshot into your existing AI conversation. An AI with file access saves the revision; with a chat-only tool, you provide the source and save its answer.' : '把空间说明、原文或截图粘贴到原来的 AI 对话。有文件权限的 AI 保存改稿；只能聊天的工具，由你提供原文并保存返回内容。'}</p>
+        <p class="guide-ai-account">{en ? 'Uses your existing AI tool. No reader API key required.' : '沿用你已有的 AI 工具，不需要阅读器 API 密钥。'}</p>
+        <a href="#ai-location">{en ? 'Copy the right location' : '怎样复制准确的位置'}</a>
+      </div>
+      <div>
+        <h3>{en ? 'Start a local Codex task' : '在空间里启动 Codex'}</h3>
+        <p>{en ? 'Check the working folder and current article, then submit a request. The panel shows this task’s status and any approval requests. Stop or take over when needed, then review the saved changes.' : '核对工作目录和当前文章后提交要求。面板显示这项任务的状态与审批，需要时停止或接管，再检查已经保存的改动。'}</p>
+        <p class="guide-ai-account">{en ? 'Optional. Requires Codex CLI, your login and available usage.' : '可选功能，需要本机 Codex CLI、你的登录与可用额度。'}</p>
+        <a href="#codex-tasks">{en ? 'Start and manage a task' : '怎样开始和管理任务'}</a>
+      </div>
+    </div>
+    <p class="guide-ai-footnote">{en ? 'The reader’s AI service setting is separate: it powers explanations and translation. It is not needed for these external writing workflows and does not sign you in to Codex.' : '设置中的「AI 服务」另用于词义解释和翻译，与这两条写作路径分开配置，也不能代替 Codex 登录。'}</p>
+  </section>
   <section aria-labelledby="ai-location">
     <h2 id="ai-location">{en ? 'Give any AI a precise article location' : '让任意 AI 找到正确文章'}</h2>
-    <p>{en ? 'Enter the target space, open the article and click “Give to AI”. Choose “Instructions for other AI”, then copy the instructions into the AI you use. They contain this computer’s space ID, absolute folder path, current article’s relative path and a link back to MD Duck.' : '进入目标空间，打开文章，点击「交给 AI」，再打开「其他 AI 的空间说明」，复制给你使用的 AI。说明包含本机的空间标识、绝对目录、当前文章相对路径，以及返回 MD Duck 的链接。'}</p>
+    <p>{en ? 'Enter the target space and open the article. Select Give to AI → Instructions for other AI, then copy the result into your AI conversation. It names this computer’s space ID, absolute folder, current article’s relative path and a return link. You can use this copy option even without local Codex.' : '先进入目标空间并打开文章，再点「交给 AI」→「其他 AI 的空间说明」，把说明复制进 AI 对话。里面有本机空间标识、绝对目录、当前文章相对路径和返回链接。没有安装 Codex，也可以使用这份说明。'}</p>
     <p>{en ? 'Add a focused request: “Expand the sampling checklist in this article. Keep existing block markers, update the companion translation, and leave unrelated files alone.” An AI with local file access can save the revision; a chat-only AI should return the filename and complete content for you to save.' : '再补充具体要求，例如「补全这篇文章的打样清单，保留段落标记，同步修改对应译文，其他文件不动」。有本地文件权限的 AI 可以直接保存；只能聊天的 AI 应返回文件名和完整内容，由你保存。'}</p>
     <SpaceScreenshot lang={lang} capture="handoff" />
     <p>{en ? 'Keep the existing file rules: article.md with an optional article.zh.md in the same folder, local images in assets/ with relative paths, and stable block markers. Leave .review/, .mdduck/, annotations and app settings untouched. After saving, ask the AI to report the actual paths it changed and return you to the article for review.' : '继续沿用文件规则：同目录的 article.md 与可选 article.zh.md，assets/ 中的本地图片和相对路径，已有段落标记保持稳定。不改 .review/、.mdduck/、批注或应用设置。保存后让 AI 报告实际修改的路径，再回到文章复核。'}</p>
@@ -45,12 +65,14 @@ const en = lang === 'en';
   <section aria-labelledby="codex-tasks">
     <h2 id="codex-tasks">{en ? 'Run a local Codex task' : '在当前空间启动 Codex 任务'}</h2>
     <p>{en ? 'You need Codex CLI installed and signed in on this computer. Windows also needs Codex’s sandbox setup to be ready. The task uses your local Codex login and allowance, separately from the reader’s AI translation API key. If it is not ready, the panel explains why; reading still works.' : '电脑需要先安装并登录 Codex CLI；Windows 还需要完成 Codex 自身的沙箱设置。任务使用本机 Codex 的登录和额度，与阅读器里的 AI 翻译密钥分开。未就绪时，面板会说明原因，仍可正常阅读。'}</p>
+    <p><a href="https://developers.openai.com/codex/cli/" target="_blank" rel="noopener noreferrer">{en ? 'Codex CLI installation and sign-in instructions' : 'Codex CLI 官方安装与登录说明'}</a></p>
     <ol class="space-guide-step">
-      <li><strong>{en ? 'Check the target before submitting.' : '先确认目标，再提交。'}</strong> {en ? 'Open “Give to AI”, check the displayed working folder and include the current article if needed. Enter a concrete request and submit it. MD Duck starts an independent task, without taking over an existing Codex conversation.' : '打开「交给 AI」，核对显示的工作目录，需要时带上当前文章。输入具体要求并主动提交后才开始。MD Duck 启动独立任务，不会接管已有的 Codex 对话。'}</li>
-      <li><strong>{en ? 'Read while it works.' : '处理期间，继续阅读。'}</strong> {en ? 'The panel shows real task status, approval requests and questions. You can read and annotate, or switch to another space; the task stays bound to its original folder. In-app moves, archiving and translation are temporarily blocked during execution to avoid conflicting writes.' : '面板显示真实任务状态、审批请求与提问。你可以阅读、写批注或切到其他空间；任务仍绑定原目录。执行期间，应用内的移动、归档和翻译会暂时阻止，避免同时改写。'}</li>
+      <li><strong>{en ? 'Check the target before submitting.' : '先确认目标，再提交。'}</strong> {en ? 'Open Give to AI and check Working folder. Keep Include current article selected when revising this article. Enter a focused request, then select Start local task. This starts an independent task; your existing Codex conversations stay separate.' : '打开「交给 AI」，核对「工作目录」。改当前这篇时，保留勾选「带上当前文章」。写好具体要求，再点「开始本地任务」。这会启动独立任务，与你原来的 Codex 对话分开。'}</li>
+      <li><strong>{en ? 'Read while it works.' : '处理期间，继续阅读。'}</strong> {en ? 'When Approval needed appears, read the proposed action and choose Approve once or Decline. Answer any task questions in the panel. You can keep reading or switch spaces; this task stays in its original folder. In-app moves, archiving and translation wait while it runs to avoid conflicting writes.' : '出现「需要你的批准」时，先读操作内容，再选「批准这一次」或「拒绝」；有提问就在面板回答。你可以继续阅读或切换空间，这项任务仍处理原目录。执行期间，应用内的移动、归档和翻译会暂时阻止，避免同时改写。'}</li>
       <li><strong>{en ? 'Review what was saved.' : '完成后，检查保存结果。'}</strong> {en ? '“Ready for your review” is your cue to check “Files updated during this task”. Changes saved by another editor during the same period may also appear. Read the changes and companion translation before explicitly marking them as viewed.' : '看到「已完成，待你审阅」后，从「任务期间更新」返回文章。其他编辑器在同一期间保存的修改也可能计入。检查改动与对应译文，再明确「标为已查看」。'}</li>
     </ol>
     <SpaceScreenshot lang={lang} capture="codex" />
+    <p class="guide-ai-footnote">{en ? 'The capture shows a prepared request before submission. A filled form is not evidence that a task ran or finished.' : '截图停在填写要求、尚未提交的状态。填好表单不代表任务已经运行或完成。'}</p>
     <details>
       <summary>{en ? 'Stopping, taking over and publishing' : '停止、接管与发布的区别'}</summary>
       <p>{en ? '“Take over” and “Stop task” interrupt the task started by MD Duck and wait for Codex to confirm. Already saved changes are not undone. Closing the app interrupts its tasks; restarting does not resume them automatically. A lost connection is shown as an unknown state, not as proof that the task stopped.' : '「我来接管」与「停止任务」会中断 MD Duck 启动的任务，并等待 Codex 确认。已经保存的修改不会自动撤销。退出程序会中断任务，重启不自动续跑；意外断连会显示状态未知，不会直接认定任务已停止。'}</p>
@@ -58,3 +80,21 @@ const en = lang === 'en';
     </details>
   </section>
 </div>
+
+<style>
+  .guide-ai-choice { margin-block: 52px; }
+  .guide-ai-choice > h2 { margin-top: 12px; }
+  .guide-ai-routes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin-block: 25px 18px; border-block: 1px solid var(--line); }
+  .guide-ai-routes > div { min-width: 0; padding: 24px 25px 25px 0; }
+  .guide-ai-routes > div + div { border-left: 1px solid var(--line); padding-left: 25px; padding-right: 0; }
+  .guide-ai-routes h3 { margin: 0 0 13px; font: 600 23px/1.5 var(--serif); }
+  .guide-ai-routes p { font-size: 16px; line-height: 1.9; margin: 12px 0; }
+  .guide-ai-routes .guide-ai-account { font-size: 14px; color: var(--muted); }
+  .guide-ai-routes a { font-size: 15px; text-underline-offset: 4px; }
+  .guide-ai-footnote { font-size: 14px; line-height: 1.9; color: var(--muted); }
+  @media(max-width:640px) {
+    .guide-ai-routes { display: block; }
+    .guide-ai-routes > div, .guide-ai-routes > div + div { padding: 22px 0; border-left: 0; }
+    .guide-ai-routes > div + div { border-top: 1px solid var(--line); }
+  }
+</style>

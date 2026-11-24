@@ -32,19 +32,23 @@ For a first look, choose **Open example**. You can also download the [bilingual 
 
 Keep using your preferred AI or editor to change the text. MD Duck refreshes the reading view when you save. Use **Typography** to adjust text size, and **Settings** to change the interface language.
 
-<h2 id="review-workflow">Let AI write. Read it yourself. Improve the passage.</h2>
+<h2 id="review-workflow">Find a comfortable review routine</h2>
 
-MD Duck presents your local article for reading. Write and revise with your usual AI or editor, and publish with your own CMS tools.
+Work on one clear question at a time. Copy or capture a vague passage and send a specific request to your AI. If you prefer finishing the article first, save [annotations](#notes) and hand over the comments together. Either approach works.
 
-1. **Save the first draft locally.** Give your AI the [file rules and writing prompt](#ai-workflow), with a specific library folder. If it cannot access your computer, ask for filenames and complete Markdown, then save the files yourself.
-2. **Open the article and read.** Check reasoning, wording, images and any Chinese companion in MD Duck. You do not need to create comments first.
-3. **Send the issue straight back.** Copy the passage or capture a screenshot and paste it into your AI chat. Include the article location and a concrete request: “This only says to use enough water and wait a moment. Give quantities and a way to judge the result; leave the rest unchanged.” A screenshot still needs the latest source, either through the AI's file access or text you provide.
-4. **Save, then reread.** Have the AI update the original file, or save its complete revised text yourself. Filter the sidebar by **Updated**, choose **View changes** to compare passages, then **Mark as viewed** after checking. Use **Check whole document** for bilingual structure. Use [comments](#notes) when you want to collect several issues for later.
-5. **Publish the final copy.** Use the [publishing handoff prompt](#ai-workflow) with an AI authorized to use your CMS. Check its preview and confirm publication before it goes live, or publish yourself. Check the public page and keep the final local text, translation and assets.
+Choose the right space and open the article before [copying its AI instructions](#ai-location) or [starting a Codex task](#codex-tasks). While a task runs, you can read another space. Return to the original space and use **Updated** to find the files that need reviewing.
+
+| What you see | What it means | What you do next |
+| --- | --- | --- |
+| File saved | Content has been written to local files. | Open **View changes** and check the result. |
+| Task finished | The AI has finished this task. | Check its report and the actual files; completion does not guarantee the requested result. |
+| Mark as viewed | You confirmed reading this round of changes. | Request another revision if needed. |
+| Final | An article progress label you set yourself. | Check the publishing destination and preview. |
+| Publicly published | Your external tool published it and you checked the public page. | Keep the local final copy; archive it when useful. |
 
 Copy text with `⌘ C` on Mac or `Ctrl C` on Windows. On Mac, use `⇧ ⌘ 4` to capture a region and drag the saved image into your chat; hold `Control` while capturing to copy it to the clipboard. On Windows, use `Win Shift S`, then paste. If your AI does not support images, copy the text instead.
 
-This workflow needs no AI key in MD Duck. MD Duck does not edit article text, connect to a CMS or publish; you send excerpts or screenshots to your external AI yourself. Save copies before rewriting or use version control if you want to keep the first draft and every revision.
+Keep only the side panel you need open; use a single language in a narrow window. To compare two projects, open another space in its own window from **Manage spaces**. Accepting a revision and deciding to publish remain your choices.
 
 <h2 id="changes">Find what your AI changed, then review it</h2>
 
@@ -156,8 +160,8 @@ You can send a screenshot or copied passage straight to your AI. To finish readi
 Notes are saved beside the article, without changing its text. Continue unfinished comments from **Drafts** in the notes panel. If local draft storage is unavailable, closing the app lets you return to save the note or explicitly discard unsaved drafts.
 
 <figure class="guide-figure">
-  <a href="/images/notes.jpg" target="_blank" rel="noopener" aria-label="View the full annotation screenshot">
-    <img src="/images/notes.jpg" width="1320" height="860" alt="The MD Duck notes panel beside an article, showing quoted text and the related review comments." loading="lazy" />
+  <a href="/images/workflow/notes-en.jpg" target="_blank" rel="noopener" aria-label="View the full annotation screenshot">
+    <img src="/images/workflow/notes-en.jpg" width="1440" height="940" alt="The MD Duck notes panel beside an article, showing quoted text and the related review comments." loading="lazy" />
   </a>
   <figcaption>Keep the quotation with your comment. Click a note to return to the text.</figcaption>
 </figure>
@@ -180,7 +184,7 @@ Speech uses the Kokoro model on your computer, with five British and American vo
 
 <h2 id="ai-setup">Connect your own AI service</h2>
 
-MD Duck itself is free. Reading, annotations, and local speech with a prepared model do not need an AI key. For contextual explanations, passage translation, or a full Chinese translation, open **Settings → AI service** and choose a connection method. Your own provider account covers any API charges.
+This connection powers **contextual explanations, passage translation and full-article translation**. Choose a provider in **Settings → AI service**; requests use your own provider credit. Reading, comments and prepared local speech need no API key. [Local Codex tasks](#codex-tasks) use a separate Codex login; writing with an external AI does not require these settings either.
 
 ### OpenRouter: connect in your browser
 
@@ -205,6 +209,9 @@ Your articles stay on your computer. MD Duck reads real folders and saves notes,
 | Feature | Network activity |
 | --- | --- |
 | Reading and annotations | No article upload is required. Remote images in an article are loaded from their original URLs. |
+| Copying space instructions | Copies location details and file rules. You decide what to share and with which AI. |
+| Local Codex tasks | Your local Codex connects to its AI service and reads or changes files for the task. Processing of requests and file contents depends on your Codex configuration and service. |
+| External AI revisions | The AI you choose processes pasted text, screenshots and files it can read. MD Duck does not send them on your behalf. |
 | Phonetic lookup | Uses the local word list first. If a word is missing, sends the word to Free Dictionary API. |
 | AI explanations and passage translation | Sends the selected text and necessary context to your chosen service. |
 | Full-article translation | After you confirm, sends the article text to the selected AI service in sections. |
@@ -216,6 +223,14 @@ API keys are encrypted through the operating system’s secure storage and kept 
 This website has no sign-in, forms, or analytics scripts. Server access logs depend on the hosting configuration.
 
 <h2 id="faq">When something needs attention</h2>
+
+### Does switching spaces redirect a running AI task?
+
+A Codex task started by MD Duck keeps its original working folder. Return to that space for its task state and updated files; switching the reader does not move a submitted task. Instructions for an external AI also specify a folder. Copy the current space’s instructions again before giving it a different task.
+
+### Why does an opened article still say Updated?
+
+Opening does not confirm a review. Select **View changes**, read the revision, then choose **Mark as viewed**. This does not also finalize the article or complete its comments.
 
 ### Why is there no Chinese translation in the reading view?
 

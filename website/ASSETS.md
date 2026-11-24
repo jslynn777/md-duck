@@ -2,7 +2,7 @@
 
 ## Original screenshots (retained)
 
-The website uses captures of the installed `0.1.0-beta.2` app from the product review on 2026-10-04. The review used an independent empty profile, the app's built-in Christmas Ribbon example, a Chinese interface and dark appearance. No AI service was connected. Conditions and limits are recorded in `../product-review-20261004/notes.md`.
+These historical files come from the installed `0.1.0-beta.2` app review on 2026-10-04. They are retained for existing URLs; the current homepage, guide and social preview use the beta.10 workflow captures described below. The earlier review used an independent empty profile, the built-in Christmas Ribbon example, a Chinese interface and dark appearance. No AI service was connected. Conditions and limits are recorded in `../product-review-20261004/notes.md`.
 
 - `public/images/reading.jpg`: 1320 × 860, copied from `../product-review-20261004/screenshots/02-bilingual.jpg`. Shows the actual side-by-side reading view and article list.
 - `public/images/notes.jpg`: 1320 × 860, copied from `../product-review-20261004/screenshots/04-annotation.jpg`. Shows a saved sample comment and its quoted text in the actual notes panel.
@@ -42,15 +42,15 @@ Headings use a self-hosted, public-copy subset of [Noto Serif SC](https://fonts.
 
 `public/examples/md-duck-starter.zip` is the current two-article practice library. Both languages share its article pairs, local illustration assets, instructions and GPL license. Its deterministic build is `scripts/build-starter.mjs`.
 
-## Practical workflow and library scenarios (2026-10-26)
+## Original practical workflow captures (2026-10-26; superseded)
 
-The homepage and guided workflow now use seven 1440 × 940 JPEG captures in `public/images/workflow/`: `read-before`, `selection`, `read-after`, `flat-library`, `series-library`, `article-assets`, and `archive-library`.
+The original workflow used seven 1440 × 940 JPEG captures in `public/images/workflow/`: `read-before`, `selection`, `read-after`, `flat-library`, `series-library`, `article-assets`, and `archive-library`. The November 24 refresh replaces these paths with beta.10 captures; this paragraph records the earlier provenance.
 
 These are genuine `webContents.capturePage()` images of the installed `0.1.0-beta.6` application's unmodified main entry, preload and renderer, hosted by local Electron with an independent profile and fictional example library. The installed archive SHA-256 was `6f2982a36146b3cfb088372759e94c66c2f81857e27762e012f8728968f3480e`. No personal library, AI key, external AI request, speech session or CMS was used. PNG originals and capture reports live in `../verification/workflow-demo-20261026/`. The selection used real Chromium mouse events; the revised view followed an actual file write and watcher refresh. Both versions passed the application's 8 / 8 structure check. Archive verification confirmed unchanged source, translation and image hashes and a preserved saved comment.
 
 The screenshots were captured on Mac. Windows instructions cover the shared file workflow and relevant shortcuts, and do not claim Windows screen capture evidence. The folder examples are manually prepared, not automatically categorized by MD Duck. Original local SVG illustrations are reused from the project's starter library.
 
-`public/media/md-duck-workflow-{zh,en}.mp4` are 90-second, 1920 × 1080 captioned, silent walkthroughs assembled from these actual captures. They are explicitly labeled as arranged screenshot demonstrations, not continuous recordings. All added instructional text is outside the captured application. AI revision requests and publication handoff are instructional examples; no article was sent to a live backend. Matching `.txt` transcripts and `.vtt` captions accompany the videos. The manual production script is `scripts/build-workflow-video.py` (Pillow and ffmpeg); ordinary website builds simply use the existing media. `public/images/workflow/video-poster.jpg` is the first instructional frame.
+The original `public/media/md-duck-workflow-{zh,en}.mp4` files were 90-second, 1920 × 1080 captioned, silent walkthroughs assembled from those captures. They were explicitly labeled as arranged screenshot demonstrations, not continuous recordings. The November 24 refresh replaces both videos and their `.txt` transcripts and `.vtt` captions. The manual production script remains `scripts/build-workflow-video.py` (Pillow and ffmpeg); ordinary website builds simply serve the committed media.
 
 `public/examples/md-duck-workflow.zip` is the matching practical library: loose drafts, two categorized series with local images, and a before/after revision case. Open the extracted `library/` in the reader; reference snapshots and instructions stay outside it. It includes bilingual instructions, prompts and a GPL license, without app profiles or hidden review data. `scripts/build-starter.mjs md-duck-workflow` creates the deterministic archive.
 
@@ -65,3 +65,18 @@ The demo drafts and the three-step writing-workflow SVG are original examples. T
 These assets were captured on Mac before beta.10 publication. They do not establish Windows desktop acceptance or installer release readiness. Current download availability follows the separately verified release metadata.
 
 `public/examples/md-duck-spaces.zip` contains those three independent demo folders, nine Markdown originals/translations, two local images and one bilingual README (12 files total). Add the three child folders separately; the README explains both beta.10 spaces and opening one folder at a time in older beta.7. The archive contains no fixed space identity, machine-specific path, hidden review data, profile or API configuration.
+
+## Current bilingual workflow refresh (2026-11-24)
+
+The homepage, guide, social preview and films now use fresh captures of the installed `0.1.0-beta.10` application. Its unmodified ASAR SHA-256 is `cafdd9f1664cbaaf34c990a6550ed8df23b90ab4ac9fd5e2c1c276a1b4fc17af`. Local Electron hosted that main entry and renderer with isolated profiles and synthetic demo folders. The captures did not read the user's article library, change their settings or run an AI task. The harness recorded zero external network attempts.
+
+- `public/images/workflow/` contains ten 1440 × 940 captures per language: `read-before`, `selection`, `read-after`, `change-review`, `notes`, `reviewed`, `flat-library`, `series-library`, `article-assets` and `archive-library`. English-interface files use the `-en.jpg` suffix. The `reviewed` image follows an actual **Mark as viewed** action and shows the update marker cleared.
+- `public/images/spaces/` contains five 1440 × 960 captures per language (`overview`, `switcher`, `reading`, `ai-handoff`, `codex-task`), each with a PNG original and WebP display copy. English-interface files use `-en`. Visible temporary paths refer only to the isolated demo folders; readers copy instructions generated by their own app.
+- `space-switching.mp4` (10.85 seconds) and `space-switching-en.mp4` (11.05 seconds) are silent recordings of real space-management and switching interactions. They enter Series Guides from the overview, then switch to Daily Drafts and Bilingual Review from the top-right menu.
+- The Chinese and English `public/media/md-duck-workflow-*.mp4` files are each 108 seconds, 1920 × 1080, H.264 and silent. Twelve scenes use genuine screenshots with instructional text outside the application capture. Localized posters, `.vtt` captions and full `.txt` transcripts accompany them. Both films and both switching recordings passed full decoding; all 24 film scenes were visually checked for clipping.
+
+The demonstration actually saved revised source and translation files, observed the reader update, compared them with the previous baseline, saved a note and explicitly marked the revision as viewed. Original and revised samples passed the app's 8 / 8 structural pairing check. The separate archive exercise preserved source, translation, image and annotation hashes. The Codex panel contains a prepared request only: no task was submitted and no running/success state was fabricated. Publication remains a clearly labeled external handoff example, with no real backend connection.
+
+Capture reports and raw originals are in `../verification/website-media-20261124/`; `assets-manifest.json`, `media-validation.json` and `film-build.json` record final assets, decoding and production metadata. Normal builds do not require the capture harness, Electron, Pillow or ffmpeg.
+
+The current three-space ZIP has 15 files: the previous 12 plus the inquiry original/translation under `Bilingual Review/01-clearer-product-inquiry/` and the GPL license. Its source is tracked under `public/examples/md-duck-spaces/` and `scripts/build-starter.mjs md-duck-spaces` rebuilds it deterministically. All screenshots use Mac; the tutorials separately explain Windows file operations and shortcuts without presenting a Mac capture as Windows.

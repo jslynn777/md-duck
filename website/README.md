@@ -62,9 +62,9 @@ npm run preview
 
 ### Practical workflow examples
 
-The bilingual homepage includes six usage scenarios and seven actual beta.6 reader captures, plus a 90-second captioned video in each language. The downloadable workflow library contains eleven articles, per-article assets, before/after reference snapshots, and bilingual instructions/prompts. Open the extracted `library/`, not the package root.
+The bilingual homepage includes six usage scenarios and current beta.10 captures in both interface languages, plus a 108-second captioned video in each language. The downloadable workflow library contains eleven articles, per-article assets, before/after reference snapshots, and bilingual instructions/prompts. Open the extracted `library/`, not the package root. Read the original first so the reader can compare a later save with its confirmed baseline.
 
-- Build both example ZIPs: included in `npm run build`.
+- Build the starter, workflow and three-space example ZIPs: included in `npm run build`.
 - Refresh videos manually: `python3 scripts/build-workflow-video.py` with Pillow and ffmpeg available. The site build itself does not need these tools.
 - Screenshots and media provenance: `ASSETS.md`.
 - Publication steps describe handing approved files to an external tool; MD Duck remains a reader and reviewer.
@@ -73,4 +73,12 @@ The bilingual homepage includes six usage scenarios and seven actual beta.6 read
 
 The homepage and guide explain beta.10 spaces and the optional Codex workflow. Shared anchors are `#spaces`, `#ai-location` and `#codex-tasks`. Feature notices and download metadata share the same release version and status. The guide explains per-space reading preferences, shared AI service settings, local-only identities, actual file permissions, task approvals, stopping and review before publication. The original five-step workflow and four AI prompts remain available; older beta.7 users receive an explicit update note for space switching.
 
-`src/data/preview.ts` selects actual captures under `public/images/spaces/`. Missing captures render no mock image. Both languages share the real Chinese-interface Mac captures and translated captions; they are not Windows acceptance evidence. The Codex image shows a request before submission, not a running or completed task. The short silent switching video is optional playback and has a readable description. See `ASSETS.md` for provenance.
+`src/data/preview.ts` selects actual captures under `public/images/spaces/`, including English-interface captures for the English site. Missing captures render no mock image. The captures are from Mac and do not constitute Windows acceptance evidence. The Codex image shows a request before submission, not a running or completed task. The short silent switching video is localized, optional playback and has a readable description. See `ASSETS.md` for provenance.
+
+### Project history and current workflow
+
+The homepage `#history` journal uses `src/data/history.ts`, with public release dates and changes checked against each linked GitHub release. The current-download marker derives from `release.ts`. Update this data when publishing a new desktop version; website changes alone are not a new desktop release.
+
+The guide preserves existing anchors and adds `#choose-workflow` (loose drafts, a series or multiple projects) and `#choose-ai` (your usual external AI or optional local Codex tasks). The five-step walkthrough and four copyable prompts remain usable. `src/shared/authoring-guide.ts` in the desktop application is not changed by this website revision.
+
+The spaces ZIP now builds reproducibly from `public/examples/md-duck-spaces/`. It includes the product-inquiry article shown in the updated screenshots, plus the previous three-space examples and their license. Do not include generated `.mdduck/`, `.review/`, profiles, space IDs or machine paths in the sample archives.

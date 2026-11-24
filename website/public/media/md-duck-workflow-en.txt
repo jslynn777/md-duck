@@ -1,70 +1,75 @@
-90-second captioned walkthrough, without audio. Arranged from actual Mac reader captures. External AI requests and publishing handoff are examples; no article was published to a real website.
+108-second captioned walkthrough, without audio. Arranged from actual Mac beta.10 captures of an isolated demo library. The Codex request was entered, not submitted; file changes were saved in the demo library. Publishing is an example handoff: no live backend was connected and no article was published. Mac and Windows use the same file workflow, with different window appearance and shortcuts.
 
-00:00:00  Write first. Then read closely.
-Use any AI to prepare local Markdown.
+00:00:00  A space for each project.
+Add a local folder as a space.
 
-An AI with file access can save it. With a chat-only tool, you save the files yourself.
-AI writes → MD Duck reads → AI revises → you approve publication
+Keep drafts, series and bilingual reviews in separate places. Switch at the top right and resume reading.
+Spaces point to your folders. They do not duplicate your articles.
 
-00:00:09  A few drafts? Keep it simple.
-Put a few .md files in a folder.
-Open that folder in MD Duck.
+00:00:09  A few drafts? Start here.
+Put a few Markdown files in one folder and start reading.
 
-You do not need an elaborate filing system to start reading.
-Create a local folder, then choose Open Folder in MD Duck.
+Keep writing with your usual AI. With a chat-only tool, save the returned text yourself.
+Reading local files requires neither an API key nor Codex.
 
-00:00:18  Give a series its own folder.
+00:00:18  Give a series an order.
 One folder per series.
 One subfolder per article.
 
-Use clear names and 01-, 02- prefixes for your intended order. You decide the categories.
-The same file organization works on Mac and Windows.
+Use 01-, 02- name prefixes and sort by name. Keep translations and images with each article.
+The same folder structure works on Mac and Windows.
 
-00:00:27  Keep images with the article.
-article.md holds the source.
-article.zh.md is an optional translation.
+00:00:27  Make the request specific.
+Copy a passage or capture it.
 
-Keep images in assets/ with relative paths. Move and back up the whole folder.
-Example: ![Image description](assets/detail.svg)
+“Add product, size, quantity, delivery city and date. Use placeholders for unknown facts. Update both languages.”
+Mac: ⌘ C / ⇧ ⌘ 4. Windows: Ctrl C / Win ⇧ S.
 
-00:00:36  This paragraph needs detail.
-Copy the passage, or capture it.
+00:00:36  Give any AI the right file.
+Copy Space instructions for AI. Add the passage or screenshot and your request.
 
-Mac: ⌘ C / ⇧ ⌘ 4
-Windows: Ctrl C / Win ⇧ S
+An AI with file access saves in place. Otherwise, you save its returned text.
+Instructions identify the folder and article; they do not grant access.
 
-Tell your AI which article it belongs to.
-“Tell the supplier what you need and ask for a quote.”
+00:00:45  Or use local Codex.
+Install and sign in to Codex CLI. Check the space, article and request, then start a local task.
 
-00:00:45  Ask for a specific change.
-EXAMPLE REVISION REQUEST
+Approve individual requests when asked. Stop or take over when needed.
+Request entered, not submitted. External AI chats are not controlled.
 
-“Explain which details to provide: product, size, quantity, delivery city and date. Do not invent facts. Update the Chinese version too.”
-A request for your external AI. MD Duck does not edit the text.
+00:00:54  Save. The reader updates.
+The revised text stays in the original files.
 
-00:00:54  Save. Return. Read again.
-Let an AI with file access save the changes, or save the complete files yourself.
+In this isolated demo, saving the source and translation refreshed the article in MD Duck.
+Switching reading spaces does not retarget a running Codex task.
 
-Return to MD Duck and reread the revised passage after it refreshes.
-Verified in the demo: saving both files refreshed the reader.
+00:01:03  Find and compare changes.
+Filter to changed articles.
+Choose View changes to compare with the last confirmed version.
 
-00:01:03  Check both languages.
-Compare the meaning.
-Check the whole document for pairing issues.
+Opening an article alone does not clear its marker.
+An external file save is not proof that an AI task has finished.
 
-Matching structure is not proof of an accurate translation. Comments are optional.
-Both sample versions passed the 8 / 8 structure check.
+00:01:12  Keep feedback beside it.
+Leave a note on the passage.
 
-00:01:12  Approve before publishing.
-EXAMPLE PUBLISHING HANDOFF
+Collect several comments for your AI to address. For bilingual articles, check the meaning and affected translation too.
+Notes stay with the article. You decide what should be revised.
 
-Give your approved files to an AI with backend access. Review the preview and explicitly authorize publication.
+00:01:21  Reviewed? Mark as viewed.
+After checking facts, wording and the translation, choose Mark as viewed. This revision’s marker clears.
 
-MD Duck does not publish articles.
-No real backend was connected. No sample article was published.
+New saved edits will appear for your next review.
+This updates the comparison baseline. It does not approve publication.
 
-00:01:21  Keep a local source copy.
-Retain the article, translation and images.
+00:01:30  Approve the publishing handoff.
+Use your own CMS or an authorized AI to publish. Review its preview, then confirm publication.
 
-Archive finished work in MD Duck; restore it when it needs an update. Back up the complete library regularly.
-Download the sample library and try the workflow at your own pace.
+Keep article.md, its translation and assets/ locally.
+Publishing is an example handoff. No backend was connected or article published.
+
+00:01:39  Archive. Return when needed.
+Archive completed work in MD Duck, then restore it when it needs an update.
+
+Move or back up the whole article folder, including hidden review data.
+Download the examples and try the workflow at your own pace.

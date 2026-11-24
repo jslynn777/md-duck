@@ -46,6 +46,8 @@ beta.10 的本地发布脚本与清单模板位于 `verification/release-beta10-
 
 ## 上线后验证
 
+2026-11-24 的官网流程与成长记录更新使用 `/www/wwwroot/mdduck.com/releases/20261124-spaces-workflow`，前一版是 `20261119-beta10`。这是静态网站更新，安装包仍为已验证的 beta.10；历史下载文件与旧 `_astro/` 资源通过硬链接保留。部署输入、前一版静态备份和回执位于 `/www/backup/mdduck.com/website-workflow-20261124/`，本地证据位于 `verification/website-workflow-20261124/`。脚本默认只预检，`--activate` 校验文件清单后原子切换，`--rollback` 恢复前一版。不修改 Nginx、DNS 或证书；每次后续维护仍应先读取 `current` 的实际目标。
+
 - 检查主域名、HTTP/HTTPS，以及 www 的有效 TLS 证书和 301 跳转；带路径、查询参数的链接应跳到主站同一地址，下载链接仍支持 Range。
 - 实际打开中英文首页、指南和下载页，确认 6 个页面均可直接访问；逐页切换语言应到达对应页面。静态语言切换不保证保留当前 `#片段` 或滚动位置。
 - 分别访问中文和 `/en/` 下不存在的路径，确认显示对应语言的错误页且 HTTP 状态为 404；再检查 `/404.html`、`/en/404/` 及错误页语言入口。

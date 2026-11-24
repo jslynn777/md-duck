@@ -1,58 +1,75 @@
 WEBVTT
 
 00:00:00.000 --> 00:00:09.000
-Write first. Then read closely.
-Use any AI to prepare local Markdown.
-An AI with file access can save it. With a chat-only tool, you save the files yourself.
+A space for each project.
+Add a local folder as a space.
+Keep drafts, series and bilingual reviews in separate places. Switch at the top right and resume reading.
+Spaces point to your folders. They do not duplicate your articles.
 
 00:00:09.000 --> 00:00:18.000
-A few drafts? Keep it simple.
-Put a few .md files in a folder.
-Open that folder in MD Duck.
-You do not need an elaborate filing system to start reading.
+A few drafts? Start here.
+Put a few Markdown files in one folder and start reading.
+Keep writing with your usual AI. With a chat-only tool, save the returned text yourself.
+Reading local files requires neither an API key nor Codex.
 
 00:00:18.000 --> 00:00:27.000
-Give a series its own folder.
+Give a series an order.
 One folder per series.
 One subfolder per article.
-Use clear names and 01-, 02- prefixes for your intended order. You decide the categories.
+Use 01-, 02- name prefixes and sort by name. Keep translations and images with each article.
+The same folder structure works on Mac and Windows.
 
 00:00:27.000 --> 00:00:36.000
-Keep images with the article.
-article.md holds the source.
-article.zh.md is an optional translation.
-Keep images in assets/ with relative paths. Move and back up the whole folder.
+Make the request specific.
+Copy a passage or capture it.
+“Add product, size, quantity, delivery city and date. Use placeholders for unknown facts. Update both languages.”
+Mac: ⌘ C / ⇧ ⌘ 4. Windows: Ctrl C / Win ⇧ S.
 
 00:00:36.000 --> 00:00:45.000
-This paragraph needs detail.
-Copy the passage, or capture it.
-Mac: ⌘ C / ⇧ ⌘ 4
-Windows: Ctrl C / Win ⇧ S
-Tell your AI which article it belongs to.
+Give any AI the right file.
+Copy Space instructions for AI. Add the passage or screenshot and your request.
+An AI with file access saves in place. Otherwise, you save its returned text.
+Instructions identify the folder and article; they do not grant access.
 
 00:00:45.000 --> 00:00:54.000
-Ask for a specific change.
-EXAMPLE REVISION REQUEST
-“Explain which details to provide: product, size, quantity, delivery city and date. Do not invent facts. Update the Chinese version too.”
+Or use local Codex.
+Install and sign in to Codex CLI. Check the space, article and request, then start a local task.
+Approve individual requests when asked. Stop or take over when needed.
+Request entered, not submitted. External AI chats are not controlled.
 
 00:00:54.000 --> 00:01:03.000
-Save. Return. Read again.
-Let an AI with file access save the changes, or save the complete files yourself.
-Return to MD Duck and reread the revised passage after it refreshes.
+Save. The reader updates.
+The revised text stays in the original files.
+In this isolated demo, saving the source and translation refreshed the article in MD Duck.
+Switching reading spaces does not retarget a running Codex task.
 
 00:01:03.000 --> 00:01:12.000
-Check both languages.
-Compare the meaning.
-Check the whole document for pairing issues.
-Matching structure is not proof of an accurate translation. Comments are optional.
+Find and compare changes.
+Filter to changed articles.
+Choose View changes to compare with the last confirmed version.
+Opening an article alone does not clear its marker.
+An external file save is not proof that an AI task has finished.
 
 00:01:12.000 --> 00:01:21.000
-Approve before publishing.
-EXAMPLE PUBLISHING HANDOFF
-Give your approved files to an AI with backend access. Review the preview and explicitly authorize publication.
-MD Duck does not publish articles.
+Keep feedback beside it.
+Leave a note on the passage.
+Collect several comments for your AI to address. For bilingual articles, check the meaning and affected translation too.
+Notes stay with the article. You decide what should be revised.
 
 00:01:21.000 --> 00:01:30.000
-Keep a local source copy.
-Retain the article, translation and images.
-Archive finished work in MD Duck; restore it when it needs an update. Back up the complete library regularly.
+Reviewed? Mark as viewed.
+After checking facts, wording and the translation, choose Mark as viewed. This revision’s marker clears.
+New saved edits will appear for your next review.
+This updates the comparison baseline. It does not approve publication.
+
+00:01:30.000 --> 00:01:39.000
+Approve the publishing handoff.
+Use your own CMS or an authorized AI to publish. Review its preview, then confirm publication.
+Keep article.md, its translation and assets/ locally.
+Publishing is an example handoff. No backend was connected or article published.
+
+00:01:39.000 --> 00:01:48.000
+Archive. Return when needed.
+Archive completed work in MD Duck, then restore it when it needs an update.
+Move or back up the whole article folder, including hidden review data.
+Download the examples and try the workflow at your own pace.

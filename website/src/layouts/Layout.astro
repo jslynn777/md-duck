@@ -34,7 +34,7 @@ const other = alternatePath(path);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={new URL('/images/reading.jpg', Astro.site)} />
+    <meta property="og:image" content={new URL(zh ? '/images/workflow/read-before.jpg' : '/images/workflow/read-before-en.jpg', Astro.site)} />
     <meta name="twitter:card" content="summary_large_image" />
     <title>{title}</title>
   </head>
